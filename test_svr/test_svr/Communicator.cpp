@@ -323,20 +323,23 @@ namespace COMMUNICATOR
 		g_logger.TraceInfo("CCommunicator::ParseData:cmd=0x%x",cb);
 		switch (cb)
 		{
-		case cmd_USERREGISTER:
-			this->cmdUserRegister(pData);
-			break;
 		case cmd_USERLOGIN:
 			this->cmdUserLogin(pData);
 			break;
-		case cmd_USERDELETE:
-			this->cmdUserDelete(pData);
+		case cmd_USERREGISTER:
+			this->cmdUserRegister(pData);
 			break;
 		case cmd_MODIFYPWD:
 			this->cmdModifyPwd(pData);
 			break;
-		case cmd_SYSTEMCONFIG:
-			this->cmdSystemConfig(pData);
+		case cmd_USERDELETE:
+			this->cmdUserDelete(pData);
+			break;
+		case cmd_NEWPROJECT:
+			this->cmdNewProject(pData);
+			break;
+		case cmd_TERMINATEPROJECT:
+			this->cmdTerminateProject( );
 			break;
 		case cmd_VELOCITY_BEGIN:
 			this->cmdVelocityBegin(pData);
@@ -350,9 +353,12 @@ namespace COMMUNICATOR
 		case cmd_STRESS_END:
 			this->cmdStressEnd(pData);
 			break;
-		//case cmd_REPORTPATH:
-		//	this->cmdSetReportPath(pData);
-		//	break;
+		case cmd_REPORTPATH:
+			this->cmdSetReportPath(pData);
+			break;
+		case cmd_ANALYSIS_BEGIN:
+			this->cmdAnalysisBegin(pData);
+			break;
 		case cmd_HEARTBEAT:
 			this->cmdHeartBeatSignal(pData);
 			break;
@@ -462,26 +468,14 @@ namespace COMMUNICATOR
 
 		return true;
 	}
-	bool CCommunicator::cmdSystemConfig(const char* pData )
+	bool CCommunicator::cmdNewProject(const char* pData )
 	{
-		int nLoc = 2;
-		char cTemp;
-		memcpy(&cTemp,pData+nLoc,1);
-		theApp.m_pDataC->SetStartChannel(cTemp);
-		++nLoc;
-		memcpy(&cTemp,pData+nLoc,1);
-		theApp.m_pDataC->SetEndChannel(cTemp);
-		++nLoc;
-		memcpy(&cTemp,pData+nLoc,1);
-		theApp.m_pDataC->SetSampleFrequency(cTemp);
-		++nLoc;
-		memcpy(&cTemp,pData+nLoc,1);
-		theApp.m_pDataC->SetMode(cTemp);
-		++nLoc;
-		memcpy(&cTemp,pData+nLoc,1);
-		theApp.m_pDataC->SetArchiveFromat(cTemp);
+		theApp.m_pDataC->NewProject(pData);
 
-
+		return true;
+	}
+	bool CCommunicator::cmdTerminateProject( )
+	{
 		return true;
 	}
 	bool CCommunicator::cmdVelocityBegin(const char* pData )
@@ -518,6 +512,10 @@ namespace COMMUNICATOR
 		pPath = NULL;
 		theApp.m_pDataC->SetReportPath(strPath);
 
+		return true;
+	}
+	bool CCommunicator::cmdAnalysisBegin(const char* pData )
+	{
 		return true;
 	}
 	bool CCommunicator::cmdHeartBeatSignal(const char* pData)

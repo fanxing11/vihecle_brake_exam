@@ -37,12 +37,15 @@ namespace COMMUNICATOR
 		bool cmdUserDelete(const char* pData );
 		bool cmdModifyPwd(const char* pData );
 		bool cmdParseUserInfo(const char* pData, char *&pUserName, char *&pPwd );
-		bool cmdSystemConfig(const char* pData );
+
+		bool cmdNewProject(const char* pData );
+		bool cmdTerminateProject( );
 		bool cmdVelocityBegin(const char* pData );
 		bool cmdVelocityEnd(const char* pData );
 		bool cmdStressBegin(const char* pData );
 		bool cmdStressEnd(const char* pData );
 		bool cmdSetReportPath(const char* pData );
+		bool cmdAnalysisBegin(const char* pData );
 		bool cmdHeartBeatSignal(const char* pData);
 	};
 

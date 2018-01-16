@@ -39,6 +39,7 @@ namespace DATACONTROLER
 		string m_strReportPath;
 
 	public:
+		void NewProject(const char* pData);
 		void SetStartChannel(const char cStart);
 		void SetEndChannel(const char cEnd);
 		void SetSampleFrequency(const char cSampleFrequency);

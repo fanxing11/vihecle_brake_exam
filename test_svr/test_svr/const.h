@@ -38,18 +38,26 @@ const UINT msg_DB_USERREGISTER = WM_USER+200;
 const UINT msg_DB_USERLOGIN = WM_USER+201;
 const UINT msg_DB_MODIFYPASSWORD = WM_USER+202;
 const UINT msg_DB_DELETEUSER = WM_USER+203;
+const UINT msg_DAQ_NEWPROJECT = WM_USER+204;
+const UINT msg_DAQ_TERMINATEPROJECT = WM_USER+205;
+const UINT msg_DAQ_VELOCITY_BEGIN = WM_USER+206;
+const UINT msg_DAQ_VELOCITY_END = WM_USER+207;
+const UINT msg_DAQ_STRESS_BEGIN = WM_USER+208;
+const UINT msg_DAQ_STRESS_END = WM_USER+209;
+const UINT msg_DATA_SETREPORTPATH = WM_USER+210;
+const UINT msg_ANA_ANALYSIS_BEGIN = WM_USER+211;
 
 //----- UDP cmd from/to UI
 const BYTE cmd_HEADER=0x7E;
 const BYTE cmd_TAIL=0x7F;
 
 const BYTE cmd_USERLOGIN=0x01;//in out
-const BYTE cmd_USERREGISTER=0x02;
-const BYTE cmd_MODIFYPWD=0x03;
-const BYTE cmd_USERDELETE=0x04;
+const BYTE cmd_USERREGISTER=0x02;//in out
+const BYTE cmd_MODIFYPWD=0x03;//in out
+const BYTE cmd_USERDELETE=0x04;//in out
 
-const BYTE cmd_SYSTEMCONFIG=0x11;//in 
-const BYTE cmd_SYSTEMERRORINFO=0x11;//same up //out
+const BYTE cmd_NEWPROJECT=0x11;//in out
+const BYTE cmd_TERMINATEPROJECT=0x12;//in out
 
 const BYTE cmd_VELOCITY_BEGIN=0x21;//in 
 const BYTE cmd_VELOCITY_END=0x22;//in 
@@ -59,16 +67,11 @@ const BYTE cmd_STRESS_BEGIN=0x31;//in
 const BYTE cmd_STRESS_END=0x32;//in
 const BYTE cmd_STRESS=0x31;//out
 
-//const BYTE cmd_VELOCITY_BEGIN=0x31;//in 
-//const BYTE cmd_VELOCITY_END=0x32;//in 
-//const BYTE cmd_VELOCITY=0x21;//out
-//
-//const BYTE cmd_STRESS_BEGIN=0x41;//in 
-//const BYTE cmd_STRESS_END=0x42;//in
-//const BYTE cmd_STRESS=0x31;//out
-
 const BYTE cmd_REPORTPATH=0x41;//in 
-const BYTE cmd_EPORTINFO=0x41;//out
+const BYTE cmd_ANALYSIS_BEGIN=0x42;//in 
+const BYTE cmd_ANALYSIS_STATE=0x41;//out
+const BYTE cmd_ANALYSIS_RESULT=0x42;//out
+//∑÷Œˆ√ª”–÷’÷π√¸¡Ó°£
 
 const BYTE cmd_HEARTBEAT=0x51;//in out
 

@@ -1,5 +1,10 @@
+#include "main.h"
+
 #include "DataControler.h"
 #include <math.h>
+
+extern CtheApp theApp;
+
 
 namespace DATACONTROLER
 {
@@ -31,6 +36,27 @@ namespace DATACONTROLER
 	{
 		m_strReportPath = strPath;
 	}
+	void CDataControler::NewProject(const char* pData)
+	{
+		int nLoc = 2;
+		char cTemp;
+		memcpy(&cTemp,pData+nLoc,1);
+		this->SetStartChannel(cTemp);
+		++nLoc;
+		memcpy(&cTemp,pData+nLoc,1);
+		this->SetEndChannel(cTemp);
+		++nLoc;
+		memcpy(&cTemp,pData+nLoc,1);
+		this->SetSampleFrequency(cTemp);
+		++nLoc;
+		memcpy(&cTemp,pData+nLoc,1);
+		this->SetMode(cTemp);
+		++nLoc;
+		memcpy(&cTemp,pData+nLoc,1);
+		this->SetArchiveFromat(cTemp);
+	}
+
+
 	//得到速度和加速度，加速度近似取最后一个，速度取本组数据最后点处的速度
 	//V = sum(ai*t) 
 	void CDataControler::HandleVelocityData(const double* pData, const int channelCount, const int sectionLength, const double deltat)
