@@ -1,0 +1,129 @@
+﻿Build started 2018/1/16 11:14:12.
+     1>Project "D:\BaiduNetdiskDownload\test_svr\test_svr\test_svr.vcxproj" on node 2 (build target(s)).
+     1>PrepareForBuild:
+         Creating directory "D:\BaiduNetdiskDownload\test_svr\Debug\".
+       InitializeBuildStatus:
+         Creating "Debug\test_svr.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt Communicator.cpp DAQControler.cpp DataControler.cpp DBController.cpp Logger.cpp main.cpp
+         main.cpp
+         Logger.cpp
+         DBController.cpp
+         DataControler.cpp
+         DAQControler.cpp
+         Communicator.cpp
+         Generating Code...
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TC /analyze- /errorReport:prompt shell.c sqlite3.c
+         sqlite3.c
+         shell.c
+         Generating Code...
+       ManifestResourceCompile:
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /nologo /fo"Debug\test_svr.exe.embed.manifest.res" Debug\test_svr_manifest.rc 
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\BaiduNetdiskDownload\test_svr\Debug\test_svr.exe" /INCREMENTAL /NOLOGO /MANIFEST /ManifestFile:"Debug\test_svr.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\BaiduNetdiskDownload\test_svr\Debug\test_svr.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\BaiduNetdiskDownload\test_svr\Debug\test_svr.lib" /MACHINE:X86 Debug\test_svr.exe.embed.manifest.res
+         Debug\Communicator.obj
+         Debug\DAQControler.obj
+         Debug\DataControler.obj
+         Debug\DBController.obj
+         Debug\Logger.obj
+         Debug\main.obj
+         Debug\shell.obj
+         Debug\sqlite3.obj /FORCE:MULTIPLE 
+     1>LINK : warning LNK4075: ignoring '/INCREMENTAL' due to '/FORCE' specification
+     1>DAQControler.obj : warning LNK4006: "void * DAQCONTROLER::m_gEvtSample" (?m_gEvtSample@DAQCONTROLER@@3PAXA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "unsigned long DAQCONTROLER::WrittenBytes" (?WrittenBytes@DAQCONTROLER@@3KA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "void * DAQCONTROLER::hFile" (?hFile@DAQCONTROLER@@3PAXA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "double * DAQCONTROLER::Data" (?Data@DAQCONTROLER@@3PANA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "void * DAQCONTROLER::m_gEvtStress" (?m_gEvtStress@DAQCONTROLER@@3PAXA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "double * DAQCONTROLER::DateOne" (?DateOne@DAQCONTROLER@@3PANA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "void * DAQCONTROLER::m_gEvtVelocity" (?m_gEvtVelocity@DAQCONTROLER@@3PAXA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "unsigned long DAQCONTROLER::RealFileSize" (?RealFileSize@DAQCONTROLER@@3KA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "unsigned int DBCONTROLLER::g_uCmd" (?g_uCmd@DBCONTROLLER@@3IA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "wchar_t const * const DAQCONTROLER::profilePath" (?profilePath@DAQCONTROLER@@3PB_WB) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "int DAQCONTROLER::startChannel" (?startChannel@DAQCONTROLER@@3HA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "unsigned long DAQCONTROLER::SingleSavingFileSize" (?SingleSavingFileSize@DAQCONTROLER@@3KA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "unsigned long DAQCONTROLER::RequirementFileSize" (?RequirementFileSize@DAQCONTROLER@@3KA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "double * DAQCONTROLER::buffer" (?buffer@DAQCONTROLER@@3PANA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "class std::vector<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >,class std::allocator<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > > > DBCONTROLLER::g_vUserName" (?g_vUserName@DBCONTROLLER@@3V?$vector@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@std@@A) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > DBCONTROLLER::g_sPwd" (?g_sPwd@DBCONTROLLER@@3V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@A) already defined in Communicator.obj; second definition ignored
+     1>DBController.obj : warning LNK4006: "unsigned int DBCONTROLLER::g_uCmd" (?g_uCmd@DBCONTROLLER@@3IA) already defined in Communicator.obj; second definition ignored
+     1>DBController.obj : warning LNK4006: "class std::vector<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >,class std::allocator<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > > > DBCONTROLLER::g_vUserName" (?g_vUserName@DBCONTROLLER@@3V?$vector@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@std@@A) already defined in Communicator.obj; second definition ignored
+     1>DBController.obj : warning LNK4006: "class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > DBCONTROLLER::g_sPwd" (?g_sPwd@DBCONTROLLER@@3V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@A) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "void * DAQCONTROLER::m_gEvtSample" (?m_gEvtSample@DAQCONTROLER@@3PAXA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "unsigned long DAQCONTROLER::WrittenBytes" (?WrittenBytes@DAQCONTROLER@@3KA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "void * DAQCONTROLER::hFile" (?hFile@DAQCONTROLER@@3PAXA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "double * DAQCONTROLER::Data" (?Data@DAQCONTROLER@@3PANA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "void * DAQCONTROLER::m_gEvtStress" (?m_gEvtStress@DAQCONTROLER@@3PAXA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "double * DAQCONTROLER::DateOne" (?DateOne@DAQCONTROLER@@3PANA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "void * DAQCONTROLER::m_gEvtVelocity" (?m_gEvtVelocity@DAQCONTROLER@@3PAXA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "unsigned long DAQCONTROLER::RealFileSize" (?RealFileSize@DAQCONTROLER@@3KA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "unsigned int DBCONTROLLER::g_uCmd" (?g_uCmd@DBCONTROLLER@@3IA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "wchar_t const * const DAQCONTROLER::profilePath" (?profilePath@DAQCONTROLER@@3PB_WB) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "int DAQCONTROLER::startChannel" (?startChannel@DAQCONTROLER@@3HA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "unsigned long DAQCONTROLER::SingleSavingFileSize" (?SingleSavingFileSize@DAQCONTROLER@@3KA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "unsigned long DAQCONTROLER::RequirementFileSize" (?RequirementFileSize@DAQCONTROLER@@3KA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "double * DAQCONTROLER::buffer" (?buffer@DAQCONTROLER@@3PANA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "class std::vector<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >,class std::allocator<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > > > DBCONTROLLER::g_vUserName" (?g_vUserName@DBCONTROLLER@@3V?$vector@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@std@@A) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > DBCONTROLLER::g_sPwd" (?g_sPwd@DBCONTROLLER@@3V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@A) already defined in Communicator.obj; second definition ignored
+     1>LINK : warning LNK4067: ambiguous entry point; selected 'mainCRTStartup'
+     1>D:\BaiduNetdiskDownload\test_svr\Debug\test_svr.exe : warning LNK4088: image being generated due to /FORCE option; image may not run
+       Manifest:
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /out:"Debug\test_svr.exe.embed.manifest" /manifest Debug\test_svr.exe.intermediate.manifest
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /nologo /fo"Debug\test_svr.exe.embed.manifest.res" Debug\test_svr_manifest.rc 
+       LinkEmbedManifest:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\BaiduNetdiskDownload\test_svr\Debug\test_svr.exe" /INCREMENTAL /NOLOGO /MANIFEST /ManifestFile:"Debug\test_svr.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\BaiduNetdiskDownload\test_svr\Debug\test_svr.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\BaiduNetdiskDownload\test_svr\Debug\test_svr.lib" /MACHINE:X86 Debug\test_svr.exe.embed.manifest.res
+         Debug\Communicator.obj
+         Debug\DAQControler.obj
+         Debug\DataControler.obj
+         Debug\DBController.obj
+         Debug\Logger.obj
+         Debug\main.obj
+         Debug\shell.obj
+         Debug\sqlite3.obj /FORCE:MULTIPLE 
+     1>LINK : warning LNK4075: ignoring '/INCREMENTAL' due to '/FORCE' specification
+     1>DAQControler.obj : warning LNK4006: "void * DAQCONTROLER::m_gEvtSample" (?m_gEvtSample@DAQCONTROLER@@3PAXA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "unsigned long DAQCONTROLER::WrittenBytes" (?WrittenBytes@DAQCONTROLER@@3KA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "void * DAQCONTROLER::hFile" (?hFile@DAQCONTROLER@@3PAXA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "double * DAQCONTROLER::Data" (?Data@DAQCONTROLER@@3PANA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "void * DAQCONTROLER::m_gEvtStress" (?m_gEvtStress@DAQCONTROLER@@3PAXA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "double * DAQCONTROLER::DateOne" (?DateOne@DAQCONTROLER@@3PANA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "void * DAQCONTROLER::m_gEvtVelocity" (?m_gEvtVelocity@DAQCONTROLER@@3PAXA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "unsigned long DAQCONTROLER::RealFileSize" (?RealFileSize@DAQCONTROLER@@3KA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "unsigned int DBCONTROLLER::g_uCmd" (?g_uCmd@DBCONTROLLER@@3IA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "wchar_t const * const DAQCONTROLER::profilePath" (?profilePath@DAQCONTROLER@@3PB_WB) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "int DAQCONTROLER::startChannel" (?startChannel@DAQCONTROLER@@3HA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "unsigned long DAQCONTROLER::SingleSavingFileSize" (?SingleSavingFileSize@DAQCONTROLER@@3KA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "unsigned long DAQCONTROLER::RequirementFileSize" (?RequirementFileSize@DAQCONTROLER@@3KA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "double * DAQCONTROLER::buffer" (?buffer@DAQCONTROLER@@3PANA) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "class std::vector<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >,class std::allocator<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > > > DBCONTROLLER::g_vUserName" (?g_vUserName@DBCONTROLLER@@3V?$vector@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@std@@A) already defined in Communicator.obj; second definition ignored
+     1>DAQControler.obj : warning LNK4006: "class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > DBCONTROLLER::g_sPwd" (?g_sPwd@DBCONTROLLER@@3V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@A) already defined in Communicator.obj; second definition ignored
+     1>DBController.obj : warning LNK4006: "unsigned int DBCONTROLLER::g_uCmd" (?g_uCmd@DBCONTROLLER@@3IA) already defined in Communicator.obj; second definition ignored
+     1>DBController.obj : warning LNK4006: "class std::vector<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >,class std::allocator<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > > > DBCONTROLLER::g_vUserName" (?g_vUserName@DBCONTROLLER@@3V?$vector@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@std@@A) already defined in Communicator.obj; second definition ignored
+     1>DBController.obj : warning LNK4006: "class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > DBCONTROLLER::g_sPwd" (?g_sPwd@DBCONTROLLER@@3V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@A) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "void * DAQCONTROLER::m_gEvtSample" (?m_gEvtSample@DAQCONTROLER@@3PAXA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "unsigned long DAQCONTROLER::WrittenBytes" (?WrittenBytes@DAQCONTROLER@@3KA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "void * DAQCONTROLER::hFile" (?hFile@DAQCONTROLER@@3PAXA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "double * DAQCONTROLER::Data" (?Data@DAQCONTROLER@@3PANA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "void * DAQCONTROLER::m_gEvtStress" (?m_gEvtStress@DAQCONTROLER@@3PAXA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "double * DAQCONTROLER::DateOne" (?DateOne@DAQCONTROLER@@3PANA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "void * DAQCONTROLER::m_gEvtVelocity" (?m_gEvtVelocity@DAQCONTROLER@@3PAXA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "unsigned long DAQCONTROLER::RealFileSize" (?RealFileSize@DAQCONTROLER@@3KA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "unsigned int DBCONTROLLER::g_uCmd" (?g_uCmd@DBCONTROLLER@@3IA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "wchar_t const * const DAQCONTROLER::profilePath" (?profilePath@DAQCONTROLER@@3PB_WB) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "int DAQCONTROLER::startChannel" (?startChannel@DAQCONTROLER@@3HA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "unsigned long DAQCONTROLER::SingleSavingFileSize" (?SingleSavingFileSize@DAQCONTROLER@@3KA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "unsigned long DAQCONTROLER::RequirementFileSize" (?RequirementFileSize@DAQCONTROLER@@3KA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "double * DAQCONTROLER::buffer" (?buffer@DAQCONTROLER@@3PANA) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "class std::vector<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >,class std::allocator<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > > > DBCONTROLLER::g_vUserName" (?g_vUserName@DBCONTROLLER@@3V?$vector@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@std@@A) already defined in Communicator.obj; second definition ignored
+     1>main.obj : warning LNK4006: "class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > DBCONTROLLER::g_sPwd" (?g_sPwd@DBCONTROLLER@@3V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@A) already defined in Communicator.obj; second definition ignored
+     1>LINK : warning LNK4067: ambiguous entry point; selected 'mainCRTStartup'
+     1>D:\BaiduNetdiskDownload\test_svr\Debug\test_svr.exe : warning LNK4088: image being generated due to /FORCE option; image may not run
+         test_svr.vcxproj -> D:\BaiduNetdiskDownload\test_svr\Debug\test_svr.exe
+       FinalizeBuildStatus:
+         Deleting file "Debug\test_svr.unsuccessfulbuild".
+         Touching "Debug\test_svr.lastbuildstate".
+     1>Done Building Project "D:\BaiduNetdiskDownload\test_svr\test_svr\test_svr.vcxproj" (build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:11.68

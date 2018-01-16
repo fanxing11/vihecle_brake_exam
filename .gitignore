@@ -7,8 +7,10 @@
 *.lo
 *.o
 *.obj
-#Meng
+
+#Micheal
 *.tlog
+*.pdb
 
 # Precompiled Headers
 *.gch
