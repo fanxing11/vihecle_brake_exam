@@ -1,3 +1,4 @@
+
 # Prerequisites
 *.d
 
@@ -6,6 +7,8 @@
 *.lo
 *.o
 *.obj
+
+*.tlog
 
 # Precompiled Headers
 *.gch
