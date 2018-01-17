@@ -77,6 +77,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Analysis.cpp" />
     <ClCompile Include="Communicator.cpp" />
     <ClCompile Include="DAQControler.cpp" />
     <ClCompile Include="DataControler.cpp" />
@@ -87,6 +88,7 @@
     <ClCompile Include="sqlite3.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Analysis.h" />
     <ClInclude Include="Communicator.h" />
     <ClInclude Include="const.h" />
     <ClInclude Include="DAQControler.h" />

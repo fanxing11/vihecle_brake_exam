@@ -9,6 +9,8 @@ using namespace DBCONTROLLER;
 using namespace DATACONTROLER;
 #include "DAQControler.h"
 using DAQCONTROLER::CDAQControler;
+#include "Analysis.h"
+using namespace ANALYSISSPACE;
 
 //#include "const.h"
 
@@ -23,6 +25,7 @@ public:
 	CDBController* m_pDBC;
 	CDataControler* m_pDataC;
 	CDAQControler* m_pDAQC;
+	CAnalysis* m_pAnalysis;
 	DWORD m_dwMainThreadID;
 
 

@@ -11,6 +11,8 @@
 #Micheal
 *.tlog
 *.pdb
+*.log
+*.ipch
 
 # Precompiled Headers
 *.gch

@@ -8,7 +8,7 @@ CtheApp::CtheApp(void)
 	m_pDBC = new CDBController;
 	m_pDataC = new CDataControler;
 	m_pDAQC = new CDAQControler;
-	
+	m_pAnalysis = new CAnalysis;
 }
 
 
@@ -77,8 +77,10 @@ int main()
 				{
 					theApp.m_pCommunicator->SendDatatoUI(msg.message,nErr);
 				}
-				delete [] pUserName;pUserName = NULL;
-				delete [] pPwd;pPwd = NULL;
+				delete [] pUserName;
+				pUserName = NULL;
+				delete [] pPwd;
+				pPwd = NULL;
 				break;
 			}
 		case msg_DB_MODIFYPASSWORD:
@@ -124,6 +126,89 @@ int main()
 				g_logger.TraceInfo("in main::msg_DAQ_DATAONE");
 				theApp.m_pCommunicator->SendDatatoUI(msg.message);
 
+				break;
+			}
+		case msg_DAQ_NEWPROJECT:
+			{
+				string strInfo("");
+				bool bRet = theApp.m_pDataC->NewProject( strInfo ) ;
+
+				if ( bRet )//success
+				{
+					theApp.m_pCommunicator->SendDatatoUI(msg.message, NUM_ZERO, strInfo );
+				}
+				else
+				{
+					theApp.m_pCommunicator->SendDatatoUI(msg.message, NUM_ONE, strInfo);
+				}
+				break;
+			}
+		case msg_DAQ_TERMINATEPROJECT:
+			{
+				break;
+			}
+		case msg_DATA_SETREPORTPATH:
+			{
+				char* pPath = (char*)msg.wParam;
+				string strPath(pPath);
+				theApp.m_pDataC->SetReportPath(strPath);
+				delete[] pPath;
+				pPath = NULL;
+
+				break;
+			}
+		case msg_ANA_ANALYSIS_BEGIN:
+			{
+				char cCurrentTest = (char)msg.wParam;
+				char* pFilePath = (char*)msg.lParam;
+				string strProjPath("");
+				string strRetInfo("");
+
+				if (cCurrentTest == 0x01)//current test
+				{
+					if ( theApp.m_pDataC->GetCurrentProjectState() )
+					{
+						g_logger.TraceWarning("msg_ANA_ANALYSIS_BEGIN:CurrentProject is onGoing");
+						strRetInfo = ("当前检测正在进行");
+						//theApp.m_pCommunicator->SendDatatoUI(msg_ANA_ANALYSIS_STATE,NUM_THREE,strRetInfo);
+						char* pBuf = new char[strRetInfo.length()+1];
+						memset(pBuf,0,strRetInfo.length()+1);
+						memcpy(pBuf,strRetInfo.c_str(),strRetInfo.length());
+						if( !PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)pBuf) )
+						{
+							delete[] pBuf;
+							pBuf = NULL;
+						}
+						return 0;
+					}
+					theApp.m_pDataC->GetProjectPath(strProjPath);
+				}
+				else if (cCurrentTest == 0x02)//history test
+				{
+					strProjPath = pFilePath;
+				}
+				else
+				{
+					g_logger.TraceError("msg_ANA_ANALYSIS_BEGIN:cCurrentTest != 0x01|0x02");
+					return 0;
+				}
+				theApp.m_pAnalysis->BeginAnalysis(strProjPath);
+				break;
+			}
+		case msg_ANA_ANALYSIS_STATE:
+			{
+				char* pp = (char*)msg.lParam;
+				string strInfo(pp);
+				if (NULL != pp)
+				{
+					delete[] pp;
+					pp = NULL;
+				}
+				theApp.m_pCommunicator->SendDatatoUI(msg.message,msg.wParam,strInfo);
+				break;
+			}
+		case msg_ANA_ANALYSIS_RESULT:
+			{
 				break;
 			}
 		}

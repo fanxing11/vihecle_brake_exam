@@ -234,6 +234,85 @@ namespace COMMUNICATOR
 
 				break;
 			}
+		case msg_DAQ_NEWPROJECT:
+			{
+				char cMode = theApp.m_pDataC->GetMode();
+				char cSucceed;
+				switch (nParam)
+				{
+				case NUM_ZERO://success
+					cSucceed = 0x00;
+					break;
+				case NUM_ONE:
+					cSucceed = 0x01;
+					break;
+				}
+				unsigned char cDataLen = strData2Send.length();//需要其长度不大于256，如果大于溢出了
+				int nCmdLen = 6+cDataLen;
+				char* pBuf = new char[nCmdLen];
+				memset( pBuf, 0, nCmdLen );
+				int nLoc=0;
+				memcpy(pBuf+nLoc,&cmd_HEADER,1);
+				nLoc+=1;
+				memcpy(pBuf+nLoc,&cmd_NEWPROJECT, 1);
+				nLoc+=1;
+				memcpy(pBuf+nLoc,&cMode, 1);
+				nLoc+=1;
+				memcpy(pBuf+nLoc,&cSucceed, 1);
+				nLoc+=1;
+				memcpy(pBuf+nLoc,&cDataLen, 1);
+				nLoc+=1;
+				memcpy(pBuf+nLoc,strData2Send.c_str(),cDataLen);
+				nLoc+=cDataLen;
+				memcpy(pBuf+nLoc,&cmd_TAIL,1);
+
+				sendto(m_SockSrv, pBuf, nCmdLen, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+
+				delete[] pBuf;
+				pBuf = NULL;
+
+				break;
+			}
+		case msg_ANA_ANALYSIS_STATE:
+			{
+				char Ret[5] = {cmd_HEADER,cmd_ANALYSIS_STATE,0x00,0x00,cmd_TAIL};
+
+				int nInfoLen = strData2Send.length();
+				char cInfoLen = (char)nInfoLen;
+				int nCmdLen = nInfoLen+5;
+				char* pBuf= new char[nCmdLen];
+				memset(pBuf,0,nInfoLen+5);
+
+				switch (Cmd)
+				{
+				case NUM_ONE://going
+					Ret[2] = 0x01;
+					break;
+				case NUM_TWO://success
+					Ret[2] = 0x02;
+					break;
+				case NUM_THREE://failed
+					Ret[2] = 0x03;
+					Ret[3] = cInfoLen;
+					memcpy(pBuf, Ret, 4);
+					memcpy(pBuf+4,strData2Send.c_str(),nInfoLen);
+					memcpy(pBuf+4+nInfoLen,&cmd_TAIL,1);
+					break;
+				}
+				if (Cmd == NUM_THREE)
+				{
+					sendto(m_SockSrv, pBuf, nCmdLen, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+				}
+				else
+				{
+					sendto(m_SockSrv, Ret, 5, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+				}
+				break;
+			}
+		case msg_ANA_ANALYSIS_RESULT:
+			{
+				break;
+			}
 
 		}
 
@@ -250,9 +329,8 @@ namespace COMMUNICATOR
 		}
 
 		int nAddrBufLen=sizeof(SOCKADDR);
-		//char* pBuf = new char(100);
-		//memset(pBuf,0,100);
-		char pBuf[100]={0};//max byte no. 100
+
+		char pBuf[500]={0};//max byte no. 100
 		SOCKADDR_IN addrClient;
 
 		int nLenRev = recvfrom(m_SockSrv,pBuf,100,0,(SOCKADDR*)&addrClient,&nAddrBufLen);
@@ -271,36 +349,13 @@ namespace COMMUNICATOR
 			{
 				g_logger.TraceError("CCommunicator::ParseRevData - recv data parse error");
 			}
-			//printf("rev: %s\n",pBuf);
 		}
-		//delete[] pBuf;
-		//pBuf = NULL;
 
 		if (snFirstTime)
 		{
 			m_addrClient = addrClient;
 			snFirstTime = false;
 		}
-
-
-		//char sendBuf[100]={0};
-		//sprintf(sendBuf, "Welcome %s to http://www.meng.org",
-		//	inet_ntoa(addrClient.sin_addr));
-		////send data
-		//int nLenSend = sendto(m_SockSrv,sendBuf,strlen(sendBuf)+1,0,(SOCKADDR*)&addrClient,nAddrBufLen);
-		//if ( nLenSend == SOCKET_ERROR)
-		//{
-		//	g_logger.TraceError("CCommunicator::ParseRevData - sendto return SOCKET_ERROR,error code:%d ",WSAGetLastError());
-		//}
-		//else if( nLenSend != strlen(sendBuf)+1 )
-		//{
-		//	g_logger.TraceError("CCommunicator::ParseRevData - sendto length not match:send=%d,sent=%d",strlen(sendBuf)+1,nLenSend);
-		//}
-		//else
-		//{
-		//	g_logger.TraceInfo("CCommunicator::ParseRevData - send success,sentLen=%d",nLenSend);
-		//}
-
 
 		return true;
 	}
@@ -470,31 +525,57 @@ namespace COMMUNICATOR
 	}
 	bool CCommunicator::cmdNewProject(const char* pData )
 	{
-		theApp.m_pDataC->NewProject(pData);
+		theApp.m_pDataC->SetNewProjectPara(pData);
+		PostThreadMessage(m_dwMainThreadId, msg_DAQ_NEWPROJECT, NULL, NULL); 
 
 		return true;
 	}
 	bool CCommunicator::cmdTerminateProject( )
 	{
+		PostThreadMessage(m_dwMainThreadId, msg_DAQ_TERMINATEPROJECT, NULL, NULL); 
 		return true;
 	}
 	bool CCommunicator::cmdVelocityBegin(const char* pData )
 	{
+		char cMode = theApp.m_pDataC->GetMode();
+		if (cMode != 0x01)
+		{
+			g_logger.TraceWarning("CCommunicator::cmdVelocityBegin - only test mode have begin cmd");
+			return false;
+		}
 		theApp.m_pDAQC->VelocityBegin();
 		return true;
 	}
 	bool CCommunicator::cmdVelocityEnd(const char* pData )
 	{
+		char cMode = theApp.m_pDataC->GetMode();
+		if (cMode != 0x01)
+		{
+			g_logger.TraceWarning("CCommunicator::cmdVelocityEnd - only test mode have begin cmd");
+			return false;
+		}
 		theApp.m_pDAQC->VelocityEnd();
 		return true;
 	}
 	bool CCommunicator::cmdStressBegin(const char* pData )
 	{
+		char cMode = theApp.m_pDataC->GetMode();
+		if (cMode != 0x01)
+		{
+			g_logger.TraceWarning("CCommunicator::cmdStressBegin - only test mode have begin cmd");
+			return false;
+		}
 		theApp.m_pDAQC->StressBegin();
 		return true;
 	}
 	bool CCommunicator::cmdStressEnd(const char* pData )
 	{
+		char cMode = theApp.m_pDataC->GetMode();
+		if (cMode != 0x01)
+		{
+			g_logger.TraceWarning("CCommunicator::cmdStressEnd - only test mode have begin cmd");
+			return false;
+		}
 		theApp.m_pDAQC->StressEnd();
 		return true;
 	}
@@ -507,15 +588,35 @@ namespace COMMUNICATOR
 		memset(pPath,'\0',nPathLen+1);
 		++nLoc;
 		memcpy(pPath,pData+nLoc,nPathLen);
-		string strPath(pPath);
-		delete[] pPath;
-		pPath = NULL;
-		theApp.m_pDataC->SetReportPath(strPath);
+
+		if ( !PostThreadMessage(m_dwMainThreadId,msg_DATA_SETREPORTPATH,(WPARAM)pPath,NULL ) )
+		{
+			delete[] pPath;
+			pPath = NULL;
+		}
+
 
 		return true;
 	}
 	bool CCommunicator::cmdAnalysisBegin(const char* pData )
 	{
+		int nLoc = 2;
+		char cCurrentTest = 0x00;
+		memcpy(&cCurrentTest,pData+nLoc,1);
+		++nLoc;
+		int nFilePathLen=0;
+		memcpy(&nFilePathLen,pData+nLoc,1);
+		++nLoc;
+		char *pFP = new char[nFilePathLen+1];
+		memset(pFP,0,nFilePathLen+1);
+		memcpy(pFP, pData+nLoc,nFilePathLen);
+
+		if ( !PostThreadMessage(m_dwMainThreadId, msg_ANA_ANALYSIS_BEGIN, (WPARAM)cCurrentTest, (LPARAM)pFP ) )
+		{
+			delete[] pFP;
+			pFP = NULL;
+		}
+
 		return true;
 	}
 	bool CCommunicator::cmdHeartBeatSignal(const char* pData)
