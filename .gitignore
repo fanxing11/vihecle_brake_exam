@@ -14,6 +14,7 @@
 *.log
 *.ipch
 *.sdf
+*.idb
 
 # Precompiled Headers
 *.gch

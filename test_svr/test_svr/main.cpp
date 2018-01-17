@@ -145,6 +145,7 @@ int main()
 			}
 		case msg_DAQ_TERMINATEPROJECT:
 			{
+				theApp.m_pDataC->TerminateCurrentProject();
 				break;
 			}
 		case msg_DATA_SETREPORTPATH:

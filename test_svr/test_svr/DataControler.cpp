@@ -67,20 +67,23 @@ namespace DATACONTROLER
 		int nInfo = 0;
 		memcpy(&nInfo,pData+nLoc,1);
 		string strPath;
-		if (NUM_ZERO == nInfo)
-		{
-			this->CreateProjectPath(strPath);
-		}
-		else
-		{
-			++nLoc;
-			char* pbuf = new char[nInfo+1];
-			memset(pbuf,0,nInfo+1);
-			memcpy(pbuf,pData+nLoc,nInfo);
-			strPath = pbuf;
-			delete[] pbuf;
-			pbuf = NULL;
-		}
+		//if (NUM_ZERO == nInfo)
+		//{
+		//	this->CreateProjectPath(strPath);
+		//}
+		//else
+		//{
+		//	++nLoc;
+		//	char* pbuf = new char[nInfo+1];
+		//	memset(pbuf,0,nInfo+1);
+		//	memcpy(pbuf,pData+nLoc,nInfo);
+		//	strPath = pbuf;
+		//	delete[] pbuf;
+		//	pbuf = NULL;
+		//}
+		this->CreateProjectPath(strPath);
+
+
 		this->SetProjectPath(strPath);
 
 	}
@@ -97,6 +100,8 @@ namespace DATACONTROLER
 		}
 		m_bCurrentProjectGoing = true;
 		//取得检测模式，设置DAQ线程中的标志位
+
+		//获取初始地面倾角并保存写来
 
 
 
