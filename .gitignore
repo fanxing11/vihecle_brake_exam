@@ -13,6 +13,7 @@
 *.pdb
 *.log
 *.ipch
+*.sdf
 
 # Precompiled Headers
 *.gch
