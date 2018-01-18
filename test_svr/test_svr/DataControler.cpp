@@ -14,8 +14,15 @@ namespace DATACONTROLER
 {
 
 	CDataControler::CDataControler(void)
+		:m_hEvtStressInfo(NULL)
+		,m_hEvtVelocityInfo(NULL)
+		,m_nCurrentProjectState(NUM_ZERO)
+		,m_dInitYAngle(0.0)
+		,m_dInitXAngle(0.0)
+		,m_strConfigFullName("")
 	{
-		m_nCurrentProjectState = 0;
+		m_hEvtStressInfo = CreateEvent(NULL,TRUE,FALSE,L"");
+		m_hEvtVelocityInfo = CreateEvent(NULL,TRUE,FALSE,L"");
 	}
 
 	CDataControler::~CDataControler(void)
@@ -146,18 +153,17 @@ namespace DATACONTROLER
 	{
 		string strConfigName("config.ini");
 		string strAppName("ProjectInfo");
-		string strConfigFullName = m_strProjectPath+"\\"+strConfigName;
-		string strTemp;
+		m_strConfigFullName = m_strProjectPath+"\\"+strConfigName;
 		char buf[40] = {0};
 		
 		sprintf_s(buf,"%d",m_cStartChannel);
-		WritePrivateProfileStringA(strAppName.c_str(),"StartChannel",buf,strConfigFullName.c_str());
+		WritePrivateProfileStringA(strAppName.c_str(),"StartChannel",buf,m_strConfigFullName.c_str());
 		memset(buf,0,40);
 		sprintf_s(buf,"%d",m_cEndChannel);
-		WritePrivateProfileStringA(strAppName.c_str(),"EndChannel",buf,strConfigFullName.c_str());
+		WritePrivateProfileStringA(strAppName.c_str(),"EndChannel",buf,m_strConfigFullName.c_str());
 		memset(buf,0,40);
 		sprintf_s(buf,"%d KHz",m_cSampleFrequency);
-		WritePrivateProfileStringA(strAppName.c_str(),"SampleFrequency",buf,strConfigFullName.c_str());
+		WritePrivateProfileStringA(strAppName.c_str(),"SampleFrequency",buf,m_strConfigFullName.c_str());
 		memset(buf,0,40);
 		switch(m_cMode)
 		{
@@ -174,7 +180,7 @@ namespace DATACONTROLER
 			sprintf_s(buf,"完整检测模式");
 			break;
 		}
-		WritePrivateProfileStringA(strAppName.c_str(),"Mode",buf,strConfigFullName.c_str());
+		WritePrivateProfileStringA(strAppName.c_str(),"Mode",buf,m_strConfigFullName.c_str());
 		memset(buf,0,40);
 		switch(m_cArchiveFormat)
 		{
@@ -188,7 +194,7 @@ namespace DATACONTROLER
 			sprintf_s(buf,"txt");
 			break;
 		}
-		WritePrivateProfileStringA(strAppName.c_str(),"ArchiveFormat",buf,strConfigFullName.c_str());		
+		WritePrivateProfileStringA(strAppName.c_str(),"ArchiveFormat",buf,m_strConfigFullName.c_str());		
 	}
 
 	void CDataControler::SetProjectPath(string& strPath)
@@ -234,6 +240,7 @@ namespace DATACONTROLER
 	//V = sum(ai*t) 
 	void CDataControler::HandleVelocityData(const double* pData, const int channelCount, const int sectionLength, const double deltat)
 	{
+		ResetEvent(m_hEvtVelocityInfo);
 		double dSumA = 0.0;
 		double dCompoundA = 0.0;
 		for (int i=0;i<sectionLength;++i)
@@ -243,12 +250,18 @@ namespace DATACONTROLER
 		}
 		m_stVelocityInfo.LastAccelaration = dCompoundA;
 		m_stVelocityInfo.LastVelocity = dSumA * deltat;
+
+		TransformAcceleration(m_stVelocityInfo.LastAccelaration);
+		TransformVelocity(m_stVelocityInfo.LastVelocity);
+
+		SetEvent(m_hEvtVelocityInfo);
 	}
 	//得到最大手刹力和脚刹力，坡度和脚刹位置近似取第一个值
 	void CDataControler::HandleStressData(const double* pData, const int channelCount, const int sectionLength)
 	{
+		ResetEvent(m_hEvtStressInfo);
 		m_stStressInfo.MaxFootBrakeForce = *(pData+0) - *(pData+1);
-		m_stStressInfo.Gradient = *(pData+2);
+		m_stStressInfo.Gradient = *(pData+2);//暂时使用一个方向的角度
 		m_stStressInfo.MaxHandBrakeForce = *(pData+4) - *(pData+5);
 		m_stStressInfo.PedalDistance = *(pData+6);
 		STRESSINFO stStressInfo;
@@ -266,15 +279,110 @@ namespace DATACONTROLER
 			}
 		}
 
+		TransformFootBrakeForce(m_stStressInfo.MaxFootBrakeForce);
+		TransformHandBrakeForce(m_stStressInfo.MaxHandBrakeForce);
+		TransformGradient(m_stStressInfo.Gradient);//暂时使用一个方向的角度
+		TransformPedalDistance(m_stStressInfo.PedalDistance);
+
+		SetEvent(m_hEvtStressInfo);
 	}
+	void CDataControler::SaveInitAngle(const double* pData)
+	{
+		double dX = *(pData+2);
+		double dY = *(pData+3);
+		this->SetInitXAngle(dX);
+		this->SetInitYAngle(dY);
+	}
+
 	void CDataControler::GetStressInfo(STRESSINFO& stStressInfo)
 	{
-		stStressInfo = m_stStressInfo;
+		DWORD dwRet = WaitForSingleObject(m_hEvtStressInfo,1);
+		if (WAIT_OBJECT_0 == dwRet)
+		{
+			stStressInfo = m_stStressInfo;
+		}
+		else
+		{
+			g_logger.TraceError("CDataControler::GetStressInfo - %d",dwRet);
+		}
 	}
 	void CDataControler::GetVelocityInfo(VELOCITYINFO& stVelocityInfo)
 	{
-		stVelocityInfo = m_stVelocityInfo;
+		DWORD dwRet = WaitForSingleObject(m_hEvtVelocityInfo,1);
+		if (WAIT_OBJECT_0 == dwRet)
+		{
+			stVelocityInfo = m_stVelocityInfo;
+		}
+		else
+		{
+			g_logger.TraceError("CDataControler::GetVelocityInfo - %d",dwRet);
+		}
 	}
 
+	void CDataControler::SetInitXAngle(const double dA)
+	{
+		m_dInitXAngle = dA;
+		TransformGradient(m_dInitXAngle);
+
+		string strAppName("InitialAngle");
+		char buf[40] = {0};
+		sprintf_s(buf,"%f",m_dInitXAngle);
+		if(!WritePrivateProfileStringA(strAppName.c_str(),"InitialX",buf,m_strConfigFullName.c_str()) )
+		{
+			g_logger.TraceError("CDataControler::SetInitXAngle - %d",GetLastError());
+		}
+	}
+	double CDataControler::GetInitXAngle() const
+	{
+		return m_dInitXAngle;
+	}
+	void CDataControler::SetInitYAngle(const double dA)
+	{
+		m_dInitYAngle = dA;
+		TransformGradient(m_dInitYAngle);
+
+		string strAppName("InitialAngle");
+		char buf[40] = {0};
+		sprintf_s(buf,"%f",m_dInitYAngle);
+		if( !WritePrivateProfileStringA(strAppName.c_str(),"InitialY",buf,m_strConfigFullName.c_str()) )
+		{
+			g_logger.TraceError("CDataControler::SetInitYAngle - %d",GetLastError());
+		}
+	}
+	double CDataControler::GetInitYAngle() const
+	{
+		return m_dInitYAngle;
+	}
+
+	bool CDataControler::TransformVelocity(double & dVel)
+	{//nothing - DO NOT calc repeatedly!
+		dVel = dVel/0.04;
+		return true;
+	}
+	bool CDataControler::TransformAcceleration(double & dAcc)
+	{
+		dAcc  = dAcc/0.04;
+		return true;
+	}
+	bool CDataControler::TransformFootBrakeForce(double &dForce)
+	{
+		dForce = (dForce-0.095)*245.0259728;
+		return true;
+	}
+	bool CDataControler::TransformHandBrakeForce(double &dForce)
+	{
+		dForce = dForce * 4166.6666;
+		return true;
+	}
+	bool CDataControler::TransformGradient(double &dGradient)
+	{
+		dGradient = (dGradient-2.59)*0.08333;
+		return true;
+	}
+	bool CDataControler::TransformPedalDistance(double &dDist)
+	{
+		dDist = 1 / (dDist-0.44) * 0.1026856240126 + 1/30;
+		return true;
+	}
 
 }

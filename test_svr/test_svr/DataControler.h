@@ -77,13 +77,34 @@ namespace DATACONTROLER
 		 
 			
 	public:
+		void SaveInitAngle(const double* pData);
 		void HandleVelocityData(const double* pData, const int channelCount, const int sectionLength, const double deltat);
 		void HandleStressData(const double* pData, const int channelCount, const int sectionLength);
+
+
 		void GetStressInfo(STRESSINFO& stStressInfo);
 		void GetVelocityInfo(VELOCITYINFO& stVelocityInfo);
+
 	private:
 		STRESSINFO m_stStressInfo;
 		VELOCITYINFO m_stVelocityInfo;
+		HANDLE m_hEvtStressInfo;
+		HANDLE m_hEvtVelocityInfo;
+		string m_strConfigFullName;
+
+		double m_dInitXAngle;
+		double m_dInitYAngle;
+		double GetInitXAngle() const;
+		double GetInitYAngle() const;
+		void SetInitXAngle(const double dA);
+		void SetInitYAngle(const double dA);
+
+		bool TransformVelocity(double & dVel);
+		bool TransformAcceleration(double & dAcc);
+		bool TransformFootBrakeForce(double &dForce);
+		bool TransformHandBrakeForce(double &dForce);
+		bool TransformGradient(double &dGradient);
+		bool TransformPedalDistance(double &dDist);
 	};
 
 }

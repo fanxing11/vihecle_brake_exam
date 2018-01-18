@@ -37,6 +37,7 @@ namespace DAQCONTROLER
 	HANDLE m_gEvtStress;
 	HANDLE m_gEvtVelocity;
 	HANDLE m_gEvtSaveFile;
+	HANDLE m_gEvtInitAngleFlag;//First need save InitAngle
 
 	class CDAQControler
 	{
@@ -54,13 +55,17 @@ namespace DAQCONTROLER
 		void NewProject(char cMode);
 		void TerminateProject();
 
+
+
 	private:
 
+		void SetInitAngleFlag();
 		void SampleBegin();
 		void SampleEnd();
 		void CreateSyncEvent();
 		void CloseEvtHandle();
 		void DisInitialize();
+
 
 		WaveformAiCtrl * m_wfAiCtrl;
 

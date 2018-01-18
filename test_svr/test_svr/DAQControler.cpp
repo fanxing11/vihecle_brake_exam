@@ -46,12 +46,17 @@ namespace DAQCONTROLER
 		//cout<<USER_BUFFER_SIZE<<"  "<<args->Count<<"  "<<getDataCount<<endl;
 		waveformAiCtrl->GetData(getDataCount, Data);
 
+		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtInitAngleFlag,0))
+		{
+			theApp.m_pDataC->SaveInitAngle( Data );
+			ResetEvent(m_gEvtInitAngleFlag);
+		}
 		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtSample,0))
 		{
 			return;
 		}
-		printTime();
 
+		printTime();
 		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtStress,0))
 		{
 			theApp.m_pDataC->HandleStressData(Data, channelCount,sectionLength);
@@ -61,7 +66,6 @@ namespace DAQCONTROLER
 			theApp.m_pDataC->HandleVelocityData(Data, channelCount,sectionLength,deltat);
 		}
 		printTime();
-
 
 		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtSaveFile,0))
 		{
@@ -182,6 +186,11 @@ namespace DAQCONTROLER
 			CloseHandle(m_gEvtSaveFile);
 			m_gEvtSaveFile = NULL;
 		}
+		if(!m_gEvtInitAngleFlag)
+		{
+			CloseHandle(m_gEvtInitAngleFlag);
+			m_gEvtInitAngleFlag = NULL;
+		}
 	}
 
 	void CDAQControler::CreateSyncEvent()
@@ -195,6 +204,8 @@ namespace DAQCONTROLER
 		m_gEvtVelocity = CreateEvent(NULL,TRUE,FALSE,L"");
 
 		m_gEvtSaveFile = CreateEvent(NULL,TRUE,FALSE,L"");
+
+		m_gEvtInitAngleFlag = CreateEvent(NULL,TRUE,FALSE,L"");
 	}
 
 	void CDAQControler::DisInitialize()
@@ -289,7 +300,7 @@ namespace DAQCONTROLER
 		if(BioFailed(ret))
 		{
 			//u初始化错误，弹框或者返回错误信息----
-			g_logger.TraceWarning("CDAQControler::DisInitialize:Some error occurred. And the last error code is 0x%X.\n", ret);
+			g_logger.TraceError("CDAQControler::Initialize:Some error occurred. And the last error code is 0x%X.\n", ret);
 			//waitAnyKey();// wait any key to quit!
 		}
 	}
@@ -330,12 +341,21 @@ namespace DAQCONTROLER
 
 	void CDAQControler::NewProject(char cMode)
 	{
-		//获取地面初始角度。--->ini
+		//获取并保存地面初始角度
+		this->SetInitAngleFlag();
+
+		//开始保存数据
+		if (0x01 != cMode)//测试模式不需要保存文件
+		{
+			//Step 2: Open file
+			openFile();
+			SetEvent(m_gEvtSaveFile);
+		}
 
 		//开始发送数据到UI
 		switch (cMode)
 		{
-		case 0x01://收到开始采集和停止
+		case 0x01://测试模式手动控制开始采集和停止采集
 			{
 				break;
 			}
@@ -356,14 +376,8 @@ namespace DAQCONTROLER
 				break;
 			}
 		}
-		//开始保存数据。
-		if (0x01 != cMode)//测试模式不需要保存文件
-		{
-			//Step 2: Open file
-			openFile();
-			SetEvent(m_gEvtSaveFile);
-		}
 	}
+
 	void CDAQControler::TerminateProject()
 	{
 		StressEnd();
@@ -374,6 +388,10 @@ namespace DAQCONTROLER
 		VirtualFree(buffer, SingleSavingFileSize, MEM_RELEASE);
 		CloseHandle(hFile);
 	}
-
+	void CDAQControler::SetInitAngleFlag()
+	{
+		SetEvent(m_gEvtInitAngleFlag);
+	}
+	
 }
 
