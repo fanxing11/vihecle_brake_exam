@@ -62,22 +62,25 @@ namespace DAQCONTROLER
 		}
 		printTime();
 
-		//printf("Ready to save the data...%d\n\n",getDataCount);
-		memcpy(buffer, Data, SingleSavingFileSize);
 
-		if (WriteFile(hFile, buffer, SingleSavingFileSize, &WrittenBytes, NULL))
+		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtSaveFile,0))
 		{
-			printf("Saving has been executed!\n\n");
-			RealFileSize += WrittenBytes; 
-			printf("The real-time size of file is %d byte\n\n", RealFileSize);
-			printf("Executed %d time.\n\n", i++);
-		} 
-		else
-		{
-			g_logger.TraceError("OnDataReadyEvent:error!");
+			//printf("Ready to save the data...%d\n\n",getDataCount);
+			memcpy(buffer, Data, SingleSavingFileSize);
+			
+			if (WriteFile(hFile, buffer, SingleSavingFileSize, &WrittenBytes, NULL))
+			{
+				printf("Saving has been executed!\n\n");
+				RealFileSize += WrittenBytes; 
+				printf("The real-time size of file is %d byte\n\n", RealFileSize);
+				printf("Executed %d time.\n\n", i++);
+			} 
+			else
+			{
+				g_logger.TraceError("OnDataReadyEvent:error!");
+			}	
 		}
-
-		memcpy(DateOne, buffer, 10*sizeof(double));
+		//memcpy(DateOne, buffer, 10*sizeof(double));
 
 		PostThreadMessage(theApp.m_dwMainThreadID, msg_DAQ_DATAONE, NULL, NULL);
 
@@ -110,8 +113,8 @@ namespace DAQCONTROLER
 		time_t t;
 		t = time(NULL);
 		local = localtime(&t);
-		char stFilename[1000] = {0};
-		sprintf_s(stFilename,"..\\%04d_%02d_%02d_%02d_%02d_%02d.bin",
+		char stFilename[MAX_PATH] = {0};
+		sprintf_s(stFilename,"%04d%02d%02d_%02d%02d%02d.bin",
 			local->tm_year+1900,
 			local->tm_mon+1,
 			local->tm_mday,
@@ -120,9 +123,13 @@ namespace DAQCONTROLER
 			local->tm_sec
 			);
 
+		string strPath;
+		theApp.m_pDataC->GetProjectPath(strPath);
+		strPath.append(stFilename);
+
 		hFile = CreateFileA(
 			//L"..\\C++_Data.bin",
-			stFilename,
+			strPath.c_str(),
 			GENERIC_WRITE | GENERIC_READ,
 			0,
 			NULL,
@@ -151,7 +158,7 @@ namespace DAQCONTROLER
 
 	CDAQControler::~CDAQControler(void)
 	{
-		CloseEvtHandle();
+		this->DisInitialize();
 	}
 	void CDAQControler::CloseEvtHandle()
 	{
@@ -170,6 +177,11 @@ namespace DAQCONTROLER
 			CloseHandle(m_gEvtVelocity);
 			m_gEvtVelocity = NULL;
 		}
+		if (!m_gEvtSaveFile)
+		{
+			CloseHandle(m_gEvtSaveFile);
+			m_gEvtSaveFile = NULL;
+		}
 	}
 
 	void CDAQControler::CreateSyncEvent()
@@ -181,6 +193,8 @@ namespace DAQCONTROLER
 		m_gEvtStress = CreateEvent(NULL,TRUE,FALSE,L"");
 
 		m_gEvtVelocity = CreateEvent(NULL,TRUE,FALSE,L"");
+
+		m_gEvtSaveFile = CreateEvent(NULL,TRUE,FALSE,L"");
 	}
 
 	void CDAQControler::DisInitialize()
@@ -196,8 +210,6 @@ namespace DAQCONTROLER
 
 		// Step 9: Close device, release any allocated resource.
 		m_wfAiCtrl->Dispose();
-		VirtualFree(buffer, SingleSavingFileSize, MEM_RELEASE);
-		CloseHandle(hFile);
 
 		// If something wrong in this execution, print the error code on screen for tracking.
 		if(BioFailed(ret))
@@ -206,6 +218,7 @@ namespace DAQCONTROLER
 			//waitAnyKey();// wait any key to quit!
 		}
 
+		this->CloseEvtHandle();
 	}
 
 	void CDAQControler::Initialize()
@@ -217,8 +230,8 @@ namespace DAQCONTROLER
 		// Step 1: Create a 'WaveformAiCtrl' for buffered AI function.
 		m_wfAiCtrl = WaveformAiCtrl::Create();
 
-		//Step 2: Open file
-		openFile();
+		////Step 2: Open file
+		//openFile();
 
 		// Step 3: Set the notification event Handler by which we can known the state of operation effectively.
 		m_wfAiCtrl->addDataReadyHandler(OnDataReadyEvent, NULL);
@@ -285,6 +298,7 @@ namespace DAQCONTROLER
 		SetEvent(m_gEvtVelocity);
 		SampleBegin();
 	}
+
 	void CDAQControler::VelocityEnd(){
 		ResetEvent(m_gEvtVelocity);
 		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtStress,0))
@@ -292,10 +306,12 @@ namespace DAQCONTROLER
 			SampleEnd();
 		}
 	}
+
 	void CDAQControler::StressBegin(){
 		SetEvent(m_gEvtStress);
 		SampleBegin();
 	}
+
 	void CDAQControler::StressEnd(){
 		ResetEvent(m_gEvtStress);
 		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtVelocity,0))
@@ -303,11 +319,61 @@ namespace DAQCONTROLER
 			SampleEnd();
 		}
 	}
+
 	void CDAQControler::SampleBegin(){
 		SetEvent(m_gEvtSample);
 	}
+
 	void CDAQControler::SampleEnd(){
 		ResetEvent(m_gEvtSample);
 	}
+
+	void CDAQControler::NewProject(char cMode)
+	{
+		//获取地面初始角度。--->ini
+
+		//开始发送数据到UI
+		switch (cMode)
+		{
+		case 0x01://收到开始采集和停止
+			{
+				break;
+			}
+		case 0x02:
+			{
+				VelocityBegin();
+				break;
+			}
+		case 0x03:
+			{
+				StressBegin();
+				break;
+			}
+		case 0x04:
+			{
+				StressBegin();
+				VelocityBegin();
+				break;
+			}
+		}
+		//开始保存数据。
+		if (0x01 != cMode)//测试模式不需要保存文件
+		{
+			//Step 2: Open file
+			openFile();
+			SetEvent(m_gEvtSaveFile);
+		}
+	}
+	void CDAQControler::TerminateProject()
+	{
+		StressEnd();
+		VelocityEnd();
+
+		ResetEvent(m_gEvtSaveFile);
+
+		VirtualFree(buffer, SingleSavingFileSize, MEM_RELEASE);
+		CloseHandle(hFile);
+	}
+
 }
 

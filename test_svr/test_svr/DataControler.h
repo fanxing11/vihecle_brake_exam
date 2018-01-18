@@ -9,7 +9,10 @@ namespace DATACONTROLER
 		CDataControler(void);
 		~CDataControler(void);
 	private:
-		bool m_bCurrentProjectGoing;
+		//0 - 未开始
+		//1 - 正在进行
+		//2 - 已经完成
+		short m_nCurrentProjectState;
 
 		char m_cStartChannel;
 		char m_cEndChannel;
@@ -46,13 +49,13 @@ namespace DATACONTROLER
 		void SetSampleFrequency(const char cSampleFrequency);
 		void SetMode(const char cMode);
 		void SetArchiveFromat(char cFormat);
-		void SetProjectPath(const string strPath);
-		void CreateProjectPath(string &strPath);
+		void SetProjectPath(string& strPath);
+		void CreateDefaultProjectPath(string &strPath);
 		void SaveProjectInfo2File();
 
 
 	public:
-		bool GetCurrentProjectState()const;
+		int GetCurrentProjectState()const;
 		bool GetProjectPath(string& strPath) const;
 		void SetNewProjectPara(const char* pData);
 		bool NewProject(string& strInfo);

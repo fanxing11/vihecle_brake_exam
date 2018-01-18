@@ -10,7 +10,7 @@ namespace ANALYSISSPACE
 		~CAnalysis(void);
 
 	public:
-		void BeginAnalysis(const string strProjectPath);
+		void BeginAnalysis(string &strProjectPath);
 
 		bool _BeginaAnalysis(string &strErrInfo);
 

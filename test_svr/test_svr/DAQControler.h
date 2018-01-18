@@ -30,12 +30,13 @@ namespace DAQCONTROLER
 
 #define       USER_BUFFER_SIZE   channelCount*sectionLength
 	double        Data[USER_BUFFER_SIZE]; 
-	double		 DateOne[10];
+	//double		 DateOne[10];
 
 	//event
-	HANDLE m_gEvtSample;
+	HANDLE m_gEvtSample;//-ing
 	HANDLE m_gEvtStress;
 	HANDLE m_gEvtVelocity;
+	HANDLE m_gEvtSaveFile;
 
 	class CDAQControler
 	{
@@ -49,13 +50,14 @@ namespace DAQCONTROLER
 		void VelocityEnd();
 		void StressBegin();
 		void StressEnd();
-		void SampleBegin();
-		void SampleEnd();
+
+		void NewProject(char cMode);
+		void TerminateProject();
 
 	private:
-		//string m_strFileName;
-		//inline void openFile();
 
+		void SampleBegin();
+		void SampleEnd();
 		void CreateSyncEvent();
 		void CloseEvtHandle();
 		void DisInitialize();

@@ -4,6 +4,9 @@
 #include <math.h>
 #include "time.h"
 
+#include <Dbghelp.h>
+#pragma comment(lib,"Dbghelp.lib")
+
 extern CtheApp theApp;
 
 
@@ -12,16 +15,16 @@ namespace DATACONTROLER
 
 	CDataControler::CDataControler(void)
 	{
-		m_bCurrentProjectGoing = false;
+		m_nCurrentProjectState = 0;
 	}
 
 	CDataControler::~CDataControler(void)
 	{
 	}
 
-	bool CDataControler::GetCurrentProjectState()const
+	int CDataControler::GetCurrentProjectState()const
 	{
-		return m_bCurrentProjectGoing;
+		return m_nCurrentProjectState;
 	}
 
 
@@ -66,26 +69,28 @@ namespace DATACONTROLER
 		++nLoc;
 		int nInfo = 0;
 		memcpy(&nInfo,pData+nLoc,1);
-		string strPath;
-		//if (NUM_ZERO == nInfo)
-		//{
-		//	this->CreateProjectPath(strPath);
-		//}
-		//else
-		//{
-		//	++nLoc;
-		//	char* pbuf = new char[nInfo+1];
-		//	memset(pbuf,0,nInfo+1);
-		//	memcpy(pbuf,pData+nLoc,nInfo);
-		//	strPath = pbuf;
-		//	delete[] pbuf;
-		//	pbuf = NULL;
-		//}
-		this->CreateProjectPath(strPath);
 
-
+		string strPath = "";
+		if (NUM_ZERO != nInfo)
+		{
+			++nLoc;
+			char* pbuf = new char[nInfo+1];
+			memset(pbuf,0,nInfo+1);
+			memcpy(pbuf,pData+nLoc,nInfo);
+			strPath = pbuf;
+			delete[] pbuf;
+			pbuf = NULL;
+			if( !CheckFolderExist(strPath) )
+			{
+				g_logger.TraceWarning("Passed in New Project Folder not right,created new one.");
+				strPath = "";
+			}
+		}
+		if (strPath == "")
+		{
+			this->CreateDefaultProjectPath(strPath);
+		}
 		this->SetProjectPath(strPath);
-
 	}
 
 	//return = true,strInfo是工作目录
@@ -93,29 +98,41 @@ namespace DATACONTROLER
 	bool CDataControler::NewProject(string& strInfo)
 	{
 		//检查是否开始，如果开始，返回新建错误信息；如果没有开始，设置标志位，
-		if (m_bCurrentProjectGoing)
+		if (NUM_ONE == m_nCurrentProjectState)
 		{
 			strInfo = string("检测正在进行中。");
 			return false;
 		}
-		m_bCurrentProjectGoing = true;
 		//取得检测模式，设置DAQ线程中的标志位
-
-		//获取初始地面倾角并保存写来
-
-
+		char cMode = theApp.m_pDataC->GetMode();
 
 		//解析工作目录，新建工作目录，保存检测信息到文件
 		SaveProjectInfo2File();
+
+		theApp.m_pDAQC->NewProject(m_cMode);
+
 		//返回新建成功与否信息
 		strInfo = m_strProjectPath;
+
+		m_nCurrentProjectState = NUM_ONE;
 		return true;
 	}
 	bool CDataControler::TerminateCurrentProject()
 	{
-		m_bCurrentProjectGoing = false;
+		if(NUM_ZERO == m_nCurrentProjectState)
+		{
+			g_logger.TraceError("CDataControler::TerminateCurrentProject - current project have not started.");
+			return false;
+		}
+		if(NUM_TWO == m_nCurrentProjectState)
+		{
+			g_logger.TraceError("CDataControler::TerminateCurrentProject - current project already terminated.");
+			return false;
+		}
 		//设置DAQ标志结束
+		theApp.m_pDAQC->TerminateProject();
 
+		m_nCurrentProjectState = NUM_TWO;
 		return true;
 	}
 
@@ -171,30 +188,37 @@ namespace DATACONTROLER
 			sprintf_s(buf,"txt");
 			break;
 		}
-		sprintf_s(buf,"%d KHz",m_cArchiveFormat);
 		WritePrivateProfileStringA(strAppName.c_str(),"ArchiveFormat",buf,strConfigFullName.c_str());		
 	}
 
-	void CDataControler::SetProjectPath(const string strPath)
+	void CDataControler::SetProjectPath(string& strPath)
 	{
+		if ( strPath.at(strPath.length()-1) != '\\' )
+		{
+			strPath.append(1,'\\');
+		}
 		m_strProjectPath = strPath;
 	}
 
 	bool CDataControler::GetProjectPath(string& strPath) const
 	{
-
+		if (m_strProjectPath == "")
+		{
+			g_logger.TraceError("CDataControler::GetProjectPath - m_strProjectPath is NULL");
+		}
+		strPath = m_strProjectPath ;
 		return true;
 	}
 
-	void CDataControler::CreateProjectPath(string &strPath)
+	void CDataControler::CreateDefaultProjectPath(string &strPath)
 	{
 		//make a file path
 		struct tm *local;
 		time_t t;
 		t = time(NULL);
 		local = localtime(&t);
-		char stFilePath[1000] = {0};
-		sprintf_s(stFilePath,"d:\\Data\\%04d%02d%02d_%02d%02d%02d",
+		char stFilePath[MAX_PATH] = {0};
+		sprintf_s(stFilePath,"D:\\Data\\%04d%02d%02d_%02d%02d%02d\\",
 			local->tm_year+1900,
 			local->tm_mon+1,
 			local->tm_mday,
@@ -202,10 +226,7 @@ namespace DATACONTROLER
 			local->tm_min,
 			local->tm_sec
 			);
-		if( !::CreateDirectoryA(stFilePath,NULL))
-		{
-			g_logger.TraceError("CDataControler::CreateProjectPath failed");
-		}
+		MakeSureDirectoryPathExists(stFilePath);
 		strPath = stFilePath;
 	}
 

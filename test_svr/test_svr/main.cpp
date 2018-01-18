@@ -167,10 +167,17 @@ int main()
 
 				if (cCurrentTest == 0x01)//current test
 				{
-					if ( theApp.m_pDataC->GetCurrentProjectState() )
+					if ( NUM_TWO != theApp.m_pDataC->GetCurrentProjectState() )
 					{
-						g_logger.TraceWarning("msg_ANA_ANALYSIS_BEGIN:CurrentProject is onGoing");
-						strRetInfo = ("当前检测正在进行");
+						if ( NUM_ONE != theApp.m_pDataC->GetCurrentProjectState() ){
+							g_logger.TraceWarning("msg_ANA_ANALYSIS_BEGIN:CurrentProject is onGoing");
+							strRetInfo = ("当前检测正在进行");
+						}
+						else if ( NUM_ZERO != theApp.m_pDataC->GetCurrentProjectState() )
+						{
+							g_logger.TraceWarning("msg_ANA_ANALYSIS_BEGIN:CurrentProject is onGoing");
+							strRetInfo = ("当前检测尚未开始");
+						}
 						//theApp.m_pCommunicator->SendDatatoUI(msg_ANA_ANALYSIS_STATE,NUM_THREE,strRetInfo);
 						char* pBuf = new char[strRetInfo.length()+1];
 						memset(pBuf,0,strRetInfo.length()+1);

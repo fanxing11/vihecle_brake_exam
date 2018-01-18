@@ -600,16 +600,20 @@ namespace COMMUNICATOR
 	}
 	bool CCommunicator::cmdAnalysisBegin(const char* pData )
 	{
+		char *pFP = NULL;
 		int nLoc = 2;
 		char cCurrentTest = 0x00;
 		memcpy(&cCurrentTest,pData+nLoc,1);
-		++nLoc;
-		int nFilePathLen=0;
-		memcpy(&nFilePathLen,pData+nLoc,1);
-		++nLoc;
-		char *pFP = new char[nFilePathLen+1];
-		memset(pFP,0,nFilePathLen+1);
-		memcpy(pFP, pData+nLoc,nFilePathLen);
+		if (0x02 == cCurrentTest)//指定历史检测
+		{
+			++nLoc;
+			int nFilePathLen=0;
+			memcpy(&nFilePathLen,pData+nLoc,1);
+			++nLoc;
+			pFP = new char[nFilePathLen+1];
+			memset(pFP,0,nFilePathLen+1);
+			memcpy(pFP, pData+nLoc,nFilePathLen);		
+		}
 
 		if ( !PostThreadMessage(m_dwMainThreadId, msg_ANA_ANALYSIS_BEGIN, (WPARAM)cCurrentTest, (LPARAM)pFP ) )
 		{

@@ -6,33 +6,6 @@ extern CtheApp theApp;
 namespace ANALYSISSPACE
 {
 
-	inline	bool CheckFolderExist(const string& strPath)
-	{
-		WIN32_FIND_DATAA wfd;
-		bool bRet = false;
-		HANDLE hFind = FindFirstFileA(strPath.c_str(),&wfd);
-		if ( (hFind != INVALID_HANDLE_VALUE) && (wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) )
-		{
-			bRet = true;
-		}
-		FindClose(hFind);
-		return bRet;
-	}
-
-	inline bool CheckFileExist(const string& strFileFullPath)
-	{
-		WIN32_FIND_DATAA wfd;
-		bool bRet = false;
-		HANDLE hFind = FindFirstFileA(strFileFullPath.c_str(),&wfd);
-		//if ( (hFind != INVALID_HANDLE_VALUE) &&(wfd.dwFileAttributes & FILE_ATTRIBUTE_READONLY) )
-		if ( (hFind != INVALID_HANDLE_VALUE) )
-		{
-			bRet = true;
-		}
-		FindClose(hFind);
-		return bRet;
-	}
-
 	unsigned int WINAPI AnalysisThreadFunc(LPVOID lp)
 	{
 		CAnalysis* pAnalysis = (CAnalysis*)lp;
@@ -86,8 +59,12 @@ namespace ANALYSISSPACE
 
 	}
 
-	void CAnalysis::BeginAnalysis(const string strProjectPath)
+	void CAnalysis::BeginAnalysis(string &strProjectPath)
 	{
+		if ( strProjectPath.at(strProjectPath.length()-1) != '\\' )
+		{
+			strProjectPath.append(1,'\\');
+		}
 		if ( !CheckFolderExist(strProjectPath))
 		{
 			g_logger.TraceError("CAnalysis::BeginAnalysis - ProjectPath(%s) is not exist",strProjectPath.c_str());
