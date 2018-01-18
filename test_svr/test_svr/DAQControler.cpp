@@ -46,14 +46,14 @@ namespace DAQCONTROLER
 		//cout<<USER_BUFFER_SIZE<<"  "<<args->Count<<"  "<<getDataCount<<endl;
 		waveformAiCtrl->GetData(getDataCount, Data);
 
-		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtInitAngleFlag,0))
-		{
-			theApp.m_pDataC->SaveInitAngle( Data );
-			ResetEvent(m_gEvtInitAngleFlag);
-		}
 		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtSample,0))
 		{
 			return;
+		}
+		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtInitAngleFlag,0))
+		{
+			theApp.m_pDataC->SaveInitAngle2INIFile( Data );
+			ResetEvent(m_gEvtInitAngleFlag);
 		}
 
 		printTime();

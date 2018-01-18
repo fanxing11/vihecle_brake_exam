@@ -114,7 +114,7 @@ namespace DATACONTROLER
 		char cMode = theApp.m_pDataC->GetMode();
 
 		//解析工作目录，新建工作目录，保存检测信息到文件
-		SaveProjectInfo2File();
+		SaveProjectInfo2INIFile();
 
 		theApp.m_pDAQC->NewProject(m_cMode);
 
@@ -149,21 +149,19 @@ namespace DATACONTROLER
 		return m_cMode;
 	}
 
-	void CDataControler::SaveProjectInfo2File()
+	void CDataControler::SaveProjectInfo2INIFile()
 	{
-		string strConfigName("config.ini");
-		string strAppName("ProjectInfo");
-		m_strConfigFullName = m_strProjectPath+"\\"+strConfigName;
+		m_strConfigFullName = m_strProjectPath + gc_strProjectParaINI_FileName;
+
 		char buf[40] = {0};
-		
 		sprintf_s(buf,"%d",m_cStartChannel);
-		WritePrivateProfileStringA(strAppName.c_str(),"StartChannel",buf,m_strConfigFullName.c_str());
+		WritePrivateProfileStringA(gc_strProjectInfo.c_str(),"StartChannel",buf,m_strConfigFullName.c_str());
 		memset(buf,0,40);
 		sprintf_s(buf,"%d",m_cEndChannel);
-		WritePrivateProfileStringA(strAppName.c_str(),"EndChannel",buf,m_strConfigFullName.c_str());
+		WritePrivateProfileStringA(gc_strProjectInfo.c_str(),"EndChannel",buf,m_strConfigFullName.c_str());
 		memset(buf,0,40);
 		sprintf_s(buf,"%d KHz",m_cSampleFrequency);
-		WritePrivateProfileStringA(strAppName.c_str(),"SampleFrequency",buf,m_strConfigFullName.c_str());
+		WritePrivateProfileStringA(gc_strProjectInfo.c_str(),"SampleFrequency",buf,m_strConfigFullName.c_str());
 		memset(buf,0,40);
 		switch(m_cMode)
 		{
@@ -180,7 +178,7 @@ namespace DATACONTROLER
 			sprintf_s(buf,"完整检测模式");
 			break;
 		}
-		WritePrivateProfileStringA(strAppName.c_str(),"Mode",buf,m_strConfigFullName.c_str());
+		WritePrivateProfileStringA(gc_strProjectInfo.c_str(),"Mode",buf,m_strConfigFullName.c_str());
 		memset(buf,0,40);
 		switch(m_cArchiveFormat)
 		{
@@ -194,7 +192,7 @@ namespace DATACONTROLER
 			sprintf_s(buf,"txt");
 			break;
 		}
-		WritePrivateProfileStringA(strAppName.c_str(),"ArchiveFormat",buf,m_strConfigFullName.c_str());		
+		WritePrivateProfileStringA(gc_strProjectInfo.c_str(),"ArchiveFormat",buf,m_strConfigFullName.c_str());		
 	}
 
 	void CDataControler::SetProjectPath(string& strPath)
@@ -286,7 +284,7 @@ namespace DATACONTROLER
 
 		SetEvent(m_hEvtStressInfo);
 	}
-	void CDataControler::SaveInitAngle(const double* pData)
+	void CDataControler::SaveInitAngle2INIFile(const double* pData)
 	{
 		double dX = *(pData+2);
 		double dY = *(pData+3);
@@ -324,10 +322,9 @@ namespace DATACONTROLER
 		m_dInitXAngle = dA;
 		TransformGradient(m_dInitXAngle);
 
-		string strAppName("InitialAngle");
 		char buf[40] = {0};
 		sprintf_s(buf,"%f",m_dInitXAngle);
-		if(!WritePrivateProfileStringA(strAppName.c_str(),"InitialX",buf,m_strConfigFullName.c_str()) )
+		if(!WritePrivateProfileStringA(gc_strInitialAngle.c_str(),gc_strInitXAngle.c_str(),buf,m_strConfigFullName.c_str()) )
 		{
 			g_logger.TraceError("CDataControler::SetInitXAngle - %d",GetLastError());
 		}
@@ -341,10 +338,9 @@ namespace DATACONTROLER
 		m_dInitYAngle = dA;
 		TransformGradient(m_dInitYAngle);
 
-		string strAppName("InitialAngle");
 		char buf[40] = {0};
 		sprintf_s(buf,"%f",m_dInitYAngle);
-		if( !WritePrivateProfileStringA(strAppName.c_str(),"InitialY",buf,m_strConfigFullName.c_str()) )
+		if( !WritePrivateProfileStringA(gc_strInitialAngle.c_str(),gc_strInitYAngle.c_str(),buf,m_strConfigFullName.c_str()) )
 		{
 			g_logger.TraceError("CDataControler::SetInitYAngle - %d",GetLastError());
 		}

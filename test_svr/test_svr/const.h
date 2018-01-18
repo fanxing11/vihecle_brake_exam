@@ -1,5 +1,6 @@
 #pragma once 
 #include <Windows.h>
+#include <io.h>  //struct _finddata_t
 #include <string>
 #include <sstream>
 #include <vector>
@@ -98,3 +99,9 @@ typedef struct VelocityInfo
 	double LastAccelaration;
 	double LastVelocity;//只传一组数据里面的最后一个速度到UI
 }VELOCITYINFO;
+
+const string gc_strProjectParaINI_FileName("projectparameter.ini");
+const string gc_strProjectInfo("ProjectInfo");
+const string gc_strInitialAngle("InitialAngle");
+const string gc_strInitXAngle("InitialX");
+const string gc_strInitYAngle("InitialY");

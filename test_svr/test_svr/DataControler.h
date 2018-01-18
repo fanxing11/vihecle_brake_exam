@@ -51,7 +51,7 @@ namespace DATACONTROLER
 		void SetArchiveFromat(char cFormat);
 		void SetProjectPath(string& strPath);
 		void CreateDefaultProjectPath(string &strPath);
-		void SaveProjectInfo2File();
+		void SaveProjectInfo2INIFile();
 
 
 	public:
@@ -77,7 +77,7 @@ namespace DATACONTROLER
 		 
 			
 	public:
-		void SaveInitAngle(const double* pData);
+		void SaveInitAngle2INIFile(const double* pData);
 		void HandleVelocityData(const double* pData, const int channelCount, const int sectionLength, const double deltat);
 		void HandleStressData(const double* pData, const int channelCount, const int sectionLength);
 

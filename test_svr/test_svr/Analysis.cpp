@@ -1,5 +1,6 @@
 #include "main.h"
 #include "Analysis.h"
+#include <sstream>
 
 extern CtheApp theApp;
 
@@ -10,6 +11,9 @@ namespace ANALYSISSPACE
 	{
 		CAnalysis* pAnalysis = (CAnalysis*)lp;
 
+		//新建的第一次也需要分析
+		PostThreadMessage(GetCurrentThreadId(),msg_ANA_ANALYSIS_BEGIN ,NULL,NULL);
+
 		MSG msg;
 		bool bRet = false;
 		while(GetMessage(&msg,NULL,0,0))
@@ -19,22 +23,21 @@ namespace ANALYSISSPACE
 				string strInfo;
 				if( !(pAnalysis->_BeginaAnalysis(strInfo)) )
 				{
-					char* pBuf = new char[strInfo.length()+1];
-					memset(pBuf,0,strInfo.length()+1);
-					memcpy(pBuf,strInfo.c_str(),strInfo.length());
-					if( !PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)pBuf) )
+					//char* pBuf = new char[strInfo.length()+1];
+					//memset(pBuf,0,strInfo.length()+1);
+					//memcpy(pBuf,strInfo.c_str(),strInfo.length());
+					if( !PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)strInfo.c_str()) )
 					{
-						delete[] pBuf;
-						pBuf = NULL;
+						//delete[] pBuf;
+						//pBuf = NULL;
 					}
 				}
 				else
 				{
-					PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_TWO,NULL);
+					PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_TWO,(LPARAM)"");//注意最后一个参数不能是NULL，否则解析出错
 				}
 			}
 		}
-
 
 
 		return 0;
@@ -42,91 +45,142 @@ namespace ANALYSISSPACE
 
 	CAnalysis::CAnalysis(void)
 		:m_hAnalysisThread(NULL)
+		,m_pF(NULL)
+		,m_dInitXAngle(0.0)
+		,m_dInitYAngle(0.0)
 	{
 	}
 
 
 	CAnalysis::~CAnalysis(void)
 	{
-		if (NULL != m_hBeginEvent)
-		{
-			CloseHandle(m_hBeginEvent);
-		}
 		if( WAIT_OBJECT_0 == WaitForSingleObject(m_hAnalysisThread,1000) )
 		{
-			////nomal
+			////normal
 		}
 
 	}
 
-	void CAnalysis::BeginAnalysis(string &strProjectPath)
+	void CAnalysis::BeginAnalysis(const string &strProjectPath)
 	{
-		if ( strProjectPath.at(strProjectPath.length()-1) != '\\' )
+		m_strProjectPath = strProjectPath;
+		if ( m_strProjectPath.at(m_strProjectPath.length()-1) != '\\' )
 		{
-			strProjectPath.append(1,'\\');
+			m_strProjectPath.append(1,'\\');
 		}
-		if ( !CheckFolderExist(strProjectPath))
+		bool bGood = true;
+		string strInfo;
+		m_strConfigFile = m_strProjectPath+gc_strProjectParaINI_FileName;
+		string strBinFile = m_strProjectPath + "*.bin";
+
+		if ( !CheckFolderExist(m_strProjectPath))
 		{
-			g_logger.TraceError("CAnalysis::BeginAnalysis - ProjectPath(%s) is not exist",strProjectPath.c_str());
-			//send msg
-			return;
+			bGood = false;
+			strInfo = ("ProjectPath(");
+			strInfo = strInfo+m_strProjectPath+string(") is not exist");
 		}
-		string strConfigFile = strProjectPath+"\\config.ini";
-		if ( !CheckFileExist(strConfigFile))
+		else if ( !CheckFileExist(m_strConfigFile))
 		{
-			g_logger.TraceError("CAnalysis::BeginAnalysis - ConfigFile(%s) is not exist",strConfigFile.c_str());
-			//send msg
-			return;
+			bGood = false;
+			strInfo = ("ProjectParaFile(");
+			strInfo = strInfo+m_strConfigFile+string(") is not exist");
 		}
-		string strBinFile = strProjectPath + "\\*.bin";
-		if ( !CheckFileExist(strBinFile))
+		else if ( !CheckFileExist(strBinFile))
 		{
-			g_logger.TraceError("CAnalysis::BeginAnalysis - *.bin File(%s) is not exist",strBinFile.c_str());
-			//send msg
+			strInfo = ("DataFile(");
+			strInfo = strInfo+ strBinFile +string(") is not exist");
+		}
+
+		if (!bGood)
+		{
+			g_logger.TraceWarning("CAnalysis::BeginAnalysis - %s",strInfo.c_str());
+			PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)strInfo.c_str()); 
 			return;
 		}
 		
 		if (NULL == m_hAnalysisThread)
 		{
-			m_hAnalysisThread = (HANDLE)_beginthreadex(NULL, 0, AnalysisThreadFunc, (LPVOID)this, 0, NULL);  
+			m_hAnalysisThread = (HANDLE)_beginthreadex(NULL, 0, AnalysisThreadFunc, (LPVOID)this, CREATE_SUSPENDED, NULL);  
+			ResumeThread(m_hAnalysisThread);
 		}
-		if (NULL == m_hBeginEvent)
+		else
 		{
-			m_hBeginEvent = CreateEvent(NULL,TRUE,FALSE,L"");
+			PostThreadMessage(GetThreadId(m_hAnalysisThread),msg_ANA_ANALYSIS_BEGIN ,NULL,NULL);
 		}
-
-		PostThreadMessage(GetThreadId(m_hAnalysisThread),msg_ANA_ANALYSIS_BEGIN ,NULL,NULL);
-
-
 	}
+
 	bool CAnalysis::_BeginaAnalysis(string &strErrInfo)
 	{
-		if( WAIT_OBJECT_0 == WaitForSingleObject(m_hBeginEvent,0) )
+		//get para from INI
+		if(!ReadParaFromINI(strErrInfo))
 		{
-			//post msg in analysing
-			strErrInfo = ("有一个分析尚未完成");
 			return false;
 		}
-		SetEvent(m_hBeginEvent);
 
-		//open file
 		//read and transform data
-		//send result to main thread msg_ANA_ANALYSIS_RESULT
+		if (!ReadDataFromFile(strErrInfo))
+		{
+			return false;
+		}
 
-		ResetEvent(m_hBeginEvent);
+		//send result to main thread msg_ANA_ANALYSIS_RESULT
 		return true;
 
 	}
 
+	bool CAnalysis::ReadParaFromINI(string &strErrInfo)
+	{
+		char stInitX[50]={0};  
+		char stInitY[50]={0};  
 
-			//if ( WAIT_OBJECT_0 == WaitForSingleObject(m_hAnalysisThread,3000) )
-			//{
-			//	m_hAnalysisThread = NULL;
-			//}
-			//else
-			//{
-			//	g_logger.TraceError("CAnalysis::BeginAnalysis ; WaitForSingleObject error");
+		GetPrivateProfileStringA(gc_strInitialAngle.c_str(), gc_strInitXAngle.c_str(), "", stInitX, 50, m_strConfigFile.c_str());  
+		GetPrivateProfileStringA(gc_strInitialAngle.c_str(), gc_strInitYAngle.c_str(), "", stInitY, 50, m_strConfigFile.c_str());  
+		std::stringstream stream;
+		stream<<stInitX;
+		stream>>m_dInitXAngle;
+		stream.clear();
+		stream<<stInitY;
+		stream>>m_dInitYAngle;
 
+		return true;
+	}
+
+	bool CAnalysis::ReadDataFromFile(string &strErrInfo)
+	{
+		string strDataFileName;
+		this->GetDataFile( strDataFileName );
+
+		m_pF = fopen( strDataFileName.c_str(),"rb");
+		if (NULL == m_pF)
+		{
+			strErrInfo = string("Data File ")+strDataFileName+string(" open failed");
+			return false;
+		}
+		double Data[10] = {0};
+		while(!feof(m_pF))
+		{
+			if(1!=fread(Data,10*sizeof(double),1,m_pF))
+			{
+				break;
+			}
+			//parse the data 
+		}
+		return true;
+	}
+
+	bool CAnalysis::GetDataFile(string& strFileName)
+	{
+		vector<string> files;
+		string format = ".bin";  
+		GetAllFiles(m_strProjectPath, files,format);
+		int nFileNum = files.size();
+		if (NUM_ONE != nFileNum)
+		{
+			g_logger.TraceWarning("CAnalysis::GetDataFile - there are more than 1 data File");
+		}
+		strFileName = files.at(0);
+		return true;
+	}
 
 }
 

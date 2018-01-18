@@ -10,14 +10,22 @@ namespace ANALYSISSPACE
 		~CAnalysis(void);
 
 	public:
-		void BeginAnalysis(string &strProjectPath);
+		void BeginAnalysis(const string &strProjectPath);
 
 		bool _BeginaAnalysis(string &strErrInfo);
 
 	private:
 		HANDLE m_hAnalysisThread;
 		string m_strProjectPath;
-		HANDLE m_hBeginEvent;
+		string m_strConfigFile;
+		bool GetDataFile(string& strFileName);
+
+		double m_dInitXAngle;
+		double m_dInitYAngle;
+		bool ReadParaFromINI(string &strErrInfo);
+		bool ReadDataFromFile(string &strErrInfo);
+
+		FILE *m_pF;
 	};
 
 }

@@ -162,7 +162,10 @@ int main()
 			{
 				char cCurrentTest = (char)msg.wParam;
 				char* pFilePath = (char*)msg.lParam;
-				string strProjPath("");
+				string strProjPath(pFilePath);
+				delete[] pFilePath;
+				pFilePath = NULL;
+
 				string strRetInfo("");
 
 				if (cCurrentTest == 0x01)//current test
@@ -193,25 +196,23 @@ int main()
 				}
 				else if (cCurrentTest == 0x02)//history test
 				{
-					strProjPath = pFilePath;
+					theApp.m_pAnalysis->BeginAnalysis(strProjPath);
 				}
 				else
 				{
 					g_logger.TraceError("msg_ANA_ANALYSIS_BEGIN:cCurrentTest != 0x01|0x02");
-					return 0;
 				}
-				theApp.m_pAnalysis->BeginAnalysis(strProjPath);
 				break;
 			}
 		case msg_ANA_ANALYSIS_STATE:
 			{
 				char* pp = (char*)msg.lParam;
 				string strInfo(pp);
-				if (NULL != pp)
-				{
-					delete[] pp;
-					pp = NULL;
-				}
+				//if (NULL != pp)
+				//{
+				//	delete[] pp;
+				//	pp = NULL;
+				//}
 				theApp.m_pCommunicator->SendDatatoUI(msg.message,msg.wParam,strInfo);
 				break;
 			}
