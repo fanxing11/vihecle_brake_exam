@@ -233,6 +233,15 @@ int main()
 			}
 		case msg_ANA_ANALYSIS_RESULT:
 			{
+				char* pp = (char*)msg.lParam;
+				string strInfo("");
+				if (NULL != pp)
+				{
+					strInfo = pp;
+					delete[] pp;
+					pp = NULL;
+				}
+				theApp.m_pCommunicator->SendDatatoUI(msg.message,msg.wParam,strInfo);
 				break;
 			}
 		}

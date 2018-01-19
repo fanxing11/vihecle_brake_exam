@@ -280,6 +280,7 @@ namespace DATACONTROLER
 		TransformFootBrakeForce(m_stStressInfo.MaxFootBrakeForce);
 		TransformHandBrakeForce(m_stStressInfo.MaxHandBrakeForce);
 		TransformGradient(m_stStressInfo.Gradient);//暂时使用一个方向的角度
+		//GetInitXAngle 需要减去初始地面倾角
 		TransformPedalDistance(m_stStressInfo.PedalDistance);
 
 		SetEvent(m_hEvtStressInfo);
@@ -349,7 +350,11 @@ namespace DATACONTROLER
 	{
 		return m_dInitYAngle;
 	}
-
+	bool TransformBrakeDistance(double & dDist)
+	{
+		dDist = dDist/0.04;
+		return true;
+	}
 	bool CDataControler::TransformVelocity(double & dVel)
 	{//nothing - DO NOT calc repeatedly!
 		dVel = dVel/0.04;

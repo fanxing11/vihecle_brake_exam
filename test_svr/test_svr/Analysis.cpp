@@ -39,7 +39,7 @@ namespace ANALYSISSPACE
 				}
 				else
 				{
-					PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_TWO,(LPARAM)"");//注意最后一个参数不能是NULL，否则解析出错
+					PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_TWO,NULL);
 				}
 			}
 		}
@@ -50,7 +50,7 @@ namespace ANALYSISSPACE
 
 	CAnalysis::CAnalysis(void)
 		:m_hAnalysisThread(NULL)
-		,m_pF(NULL)
+		,m_hFileReader(NULL)
 		,m_dInitXAngle(0.0)
 		,m_dInitYAngle(0.0)
 	{
@@ -141,7 +141,12 @@ namespace ANALYSISSPACE
 			return false;
 		}
 
-		//send result to main thread msg_ANA_ANALYSIS_RESULT
+		////send result to main thread msg_ANA_ANALYSIS_RESULT
+		if( !AnalyseResult() )
+		{
+			return false;
+		}
+
 		return true;
 
 	}
@@ -151,8 +156,15 @@ namespace ANALYSISSPACE
 		char stInitX[50]={0};  
 		char stInitY[50]={0};  
 
-		GetPrivateProfileStringA(gc_strInitialAngle.c_str(), gc_strInitXAngle.c_str(), "", stInitX, 50, m_strConfigFile.c_str());  
-		GetPrivateProfileStringA(gc_strInitialAngle.c_str(), gc_strInitYAngle.c_str(), "", stInitY, 50, m_strConfigFile.c_str());  
+		DWORD dwRet1,dwRet2;
+		dwRet1 = GetPrivateProfileStringA(gc_strInitialAngle.c_str(), gc_strInitXAngle.c_str(), "", stInitX, 50, m_strConfigFile.c_str());  
+		dwRet2 =GetPrivateProfileStringA(gc_strInitialAngle.c_str(), gc_strInitYAngle.c_str(), "", stInitY, 50, m_strConfigFile.c_str());  
+		if (dwRet2 <= 0 || dwRet1 <= 0)
+		{
+			strErrInfo = "Get InitialX or InitialY in the INI file failed";
+			g_logger.TraceError("CAnalysis::ReadParaFromINI - %s",strErrInfo.c_str() );
+			return false;
+		}
 		std::stringstream stream;
 		stream<<stInitX;
 		stream>>m_dInitXAngle;
@@ -165,25 +177,73 @@ namespace ANALYSISSPACE
 
 	bool CAnalysis::ReadDataFromFile(string &strErrInfo)
 	{
+		bool bRet = true;
+
 		string strDataFileName;
 		this->GetDataFile( strDataFileName );
 
-		m_pF = fopen( strDataFileName.c_str(),"rb");
-		if (NULL == m_pF)
+		m_hFileReader = CreateFileA(
+			strDataFileName.c_str(),
+			GENERIC_READ,
+			0,
+			NULL,
+			OPEN_EXISTING,
+			FILE_ATTRIBUTE_NORMAL | FILE_FLAG_NO_BUFFERING | FILE_FLAG_SEQUENTIAL_SCAN,
+			NULL);
+
+		if (m_hFileReader == INVALID_HANDLE_VALUE)
 		{
-			strErrInfo = string("Data File ")+strDataFileName+string(" open failed");
-			return false;
+			g_logger.TraceError("CAnalysis::ReadDataFromFile - %s", strErrInfo.c_str());
+			bRet = false;
 		}
-		double Data[10] = {0};
-		while(!feof(m_pF))
+		DWORD dwFileSize = GetFileSize(m_hFileReader,NULL); 
+
+		double* buffer = (double*)VirtualAlloc(NULL, dwFileSize, MEM_COMMIT, PAGE_READWRITE);
+		if (!buffer)
 		{
-			if(1!=fread(Data,10*sizeof(double),1,m_pF))
+			g_logger.TraceError("CAnalysis::ReadDataFromFile - Allocate buffer fail(error %d)\n",GetLastError());
+			bRet = false;
+		}
+
+		double *tmpBuf = buffer;
+		DWORD dwBytesRead = 0;
+		DWORD dwBytesToRead = dwFileSize;//,tmpLen;
+		do{ //循环读文件，确保读出完整的文件    
+			static int nCount=0;
+			++nCount;
+			g_logger.TraceWarning("CAnalysis::ReadDataFromFile - begin read %d times",nCount);
+
+			if(!ReadFile(m_hFileReader,tmpBuf,dwBytesToRead,&dwBytesRead,NULL))
 			{
-				break;
+				g_logger.TraceWarning("CAnalysis::ReadDataFromFile - ReadFile failed:error=%d",GetLastError());
 			}
-			//parse the data 
+
+			if (dwBytesRead == 0)
+				break;
+
+			dwBytesToRead -= dwBytesRead;
+			tmpBuf += dwBytesRead;
+
+		} while (dwBytesToRead > 0);
+
+		HandleData(buffer, DAQCONTROLER::channelCount, dwFileSize, DAQCONTROLER::deltat);
+
+		if (NULL != buffer)
+		{
+			VirtualFree(buffer, DAQCONTROLER::SingleSavingFileSize, MEM_RELEASE);
+			buffer = NULL;
 		}
-		return true;
+		if (INVALID_HANDLE_VALUE != m_hFileReader)
+		{
+			CloseHandle(m_hFileReader);
+		}
+
+		if ( !bRet )
+		{
+			strErrInfo = "Read Data From File failed.";
+		}
+
+		return bRet;
 	}
 
 	bool CAnalysis::GetDataFile(string& strFileName)
@@ -197,6 +257,84 @@ namespace ANALYSISSPACE
 			g_logger.TraceWarning("CAnalysis::GetDataFile - there are more than 1 data File");
 		}
 		strFileName = files.at(0);
+		return true;
+	}
+
+	void CAnalysis::HandleData(const double* pData, const int channelCount, const DWORD dwDataSize/*Byte*/, const double deltat)
+	{
+		DWORD doubleNum = dwDataSize / (sizeof(double)) / channelCount;//几组10通道double值
+		double dSumA = 0.0;
+		double dCompoundA = 0.0;
+
+		m_stResult.MaxAccelaration = sqrt((*(pData+7))*(*(pData+7))+(*(pData+8))*(*(pData+8))+(*(pData+9))*(*(pData+9)));
+		double dSumVel=0.0;
+		double dCurrentVel=0.0;
+		double dCurrentDist=0.0;
+
+		STRESSINFO stStressInfo;
+		m_stResult.MaxFootBrakeForce = *(pData+0) - *(pData+1);
+		m_stResult.Gradient = *(pData+2);//暂时使用一个方向的角度
+		m_stResult.MaxHandBrakeForce = *(pData+4) - *(pData+5);
+		m_stResult.PedalDistance = *(pData+6);
+
+		for (DWORD i=0;i<doubleNum;++i)
+		{
+			dCompoundA = sqrt((*(pData+(i*channelCount)+7))*(*(pData+(i*channelCount)+7))+(*(pData+(i*channelCount)+8))*(*(pData+(i*channelCount)+8))+(*(pData+(i*channelCount)+9))*(*(pData+(i*channelCount)+9)));
+			dSumA += dCompoundA;
+			dCurrentVel = dSumA*deltat;
+			dSumVel += dCurrentVel;
+			dCurrentDist = dSumVel*deltat;
+
+			stStressInfo.MaxFootBrakeForce = *(pData+(i*channelCount)) - *(pData+(i*channelCount)+1);
+			stStressInfo.MaxHandBrakeForce = *(pData+(i*channelCount)+4) - *(pData+(i*channelCount)+5);
+			stStressInfo.Gradient = *(pData+(i*channelCount)+2);//暂时使用一个方向的角度
+			stStressInfo.PedalDistance = *(pData+(i*channelCount)+6);
+
+			if (m_stResult.MaxFootBrakeForce < stStressInfo.MaxFootBrakeForce)
+			{
+				m_stResult.MaxFootBrakeForce = stStressInfo.MaxFootBrakeForce;
+			}
+			if (m_stResult.MaxHandBrakeForce< stStressInfo.MaxHandBrakeForce)
+			{
+				m_stResult.MaxHandBrakeForce = stStressInfo.MaxHandBrakeForce;
+			}
+			if (m_stResult.Gradient < stStressInfo.Gradient)
+			{
+				m_stResult.Gradient = stStressInfo.Gradient;
+			}
+			if (m_stResult.PedalDistance < stStressInfo.PedalDistance)
+			{
+				m_stResult.PedalDistance = stStressInfo.PedalDistance;
+			}
+
+		}
+		m_stResult.AverageVelocity = dSumVel / (doubleNum/channelCount);
+		m_stResult.BrakeDistance = dCurrentDist;
+		m_stResult.MaxAccelaration = dCompoundA;
+
+		theApp.m_pDataC->TransformAcceleration(m_stResult.MaxAccelaration);
+		theApp.m_pDataC->TransformVelocity(m_stResult.AverageVelocity);
+
+		theApp.m_pDataC->TransformFootBrakeForce(m_stResult.MaxFootBrakeForce);
+		theApp.m_pDataC->TransformHandBrakeForce(m_stResult.MaxHandBrakeForce);
+		theApp.m_pDataC->TransformGradient(m_stResult.Gradient);//暂时使用一个方向的角度
+		//需要减去初始地面倾角
+		theApp.m_pDataC->TransformPedalDistance(m_stResult.PedalDistance);
+
+	}
+	bool CAnalysis::AnalyseResult()
+	{
+		int nResult = 1;
+		int nDataNum=7;
+		double* pBuf = new double[nDataNum+1];
+		memset(pBuf,0,(nDataNum+1)*sizeof(double));
+		memcpy(pBuf,&m_stResult,nDataNum*sizeof(double));
+		if(!PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_RESULT ,(WPARAM)&nResult,(LPARAM)pBuf))
+		{
+			g_logger.TraceError("CAnalysis::AnalyseResult - PostThreadMessage failed");
+			delete[] pBuf;
+			pBuf = NULL;
+		}
 		return true;
 	}
 

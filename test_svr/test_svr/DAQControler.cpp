@@ -146,7 +146,7 @@ namespace DAQCONTROLER
 			g_logger.TraceError("openFile:Cannot open file (error %d)\n", GetLastError());
 		}
 
-		buffer = (double*)VirtualAlloc(0, SingleSavingFileSize, MEM_COMMIT, PAGE_READWRITE);
+		buffer = (double*)VirtualAlloc(NULL, SingleSavingFileSize, MEM_COMMIT, PAGE_READWRITE);
 		if (!buffer)
 		{
 			g_logger.TraceError("openFile:Allocate buffer fail(error %d)\n",GetLastError());

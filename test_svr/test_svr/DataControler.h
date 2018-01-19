@@ -99,6 +99,8 @@ namespace DATACONTROLER
 		void SetInitXAngle(const double dA);
 		void SetInitYAngle(const double dA);
 
+	public:
+		bool TransformBrakeDistance(double & dVel);
 		bool TransformVelocity(double & dVel);
 		bool TransformAcceleration(double & dAcc);
 		bool TransformFootBrakeForce(double &dForce);

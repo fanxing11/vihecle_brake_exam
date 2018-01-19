@@ -70,7 +70,7 @@ void GetAllFiles( string path, vector<string>& files, string format )
 	long   hFile   =   0;    
 	//文件信息    
 	struct _finddata_t fileinfo;//用来存储文件信息的结构体   
-	int len = format.length();
+	unsigned int len = format.length();
 	string p,temp;    
 	if((hFile = _findfirst(p.assign(path).append("\\*").c_str(),&fileinfo)) !=  -1)  //第一次查找  
 	{

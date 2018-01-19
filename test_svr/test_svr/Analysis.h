@@ -25,7 +25,11 @@ namespace ANALYSISSPACE
 		bool ReadParaFromINI(string &strErrInfo);
 		bool ReadDataFromFile(string &strErrInfo);
 
-		FILE *m_pF;
+		void HandleData(const double* pData, const int channelCount, const DWORD dwDataSize/*Byte*/, const double deltat);
+		bool AnalyseResult();
+		ANALYSISRESULT m_stResult;
+
+		HANDLE m_hFileReader;;
 	};
 
 }

@@ -102,6 +102,18 @@ typedef struct VelocityInfo
 	double LastVelocity;//只传一组数据里面的最后一个速度到UI
 }VELOCITYINFO;
 
+typedef struct AnalysisResult
+{
+	double MaxAccelaration;
+	double BrakeDistance;
+	double AverageVelocity;
+	double Gradient;//max value
+	double PedalDistance;//max value
+	double MaxHandBrakeForce;
+	double MaxFootBrakeForce;
+
+}ANALYSISRESULT;
+
 const string gc_strProjectParaINI_FileName("projectparameter.ini");
 const string gc_strProjectInfo("ProjectInfo");
 const string gc_strInitialAngle("InitialAngle");

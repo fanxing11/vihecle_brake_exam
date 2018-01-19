@@ -302,6 +302,8 @@ namespace COMMUNICATOR
 				if (Cmd == NUM_THREE)
 				{
 					sendto(m_SockSrv, pBuf, nCmdLen, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+					delete[] pBuf;
+					pBuf = NULL;
 				}
 				else
 				{
@@ -311,6 +313,49 @@ namespace COMMUNICATOR
 			}
 		case msg_ANA_ANALYSIS_RESULT:
 			{
+				char Ret[32] = {cmd_HEADER,cmd_ANALYSIS_RESULT,
+					0x00,0x00,0x00,0x00,
+					0x00,0x00,0x00,0x00,
+					0x00,0x00,0x00,0x00,
+					0x00,0x00,0x00,0x00,
+					0x00,0x00,0x00,0x00,
+					0x00,0x00,0x00,0x00,
+					0x00,0x00,0x00,0x00,
+					0x00,cmd_TAIL};
+
+				//int nAcceleration = (int)(100*( stVelocityInfo.LastAccelaration ));
+
+
+				int nInfoLen = strData2Send.length();
+				char cInfoLen = (char)nInfoLen;
+				int nCmdLen = nInfoLen+5;
+				char* pBuf= new char[nCmdLen];
+				memset(pBuf,0,nInfoLen+5);
+
+				switch (Cmd)
+				{
+				case NUM_ONE://going
+					Ret[2] = 0x01;
+					break;
+				case NUM_TWO://success
+					Ret[2] = 0x02;
+					break;
+				case NUM_THREE://failed
+					Ret[2] = 0x03;
+					Ret[3] = cInfoLen;
+					memcpy(pBuf, Ret, 4);
+					memcpy(pBuf+4,strData2Send.c_str(),nInfoLen);
+					memcpy(pBuf+4+nInfoLen,&cmd_TAIL,1);
+					break;
+				}
+				if (Cmd == NUM_THREE)
+				{
+					sendto(m_SockSrv, pBuf, nCmdLen, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+				}
+				else
+				{
+					sendto(m_SockSrv, Ret, 5, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+				}
 				break;
 			}
 
