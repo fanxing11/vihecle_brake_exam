@@ -49,7 +49,7 @@ namespace COMMUNICATOR
 		if( dw == WAIT_TIMEOUT )
 		{
 			//cout<<"wait for thread timeout"<<endl;
-			g_logger.TraceInfo("wait for thread timeout");
+			g_logger.TraceInfo("CCommunicator::~CCommunicator - wait for thread timeout");
 		}
 		if (m_SockSrv != NULL)
 		{
@@ -600,25 +600,27 @@ namespace COMMUNICATOR
 	}
 	bool CCommunicator::cmdAnalysisBegin(const char* pData )
 	{
-		char *pFP = NULL;
 		int nLoc = 2;
 		char cCurrentTest = 0x00;
 		memcpy(&cCurrentTest,pData+nLoc,1);
+		string strMsgInfo("");
 		if (0x02 == cCurrentTest)//指定历史检测
 		{
 			++nLoc;
 			int nFilePathLen=0;
 			memcpy(&nFilePathLen,pData+nLoc,1);
 			++nLoc;
-			pFP = new char[nFilePathLen+1];
+			char *pFP = new char[nFilePathLen+1];
 			memset(pFP,0,nFilePathLen+1);
-			memcpy(pFP, pData+nLoc,nFilePathLen);		
+			memcpy(pFP, pData+nLoc,nFilePathLen);
+			strMsgInfo = pFP;
+			delete[] pFP;
+			pFP = NULL;	
 		}
 
-		if ( !PostThreadMessage(m_dwMainThreadId, msg_ANA_ANALYSIS_BEGIN, (WPARAM)cCurrentTest, (LPARAM)pFP ) )
+		if ( !PostThreadMessage(m_dwMainThreadId, msg_ANA_ANALYSIS_BEGIN, (WPARAM)cCurrentTest, (LPARAM)strMsgInfo.c_str() ) )
 		{
-			delete[] pFP;
-			pFP = NULL;
+			g_logger.TraceError("CCommunicator::cmdAnalysisBegin - PostThreadMessage failed");
 		}
 
 		return true;

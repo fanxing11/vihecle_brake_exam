@@ -156,6 +156,7 @@ namespace DAQCONTROLER
 
 	CDAQControler::CDAQControler(void)
 		:m_wfAiCtrl(NULL)
+		,m_bDAQInitialSuccessfully(false)
 	{
 		this->Initialize();
 	}
@@ -297,20 +298,31 @@ namespace DAQCONTROLER
 		//CloseHandle(hFile);
 
 		// If something wrong in this execution, print the error code on screen for tracking.
+		m_bDAQInitialSuccessfully = true;
 		if(BioFailed(ret))
 		{
 			//u初始化错误，弹框或者返回错误信息----
-			g_logger.TraceError("CDAQControler::Initialize:Some error occurred. And the last error code is 0x%X.\n", ret);
+			g_logger.TraceError("CDAQControler::Initialize:Initial DAQ failed. And the last error code is 0x%X.\n", ret);
 			//waitAnyKey();// wait any key to quit!
+			m_bDAQInitialSuccessfully = false;
 		}
 	}
 
 	void CDAQControler::VelocityBegin(){
+		if (!CheckDAQStarted())
+		{
+			return;
+		}
 		SetEvent(m_gEvtVelocity);
 		SampleBegin();
 	}
 
 	void CDAQControler::VelocityEnd(){
+		if (!CheckDAQStarted())
+		{
+			return;
+		}
+
 		ResetEvent(m_gEvtVelocity);
 		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtStress,0))
 		{
@@ -319,11 +331,21 @@ namespace DAQCONTROLER
 	}
 
 	void CDAQControler::StressBegin(){
+		if (!CheckDAQStarted())
+		{
+			return;
+		}
+
 		SetEvent(m_gEvtStress);
 		SampleBegin();
 	}
 
 	void CDAQControler::StressEnd(){
+		if (!CheckDAQStarted())
+		{
+			return;
+		}
+
 		ResetEvent(m_gEvtStress);
 		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtVelocity,0))
 		{
@@ -341,6 +363,11 @@ namespace DAQCONTROLER
 
 	void CDAQControler::NewProject(char cMode)
 	{
+		if (!CheckDAQStarted())
+		{
+			return;
+		}
+
 		//获取并保存地面初始角度
 		this->SetInitAngleFlag();
 
@@ -380,6 +407,11 @@ namespace DAQCONTROLER
 
 	void CDAQControler::TerminateProject()
 	{
+		if (!CheckDAQStarted())
+		{
+			return;
+		}
+
 		StressEnd();
 		VelocityEnd();
 
@@ -392,6 +424,11 @@ namespace DAQCONTROLER
 	{
 		SetEvent(m_gEvtInitAngleFlag);
 	}
+	bool CDAQControler::CheckDAQStarted()const
+	{
+		return m_bDAQInitialSuccessfully;
+	}
+
 	
 }
 

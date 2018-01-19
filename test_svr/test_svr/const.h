@@ -50,6 +50,8 @@ const UINT msg_ANA_ANALYSIS_BEGIN = WM_USER+211;
 const UINT msg_ANA_ANALYSIS_STATE = WM_USER+212;
 const UINT msg_ANA_ANALYSIS_RESULT = WM_USER+213;
 
+const UINT msg_MAIN_QIUT = WM_USER+444;
+
 
 //----- UDP cmd from/to UI
 const BYTE cmd_HEADER=0x7E;

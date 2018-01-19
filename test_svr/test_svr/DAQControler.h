@@ -46,7 +46,6 @@ namespace DAQCONTROLER
 		~CDAQControler(void);
 
 	public:
-		void Initialize();
 		void VelocityBegin();
 		void VelocityEnd();
 		void StressBegin();
@@ -58,6 +57,7 @@ namespace DAQCONTROLER
 
 
 	private:
+		void Initialize();
 
 		void SetInitAngleFlag();
 		void SampleBegin();
@@ -70,6 +70,9 @@ namespace DAQCONTROLER
 		WaveformAiCtrl * m_wfAiCtrl;
 
 		HANDLE m_hDAQThread;
+
+		bool m_bDAQInitialSuccessfully;
+		bool CheckDAQStarted()const;
 
 	};
 

@@ -39,7 +39,10 @@ int main()
 	while(GetMessage(&msg,NULL,0,0))
 	{
 		cout<<"get one msg"<<endl;
-
+		if (msg.message == msg_MAIN_QIUT)
+		{
+			break;
+		}
 		switch (msg.message)
 		{
 		case msg_DB_USERLOGIN:
@@ -163,36 +166,28 @@ int main()
 				char cCurrentTest = (char)msg.wParam;
 				char* pFilePath = (char*)msg.lParam;
 				string strProjPath(pFilePath);
-				delete[] pFilePath;
-				pFilePath = NULL;
 
 				string strRetInfo("");
 
 				if (cCurrentTest == 0x01)//current test
 				{
-					if ( NUM_TWO != theApp.m_pDataC->GetCurrentProjectState() )
+					if ( NUM_TWO == theApp.m_pDataC->GetCurrentProjectState() )
 					{
-						if ( NUM_ONE != theApp.m_pDataC->GetCurrentProjectState() ){
-							g_logger.TraceWarning("msg_ANA_ANALYSIS_BEGIN:CurrentProject is onGoing");
-							strRetInfo = ("当前检测正在进行");
-						}
-						else if ( NUM_ZERO != theApp.m_pDataC->GetCurrentProjectState() )
-						{
-							g_logger.TraceWarning("msg_ANA_ANALYSIS_BEGIN:CurrentProject is onGoing");
-							strRetInfo = ("当前检测尚未开始");
-						}
-						//theApp.m_pCommunicator->SendDatatoUI(msg_ANA_ANALYSIS_STATE,NUM_THREE,strRetInfo);
-						char* pBuf = new char[strRetInfo.length()+1];
-						memset(pBuf,0,strRetInfo.length()+1);
-						memcpy(pBuf,strRetInfo.c_str(),strRetInfo.length());
-						if( !PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)pBuf) )
-						{
-							delete[] pBuf;
-							pBuf = NULL;
-						}
-						return 0;
+						theApp.m_pDataC->GetProjectPath(strProjPath);
+						theApp.m_pAnalysis->BeginAnalysis(strProjPath);
 					}
-					theApp.m_pDataC->GetProjectPath(strProjPath);
+					else if ( NUM_ONE == theApp.m_pDataC->GetCurrentProjectState() )
+					{
+						g_logger.TraceWarning("msg_ANA_ANALYSIS_BEGIN:CurrentProject is onGoing");
+						strRetInfo = ("当前检测正在进行");
+						PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)strRetInfo.c_str());
+					}
+					else if ( NUM_ZERO == theApp.m_pDataC->GetCurrentProjectState() )
+					{
+						g_logger.TraceWarning("msg_ANA_ANALYSIS_BEGIN:CurrentProject has not started");
+						strRetInfo = ("当前检测尚未开始");
+						PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)strRetInfo.c_str());
+					}
 				}
 				else if (cCurrentTest == 0x02)//history test
 				{
@@ -223,7 +218,6 @@ int main()
 		}
 
 	}
-
 
 	cout<<"this is last line"<<endl;
 
