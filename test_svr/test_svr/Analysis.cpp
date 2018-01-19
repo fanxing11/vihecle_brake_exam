@@ -23,14 +23,19 @@ namespace ANALYSISSPACE
 				string strInfo;
 				if( !(pAnalysis->_BeginaAnalysis(strInfo)) )
 				{
-					//char* pBuf = new char[strInfo.length()+1];
-					//memset(pBuf,0,strInfo.length()+1);
-					//memcpy(pBuf,strInfo.c_str(),strInfo.length());
-					if( !PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)strInfo.c_str()) )
+
+					char* pBuf = NULL;
+					int nLen = strInfo.length();
+					pBuf = new char[nLen+1];
+					memset(pBuf,0,nLen+1);
+					memcpy(pBuf,strInfo.c_str(),nLen);
+					if(!PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)pBuf))
 					{
-						//delete[] pBuf;
-						//pBuf = NULL;
+						g_logger.TraceError("AnalysisThreadFunc - PostThreadMessage failed");
+						delete[] pBuf;
+						pBuf = NULL;
 					}
+
 				}
 				else
 				{
@@ -87,6 +92,7 @@ namespace ANALYSISSPACE
 		}
 		else if ( !CheckFileExist(strBinFile))
 		{
+			bGood = false;
 			strInfo = ("DataFile(");
 			strInfo = strInfo+ strBinFile +string(") is not exist");
 		}
@@ -94,7 +100,19 @@ namespace ANALYSISSPACE
 		if (!bGood)
 		{
 			g_logger.TraceWarning("CAnalysis::BeginAnalysis - %s",strInfo.c_str());
-			PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)strInfo.c_str()); 
+
+			char* pBuf = NULL;
+			int nLen = strInfo.length();
+			pBuf = new char[nLen+1];
+			memset(pBuf,0,nLen+1);
+			memcpy(pBuf,strInfo.c_str(),nLen);
+			if(!PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)pBuf))
+			{
+				g_logger.TraceError("CAnalysis::BeginAnalysis - PostThreadMessage failed");
+				delete[] pBuf;
+				pBuf = NULL;
+			}
+
 			return;
 		}
 		

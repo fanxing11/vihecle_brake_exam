@@ -604,22 +604,24 @@ namespace COMMUNICATOR
 		char cCurrentTest = 0x00;
 		memcpy(&cCurrentTest,pData+nLoc,1);
 		string strMsgInfo("");
+		char *pFP = NULL;
 		if (0x02 == cCurrentTest)//指定历史检测
 		{
 			++nLoc;
 			int nFilePathLen=0;
 			memcpy(&nFilePathLen,pData+nLoc,1);
 			++nLoc;
-			char *pFP = new char[nFilePathLen+1];
+			pFP = new char[nFilePathLen+1];
 			memset(pFP,0,nFilePathLen+1);
 			memcpy(pFP, pData+nLoc,nFilePathLen);
-			strMsgInfo = pFP;
-			delete[] pFP;
-			pFP = NULL;	
+			//strMsgInfo = pFP;
+
 		}
 
-		if ( !PostThreadMessage(m_dwMainThreadId, msg_ANA_ANALYSIS_BEGIN, (WPARAM)cCurrentTest, (LPARAM)strMsgInfo.c_str() ) )
+		if ( !PostThreadMessage(m_dwMainThreadId, msg_ANA_ANALYSIS_BEGIN, (WPARAM)cCurrentTest, (LPARAM)pFP ) )
 		{
+			delete[] pFP;
+			pFP = NULL;	
 			g_logger.TraceError("CCommunicator::cmdAnalysisBegin - PostThreadMessage failed");
 		}
 

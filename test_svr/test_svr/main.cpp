@@ -165,7 +165,13 @@ int main()
 			{
 				char cCurrentTest = (char)msg.wParam;
 				char* pFilePath = (char*)msg.lParam;
-				string strProjPath(pFilePath);
+				string strProjPath("");
+				if (pFilePath != NULL)
+				{
+					strProjPath = pFilePath;
+					delete[] pFilePath;
+					pFilePath = NULL;
+				}
 
 				string strRetInfo("");
 
@@ -176,17 +182,30 @@ int main()
 						theApp.m_pDataC->GetProjectPath(strProjPath);
 						theApp.m_pAnalysis->BeginAnalysis(strProjPath);
 					}
-					else if ( NUM_ONE == theApp.m_pDataC->GetCurrentProjectState() )
+					else
 					{
-						g_logger.TraceWarning("msg_ANA_ANALYSIS_BEGIN:CurrentProject is onGoing");
-						strRetInfo = ("当前检测正在进行");
-						PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)strRetInfo.c_str());
-					}
-					else if ( NUM_ZERO == theApp.m_pDataC->GetCurrentProjectState() )
-					{
-						g_logger.TraceWarning("msg_ANA_ANALYSIS_BEGIN:CurrentProject has not started");
-						strRetInfo = ("当前检测尚未开始");
-						PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)strRetInfo.c_str());
+
+						if ( NUM_ONE == theApp.m_pDataC->GetCurrentProjectState() )
+						{
+							g_logger.TraceWarning("msg_ANA_ANALYSIS_BEGIN:CurrentProject is onGoing");
+							strRetInfo = ("当前检测正在进行");
+						}
+						else if ( NUM_ZERO == theApp.m_pDataC->GetCurrentProjectState() )
+						{
+							g_logger.TraceWarning("msg_ANA_ANALYSIS_BEGIN:CurrentProject has not started");
+							strRetInfo = ("当前检测尚未开始");
+						}
+						char* pBuf = NULL;
+						int nLen = strRetInfo.length();
+						pBuf = new char[nLen+1];
+						memset(pBuf,0,nLen+1);
+						memcpy(pBuf,strRetInfo.c_str(),nLen);
+						if(!PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)pBuf))
+						{
+							g_logger.TraceError("main::msg_ANA_ANALYSIS_BEGIN - PostThreadMessage failed");
+							delete[] pBuf;
+							pBuf = NULL;
+						}
 					}
 				}
 				else if (cCurrentTest == 0x02)//history test
@@ -202,12 +221,13 @@ int main()
 		case msg_ANA_ANALYSIS_STATE:
 			{
 				char* pp = (char*)msg.lParam;
-				string strInfo(pp);
-				//if (NULL != pp)
-				//{
-				//	delete[] pp;
-				//	pp = NULL;
-				//}
+				string strInfo("");
+				if (NULL != pp)
+				{
+					strInfo = pp;
+					delete[] pp;
+					pp = NULL;
+				}
 				theApp.m_pCommunicator->SendDatatoUI(msg.message,msg.wParam,strInfo);
 				break;
 			}
