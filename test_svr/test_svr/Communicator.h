@@ -48,6 +48,7 @@ namespace COMMUNICATOR
 		bool cmdSetReportPath(const char* pData );
 		bool cmdAnalysisBegin(const char* pData );
 		bool cmdHeartBeatSignal(const char* pData);
+		bool cmdQuit();
 	};
 
 }

@@ -486,6 +486,8 @@ namespace COMMUNICATOR
 		case cmd_HEARTBEAT:
 			this->cmdHeartBeatSignal(pData);
 			break;
+		case cmd_QUIT:
+			this->cmdQuit();
 		default:
 			g_logger.TraceError("CCommunicator::ParseData:cmd false,cmd=%x",cb);
 			break;
@@ -715,6 +717,11 @@ namespace COMMUNICATOR
 			g_logger.TraceInfo("CCommunicator::cmdHeartBeatSignal - send success,sentLen=%d",nLenSend);
 		}
 
+		return true;
+	}
+	bool CCommunicator::cmdQuit()
+	{
+		PostThreadMessage(m_dwMainThreadId, msg_MAIN_QIUT, NULL, NULL );
 		return true;
 	}
 

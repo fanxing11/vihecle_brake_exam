@@ -81,6 +81,8 @@ const BYTE cmd_ANALYSIS_RESULT=0x42;//out
 
 const BYTE cmd_HEARTBEAT=0x51;//in out
 
+const BYTE cmd_QUIT=0x61;//in
+
 
 //DAQ controler Msg to main thread msg  
 const UINT msg_DAQ_VELOCITY = WM_USER+301;
