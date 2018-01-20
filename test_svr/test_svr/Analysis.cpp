@@ -274,7 +274,8 @@ namespace ANALYSISSPACE
 
 		STRESSINFO stStressInfo;
 		m_stResult.MaxFootBrakeForce = *(pData+0) - *(pData+1);
-		m_stResult.Gradient = *(pData+2);//暂时使用一个方向的角度
+		m_stResult.GradientX = *(pData+2);
+		m_stResult.GradientY = *(pData+3);
 		m_stResult.MaxHandBrakeForce = *(pData+4) - *(pData+5);
 		m_stResult.PedalDistance = *(pData+6);
 
@@ -288,7 +289,8 @@ namespace ANALYSISSPACE
 
 			stStressInfo.MaxFootBrakeForce = *(pData+(i*channelCount)) - *(pData+(i*channelCount)+1);
 			stStressInfo.MaxHandBrakeForce = *(pData+(i*channelCount)+4) - *(pData+(i*channelCount)+5);
-			stStressInfo.Gradient = *(pData+(i*channelCount)+2);//暂时使用一个方向的角度
+			stStressInfo.GradientX = *(pData+(i*channelCount)+2);
+			stStressInfo.GradientY = *(pData+(i*channelCount)+3);
 			stStressInfo.PedalDistance = *(pData+(i*channelCount)+6);
 
 			if (m_stResult.MaxFootBrakeForce < stStressInfo.MaxFootBrakeForce)
@@ -299,9 +301,13 @@ namespace ANALYSISSPACE
 			{
 				m_stResult.MaxHandBrakeForce = stStressInfo.MaxHandBrakeForce;
 			}
-			if (m_stResult.Gradient < stStressInfo.Gradient)
+			if (m_stResult.GradientX < stStressInfo.GradientX)
 			{
-				m_stResult.Gradient = stStressInfo.Gradient;
+				m_stResult.GradientX = stStressInfo.GradientX;
+			}
+			if (m_stResult.GradientY < stStressInfo.GradientY)
+			{
+				m_stResult.GradientY = stStressInfo.GradientY;
 			}
 			if (m_stResult.PedalDistance < stStressInfo.PedalDistance)
 			{
@@ -318,15 +324,17 @@ namespace ANALYSISSPACE
 
 		theApp.m_pDataC->TransformFootBrakeForce(m_stResult.MaxFootBrakeForce);
 		theApp.m_pDataC->TransformHandBrakeForce(m_stResult.MaxHandBrakeForce);
-		theApp.m_pDataC->TransformGradient(m_stResult.Gradient);//暂时使用一个方向的角度
+		theApp.m_pDataC->TransformGradient(m_stResult.GradientX);//暂时使用一个方向的角度
+		theApp.m_pDataC->TransformGradient(m_stResult.GradientY);//暂时使用一个方向的角度
 		//需要减去初始地面倾角
 		theApp.m_pDataC->TransformPedalDistance(m_stResult.PedalDistance);
 
-		g_logger.TraceWarning("CAnalysis::HandleData - Result=%2f_%2f_%2f_%2f_%2f_%2f_%2f",
+		g_logger.TraceWarning("CAnalysis::HandleData - Result=%2f_%2f_%2f_%2f_%2f_%2f_%2f_%2f",
 			m_stResult.MaxAccelaration,
 			m_stResult.BrakeDistance,
 			m_stResult.AverageVelocity,
-			m_stResult.Gradient,
+			m_stResult.GradientX,
+			m_stResult.GradientY,
 			m_stResult.PedalDistance,
 			m_stResult.MaxHandBrakeForce,
 			m_stResult.MaxFootBrakeForce);

@@ -157,6 +157,8 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 		case msg_DAQ_TERMINATEPROJECT:
 			{
 				theApp.m_pDataC->TerminateCurrentProject();
+				theApp.m_pCommunicator->SendDatatoUI(msg.message,NUM_ZERO,"");
+
 				break;
 			}
 		case msg_DATA_SETREPORTPATH:

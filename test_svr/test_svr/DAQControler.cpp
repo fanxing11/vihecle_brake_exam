@@ -56,7 +56,7 @@ namespace DAQCONTROLER
 			ResetEvent(m_gEvtInitAngleFlag);
 		}
 
-		printTime();
+		//printTime();
 		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtStress,0))
 		{
 			theApp.m_pDataC->HandleStressData(Data, channelCount,sectionLength);
@@ -65,7 +65,7 @@ namespace DAQCONTROLER
 		{
 			theApp.m_pDataC->HandleVelocityData(Data, channelCount,sectionLength,deltat);
 		}
-		printTime();
+		//printTime();
 
 		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtSaveFile,0))
 		{
@@ -104,7 +104,6 @@ namespace DAQCONTROLER
 	{
 		printf("Streaming AI stopped: offset = %d, count = %d\n", args->Offset, args->Count);
 	}
-
 
 	inline void waitAnyKey()
 	{
@@ -235,76 +234,83 @@ namespace DAQCONTROLER
 
 	void CDAQControler::Initialize()
 	{
-		CreateSyncEvent();
-
-		ErrorCode        ret = Success;
-
-		// Step 1: Create a 'WaveformAiCtrl' for buffered AI function.
-		m_wfAiCtrl = WaveformAiCtrl::Create();
-
-		////Step 2: Open file
-		//openFile();
-
-		// Step 3: Set the notification event Handler by which we can known the state of operation effectively.
-		m_wfAiCtrl->addDataReadyHandler(OnDataReadyEvent, NULL);
-		m_wfAiCtrl->addOverrunHandler(OnOverRunEvent, NULL);
-		m_wfAiCtrl->addCacheOverflowHandler(OnCacheOverflowEvent, NULL);
-		m_wfAiCtrl->addStoppedHandler(OnStoppedEvent, NULL);
-		do
+		try
 		{
-			// Step 4: Select a device by device number or device description and specify the access mode.
-			// in this example we use ModeWrite mode so that we can fully control the device, including configuring, sampling, etc.
-			DeviceInformation devInfo(deviceDescription);
-			ret = m_wfAiCtrl->setSelectedDevice(devInfo);
-			CHK_RESULT(ret);
-			ret = m_wfAiCtrl->LoadProfile(profilePath);//Loads a profile to initialize the device.
-			CHK_RESULT(ret);
+			CreateSyncEvent();
 
-			// Step 5: Set necessary parameters.
-			Conversion * conversion = m_wfAiCtrl->getConversion();
-			ret = conversion->setChannelStart(startChannel);
-			CHK_RESULT(ret);
-			ret = conversion->setChannelCount(channelCount);
-			CHK_RESULT(ret);
-			Record * record = m_wfAiCtrl->getRecord();
-			ret = record->setSectionCount(sectionCount);//The 0 means setting 'streaming' mode.
-			CHK_RESULT(ret);
-			ret = record->setSectionLength(sectionLength);
-			CHK_RESULT(ret);
+			ErrorCode        ret = Success;
 
-			// Step 6: The operation has been started.
-			// We can get samples via event handlers.
-			ret = m_wfAiCtrl->Prepare();
-			CHK_RESULT(ret);
-			ret = m_wfAiCtrl->Start();
-			CHK_RESULT(ret);
+			// Step 1: Create a 'WaveformAiCtrl' for buffered AI function.
+			m_wfAiCtrl = WaveformAiCtrl::Create();
 
-			//// Step 7: The device is acquiring data.
-			//printf("Streaming AI is in progress.\nplease wait...  any key to quit!\n\n");
-			//do
-			//{
-			//	SLEEP(1);
-			//}	while((RealFileSize < RequirementFileSize) ? true : false);
-			//printf("Saving completely!\n");
+			////Step 2: Open file
+			//openFile();
 
-			//// step 8: Stop the operation if it is running.
-			//ret = m_wfAiCtrl->Stop(); 
-			//CHK_RESULT(ret);
-		}while(false);
+			// Step 3: Set the notification event Handler by which we can known the state of operation effectively.
+			m_wfAiCtrl->addDataReadyHandler(OnDataReadyEvent, NULL);
+			m_wfAiCtrl->addOverrunHandler(OnOverRunEvent, NULL);
+			m_wfAiCtrl->addCacheOverflowHandler(OnCacheOverflowEvent, NULL);
+			m_wfAiCtrl->addStoppedHandler(OnStoppedEvent, NULL);
+			do
+			{
+				// Step 4: Select a device by device number or device description and specify the access mode.
+				// in this example we use ModeWrite mode so that we can fully control the device, including configuring, sampling, etc.
+				DeviceInformation devInfo(deviceDescription);
+				ret = m_wfAiCtrl->setSelectedDevice(devInfo);
+				CHK_RESULT(ret);
+				ret = m_wfAiCtrl->LoadProfile(profilePath);//Loads a profile to initialize the device.
+				CHK_RESULT(ret);
 
-		//// Step 9: Close device, release any allocated resource.
-		//m_wfAiCtrl->Dispose();
-		//VirtualFree(buffer, SingleSavingFileSize, MEM_RELEASE);
-		//CloseHandle(hFile);
+				// Step 5: Set necessary parameters.
+				Conversion * conversion = m_wfAiCtrl->getConversion();
+				ret = conversion->setChannelStart(startChannel);
+				CHK_RESULT(ret);
+				ret = conversion->setChannelCount(channelCount);
+				CHK_RESULT(ret);
+				Record * record = m_wfAiCtrl->getRecord();
+				ret = record->setSectionCount(sectionCount);//The 0 means setting 'streaming' mode.
+				CHK_RESULT(ret);
+				ret = record->setSectionLength(sectionLength);
+				CHK_RESULT(ret);
 
-		// If something wrong in this execution, print the error code on screen for tracking.
-		m_bDAQInitialSuccessfully = true;
-		if(BioFailed(ret))
+				// Step 6: The operation has been started.
+				// We can get samples via event handlers.
+				ret = m_wfAiCtrl->Prepare();
+				CHK_RESULT(ret);
+				ret = m_wfAiCtrl->Start();
+				CHK_RESULT(ret);
+
+				//// Step 7: The device is acquiring data.
+				//printf("Streaming AI is in progress.\nplease wait...  any key to quit!\n\n");
+				//do
+				//{
+				//	SLEEP(1);
+				//}	while((RealFileSize < RequirementFileSize) ? true : false);
+				//printf("Saving completely!\n");
+
+				//// step 8: Stop the operation if it is running.
+				//ret = m_wfAiCtrl->Stop(); 
+				//CHK_RESULT(ret);
+			}while(false);
+
+			//// Step 9: Close device, release any allocated resource.
+			//m_wfAiCtrl->Dispose();
+			//VirtualFree(buffer, SingleSavingFileSize, MEM_RELEASE);
+			//CloseHandle(hFile);
+
+			// If something wrong in this execution, print the error code on screen for tracking.
+			m_bDAQInitialSuccessfully = true;
+			if(BioFailed(ret))
+			{
+				//u初始化错误，弹框或者返回错误信息----
+				g_logger.TraceError("CDAQControler::Initialize:Initial DAQ failed. And the last error code is 0x%X.\n", ret);
+				//waitAnyKey();// wait any key to quit!
+				m_bDAQInitialSuccessfully = false;
+			}
+		}
+		catch (exception &e)
 		{
-			//u初始化错误，弹框或者返回错误信息----
-			g_logger.TraceError("CDAQControler::Initialize:Initial DAQ failed. And the last error code is 0x%X.\n", ret);
-			//waitAnyKey();// wait any key to quit!
-			m_bDAQInitialSuccessfully = false;
+			g_logger.TraceError("CDAQControler::Initialize:(in catch)Initial DAQ failed.");
 		}
 	}
 

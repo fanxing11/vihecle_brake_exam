@@ -94,7 +94,8 @@ const UINT msg_DAQ_DATAONE = WM_USER+303;
 typedef struct StressInfo
 {
 	double MaxFootBrakeForce;
-	double Gradient;
+	double GradientX;
+	double GradientY;
 	double MaxHandBrakeForce;
 	double PedalDistance;
 }STRESSINFO;
@@ -109,7 +110,8 @@ typedef struct AnalysisResult
 	double MaxAccelaration;
 	double BrakeDistance;
 	double AverageVelocity;
-	double Gradient;//max value
+	double GradientX;//max value
+	double GradientY;//max value
 	double PedalDistance;//max value
 	double MaxHandBrakeForce;
 	double MaxFootBrakeForce;
@@ -120,7 +122,8 @@ typedef struct AnalysisResult_Int
 	int MaxAccelaration;
 	int BrakeDistance;
 	int AverageVelocity;
-	int Gradient;//max value
+	int GradientX;//max value
+	int GradientY;//max value
 	int PedalDistance;//max value
 	int MaxHandBrakeForce;
 	int MaxFootBrakeForce;

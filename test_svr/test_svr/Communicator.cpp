@@ -64,48 +64,55 @@ namespace COMMUNICATOR
 
 	bool CCommunicator::Initialize()
 	{
-		WORD wVersionRequested; 
-		WSADATA wsaData; 
-		int err; 
-
-		wVersionRequested=MAKEWORD(1,1); 
-
-		err = WSAStartup(wVersionRequested, &wsaData); 
-		if (err != 0) 
-		{ 
-			return false; 
-		} 
-		g_logger.TraceInfo("max IP package size:iMaxUdpDg=%d",wsaData.iMaxUdpDg);
-
-		if (LOBYTE(wsaData.wVersion)!=1 || 
-			HIBYTE(wsaData.wVersion)!=1) 
-		{ 
-			WSACleanup(); 
-			return false; 
-		} 
-
-		m_SockSrv=socket(AF_INET,SOCK_DGRAM,0);
-		SOCKADDR_IN addrSrv;
-		addrSrv.sin_addr.S_un.S_addr=htonl(INADDR_ANY);
-		addrSrv.sin_family=AF_INET;
-		addrSrv.sin_port=htons(10000);
-
-		int nRet=bind(m_SockSrv,(SOCKADDR*)&addrSrv,sizeof(SOCKADDR));
-		if (NUM_ZERO != nRet)
+		try
 		{
-			return false;
+			WORD wVersionRequested; 
+			WSADATA wsaData; 
+			int err; 
+
+			wVersionRequested=MAKEWORD(1,1); 
+
+			err = WSAStartup(wVersionRequested, &wsaData); 
+			if (err != 0) 
+			{ 
+				return false; 
+			} 
+			g_logger.TraceInfo("max IP package size:iMaxUdpDg=%d",wsaData.iMaxUdpDg);
+
+			if (LOBYTE(wsaData.wVersion)!=1 || 
+				HIBYTE(wsaData.wVersion)!=1) 
+			{ 
+				WSACleanup(); 
+				return false; 
+			} 
+
+			m_SockSrv=socket(AF_INET,SOCK_DGRAM,0);
+			SOCKADDR_IN addrSrv;
+			addrSrv.sin_addr.S_un.S_addr=htonl(INADDR_ANY);
+			addrSrv.sin_family=AF_INET;
+			addrSrv.sin_port=htons(10000);
+
+			int nRet=bind(m_SockSrv,(SOCKADDR*)&addrSrv,sizeof(SOCKADDR));
+			if (NUM_ZERO != nRet)
+			{
+				return false;
+			}
+
+			m_dwMainThreadId = GetCurrentThreadId();
+			//STIN_COMTHREAD stTep;
+			//stTep.skSever = m_SockSrv;
+			//stTep.dwMainThreadID = m_dwMainThreadId;
+
+			m_hRevThread = (HANDLE)_beginthreadex(NULL, 0, UDPRevThreadFunc, (LPVOID)this, 0, NULL);  
+			//WaitForSingleObject(handle, INFINITE); 
+
+			return true;
+
 		}
-
-		m_dwMainThreadId = GetCurrentThreadId();
-		//STIN_COMTHREAD stTep;
-		//stTep.skSever = m_SockSrv;
-		//stTep.dwMainThreadID = m_dwMainThreadId;
-
-		m_hRevThread = (HANDLE)_beginthreadex(NULL, 0, UDPRevThreadFunc, (LPVOID)this, 0, NULL);  
-		//WaitForSingleObject(handle, INFINITE); 
-
-
-		return true;
+		catch (exception &e)
+		{
+			g_logger.TraceError("CCommunicator::Initialize:(in catch)Initial Communicator failed.");
+		}
 	}
 
 	bool CCommunicator::SendDatatoUI(const UINT Cmd, const int nParam, const string strData2Send)
@@ -210,7 +217,8 @@ namespace COMMUNICATOR
 				}
 				if (WAIT_OBJECT_0 == WaitForSingleObject(DAQCONTROLER::m_gEvtStress,0))
 				{
-					char Ret[19] = {cmd_HEADER,cmd_STRESS,
+					char Ret[23] = {cmd_HEADER,cmd_STRESS,
+						0x00,0x00,0x00,0x00,
 						0x00,0x00,0x00,0x00,
 						0x00,0x00,0x00,0x00,
 						0x00,0x00,0x00,0x00,
@@ -221,18 +229,18 @@ namespace COMMUNICATOR
 					theApp.m_pDataC->GetStressInfo(stStressInfo);
 
 					int nPedalDist = (int)(100*( stStressInfo.PedalDistance ));
-					int nGradient = (int)(100*( stStressInfo.Gradient ));
+					int nGradientX = (int)(100*( stStressInfo.GradientX ));
+					int nGradientY = (int)(100*( stStressInfo.GradientY ));
 					int nFootBrakeForce = (int)(100*(stStressInfo.MaxFootBrakeForce * 4166.66));
 					int nHandBrakeForce = (int)(100*(stStressInfo.MaxHandBrakeForce * 4166.66));
 
-					cout<<"send------"<<nPedalDist<<" "<<nGradient<<" "<<nFootBrakeForce<<" "<<nHandBrakeForce<<endl;
-
 					memcpy(Ret+2, &nPedalDist, sizeof(int));//4bit
-					memcpy(Ret+6, &nGradient, sizeof(int));//4bit
-					memcpy(Ret+10, &nFootBrakeForce, sizeof(int));//4bit
-					memcpy(Ret+14, &nHandBrakeForce, sizeof(int));//4bit
+					memcpy(Ret+6, &nGradientX, sizeof(int));//4bit
+					memcpy(Ret+10, &nGradientY, sizeof(int));//4bit
+					memcpy(Ret+14, &nFootBrakeForce, sizeof(int));//4bit
+					memcpy(Ret+18, &nHandBrakeForce, sizeof(int));//4bit
 
-					sendto(m_SockSrv, Ret, 19, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+					sendto(m_SockSrv, Ret, 23, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
 				}
 
 				break;
@@ -276,15 +284,18 @@ namespace COMMUNICATOR
 
 				break;
 			}
+		case msg_DAQ_TERMINATEPROJECT:
+			{
+				char Ret[3] = {cmd_HEADER,cmd_TERMINATEPROJECT,cmd_TAIL};
+
+				sendto(m_SockSrv, Ret, 3, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+
+				break;
+			}
 		case msg_ANA_ANALYSIS_STATE:
 			{
 				char Ret[5] = {cmd_HEADER,cmd_ANALYSIS_STATE,0x00,0x00,cmd_TAIL};
 
-				int nInfoLen = strData2Send.length();
-				char cInfoLen = (char)nInfoLen;
-				int nCmdLen = nInfoLen+5;
-				char* pBuf= new char[nCmdLen];
-				memset(pBuf,0,nInfoLen+5);
 
 				switch (nParam)
 				{
@@ -295,20 +306,25 @@ namespace COMMUNICATOR
 					Ret[2] = 0x02;
 					break;
 				case NUM_THREE://failed
-					Ret[2] = 0x03;
-					Ret[3] = cInfoLen;
-					memcpy(pBuf, Ret, 4);
-					memcpy(pBuf+4,strData2Send.c_str(),nInfoLen);
-					memcpy(pBuf+4+nInfoLen,&cmd_TAIL,1);
-					break;
+					{
+						int nInfoLen = strData2Send.length();
+						char cInfoLen = (char)nInfoLen;
+						int nCmdLen = nInfoLen+5;
+						char* pBuf= new char[nCmdLen];
+						memset(pBuf,0,nInfoLen+5);
+						Ret[2] = 0x03;
+						Ret[3] = cInfoLen;
+						memcpy(pBuf, Ret, 4);
+						memcpy(pBuf+4,strData2Send.c_str(),nInfoLen);
+						memcpy(pBuf+4+nInfoLen,&cmd_TAIL,1);
+						sendto(m_SockSrv, pBuf, nCmdLen, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+						delete[] pBuf;
+						pBuf = NULL;
+
+						break;
+					}
 				}
-				if (Cmd == NUM_THREE)
-				{
-					sendto(m_SockSrv, pBuf, nCmdLen, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
-					delete[] pBuf;
-					pBuf = NULL;
-				}
-				else
+				if (Cmd != NUM_THREE)
 				{
 					sendto(m_SockSrv, Ret, 5, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
 				}
@@ -322,7 +338,8 @@ namespace COMMUNICATOR
 
 	bool CCommunicator::SendAnalysisResult2UI(const int nResult, const ANALYSISRESULT& stResult)
 	{
-		char Ret[32] = {cmd_HEADER,cmd_ANALYSIS_RESULT,
+		char Ret[36] = {cmd_HEADER,cmd_ANALYSIS_RESULT,
+			0x00,0x00,0x00,0x00,
 			0x00,0x00,0x00,0x00,
 			0x00,0x00,0x00,0x00,
 			0x00,0x00,0x00,0x00,
@@ -341,26 +358,19 @@ namespace COMMUNICATOR
 		stResultInt.MaxAccelaration = (int)(100*stResult.MaxAccelaration);
 		stResultInt.BrakeDistance = (int)(100*stResult.BrakeDistance);
 		stResultInt.AverageVelocity = (int)(100*stResult.AverageVelocity);
-		stResultInt.Gradient = (int)(100*stResult.Gradient);
+		stResultInt.GradientX = (int)(100*stResult.GradientX);
+		stResultInt.GradientY = (int)(100*stResult.GradientY);
 		stResultInt.PedalDistance = (int)(100*stResult.PedalDistance);
 		stResultInt.MaxHandBrakeForce = (int)(100*stResult.MaxHandBrakeForce);
 		stResultInt.MaxFootBrakeForce = (int)(100*stResult.MaxFootBrakeForce);
 		memcpy( (Ret+2), &(stResultInt.MaxAccelaration), sizeof(int) );
 		memcpy( (Ret+6), &(stResultInt.BrakeDistance), sizeof(int) );
 		memcpy( (Ret+10), &(stResultInt.AverageVelocity), sizeof(int) );
-		memcpy( (Ret+14), &(stResultInt.Gradient), sizeof(int) );
-		memcpy( (Ret+20), &(stResultInt.PedalDistance), sizeof(int) );
-		memcpy( (Ret+24), &(stResultInt.MaxHandBrakeForce), sizeof(int) );
-		memcpy( (Ret+28), &(stResultInt.MaxFootBrakeForce), sizeof(int) );
-
-		g_logger.TraceWarning("CCommunicator::SendAnalysisResult2UI - Result=%2f  %2f  %2f  %2f  %2f  %2f  %2f",
-			stResult.MaxAccelaration,
-			stResult.BrakeDistance,
-			stResult.AverageVelocity,
-			stResult.Gradient,
-			stResult.PedalDistance,
-			stResult.MaxHandBrakeForce,
-			stResult.MaxFootBrakeForce);
+		memcpy( (Ret+14), &(stResultInt.GradientX), sizeof(int) );
+		memcpy( (Ret+18), &(stResultInt.GradientY), sizeof(int) );
+		memcpy( (Ret+22), &(stResultInt.PedalDistance), sizeof(int) );
+		memcpy( (Ret+26), &(stResultInt.MaxHandBrakeForce), sizeof(int) );
+		memcpy( (Ret+30), &(stResultInt.MaxFootBrakeForce), sizeof(int) );
 
 		//0x01 完全合格
 		//0x02 局部损坏
@@ -369,23 +379,23 @@ namespace COMMUNICATOR
 		switch (nResult)
 		{
 		case NUM_ONE:
-			Ret[30] = 0x01;
+			Ret[34] = 0x01;
 			break;
 		case NUM_TWO:
-			Ret[30] = 0x02;
+			Ret[34] = 0x02;
 			break;
 		case NUM_THREE:
-			Ret[30] = 0x03;
+			Ret[34] = 0x03;
 			break;
 		case NUM_FOUR:
-			Ret[30] = 0x04;
+			Ret[34] = 0x04;
 			break;
 		default:
-			Ret[30] = 0x05;
+			Ret[34] = 0x05;
 			g_logger.TraceError("CCommunicator::SendDatatoUI - msg_ANA_ANALYSIS_RESULT error");
 		}
 
-		sendto(m_SockSrv, Ret, 32, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+		sendto(m_SockSrv, Ret, 36, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
 
 		return true;
 	}

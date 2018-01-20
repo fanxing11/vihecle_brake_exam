@@ -259,7 +259,8 @@ namespace DATACONTROLER
 	{
 		ResetEvent(m_hEvtStressInfo);
 		m_stStressInfo.MaxFootBrakeForce = *(pData+0) - *(pData+1);
-		m_stStressInfo.Gradient = *(pData+2);//暂时使用一个方向的角度
+		m_stStressInfo.GradientX = *(pData+2);
+		m_stStressInfo.GradientY = *(pData+3);
 		m_stStressInfo.MaxHandBrakeForce = *(pData+4) - *(pData+5);
 		m_stStressInfo.PedalDistance = *(pData+6);
 		STRESSINFO stStressInfo;
@@ -279,7 +280,8 @@ namespace DATACONTROLER
 
 		TransformFootBrakeForce(m_stStressInfo.MaxFootBrakeForce);
 		TransformHandBrakeForce(m_stStressInfo.MaxHandBrakeForce);
-		TransformGradient(m_stStressInfo.Gradient);//暂时使用一个方向的角度
+		TransformGradient(m_stStressInfo.GradientX);
+		TransformGradient(m_stStressInfo.GradientY);
 		//GetInitXAngle 需要减去初始地面倾角
 		TransformPedalDistance(m_stStressInfo.PedalDistance);
 
