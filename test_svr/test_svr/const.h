@@ -113,6 +113,17 @@ typedef struct AnalysisResult
 	double MaxFootBrakeForce;
 
 }ANALYSISRESULT;
+typedef struct AnalysisResult_Int
+{
+	int MaxAccelaration;
+	int BrakeDistance;
+	int AverageVelocity;
+	int Gradient;//max value
+	int PedalDistance;//max value
+	int MaxHandBrakeForce;
+	int MaxFootBrakeForce;
+
+}ANALYSISRESULT_INT;
 
 const string gc_strProjectParaINI_FileName("projectparameter.ini");
 const string gc_strProjectInfo("ProjectInfo");

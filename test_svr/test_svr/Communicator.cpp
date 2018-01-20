@@ -283,7 +283,7 @@ namespace COMMUNICATOR
 				char* pBuf= new char[nCmdLen];
 				memset(pBuf,0,nInfoLen+5);
 
-				switch (Cmd)
+				switch (nParam)
 				{
 				case NUM_ONE://going
 					Ret[2] = 0x01;
@@ -311,58 +311,82 @@ namespace COMMUNICATOR
 				}
 				break;
 			}
-		case msg_ANA_ANALYSIS_RESULT:
-			{
-				char Ret[32] = {cmd_HEADER,cmd_ANALYSIS_RESULT,
-					0x00,0x00,0x00,0x00,
-					0x00,0x00,0x00,0x00,
-					0x00,0x00,0x00,0x00,
-					0x00,0x00,0x00,0x00,
-					0x00,0x00,0x00,0x00,
-					0x00,0x00,0x00,0x00,
-					0x00,0x00,0x00,0x00,
-					0x00,cmd_TAIL};
-
-				//int nAcceleration = (int)(100*( stVelocityInfo.LastAccelaration ));
-
-
-				int nInfoLen = strData2Send.length();
-				char cInfoLen = (char)nInfoLen;
-				int nCmdLen = nInfoLen+5;
-				char* pBuf= new char[nCmdLen];
-				memset(pBuf,0,nInfoLen+5);
-
-				switch (Cmd)
-				{
-				case NUM_ONE://going
-					Ret[2] = 0x01;
-					break;
-				case NUM_TWO://success
-					Ret[2] = 0x02;
-					break;
-				case NUM_THREE://failed
-					Ret[2] = 0x03;
-					Ret[3] = cInfoLen;
-					memcpy(pBuf, Ret, 4);
-					memcpy(pBuf+4,strData2Send.c_str(),nInfoLen);
-					memcpy(pBuf+4+nInfoLen,&cmd_TAIL,1);
-					break;
-				}
-				if (Cmd == NUM_THREE)
-				{
-					sendto(m_SockSrv, pBuf, nCmdLen, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
-				}
-				else
-				{
-					sendto(m_SockSrv, Ret, 5, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
-				}
-				break;
-			}
 
 		}
 
 		return true;
 	}
+
+	bool CCommunicator::SendAnalysisResult2UI(const int nResult, const ANALYSISRESULT& stResult)
+	{
+		char Ret[32] = {cmd_HEADER,cmd_ANALYSIS_RESULT,
+			0x00,0x00,0x00,0x00,
+			0x00,0x00,0x00,0x00,
+			0x00,0x00,0x00,0x00,
+			0x00,0x00,0x00,0x00,
+			0x00,0x00,0x00,0x00,
+			0x00,0x00,0x00,0x00,
+			0x00,0x00,0x00,0x00,
+			0x00,cmd_TAIL};
+
+		//int nAcceleration = (int)(100*( stVelocityInfo.LastAccelaration ));
+
+		//ANALYSISRESULT stResult;
+		//memcpy(&stResult, strData2Send.c_str(), sizeof(ANALYSISRESULT));
+
+		ANALYSISRESULT_INT stResultInt;
+		stResultInt.MaxAccelaration = (int)(100*stResult.MaxAccelaration);
+		stResultInt.BrakeDistance = (int)(100*stResult.BrakeDistance);
+		stResultInt.AverageVelocity = (int)(100*stResult.AverageVelocity);
+		stResultInt.Gradient = (int)(100*stResult.Gradient);
+		stResultInt.PedalDistance = (int)(100*stResult.PedalDistance);
+		stResultInt.MaxHandBrakeForce = (int)(100*stResult.MaxHandBrakeForce);
+		stResultInt.MaxFootBrakeForce = (int)(100*stResult.MaxFootBrakeForce);
+		memcpy( (Ret+2), &(stResultInt.MaxAccelaration), sizeof(int) );
+		memcpy( (Ret+6), &(stResultInt.BrakeDistance), sizeof(int) );
+		memcpy( (Ret+10), &(stResultInt.AverageVelocity), sizeof(int) );
+		memcpy( (Ret+14), &(stResultInt.Gradient), sizeof(int) );
+		memcpy( (Ret+20), &(stResultInt.PedalDistance), sizeof(int) );
+		memcpy( (Ret+24), &(stResultInt.MaxHandBrakeForce), sizeof(int) );
+		memcpy( (Ret+28), &(stResultInt.MaxFootBrakeForce), sizeof(int) );
+
+		g_logger.TraceWarning("CCommunicator::SendAnalysisResult2UI - Result=%2f  %2f  %2f  %2f  %2f  %2f  %2f",
+			stResult.MaxAccelaration,
+			stResult.BrakeDistance,
+			stResult.AverageVelocity,
+			stResult.Gradient,
+			stResult.PedalDistance,
+			stResult.MaxHandBrakeForce,
+			stResult.MaxFootBrakeForce);
+
+		//0x01 完全合格
+		//0x02 局部损坏
+		//0x03 损坏严重
+		//0x04 不合格
+		switch (nResult)
+		{
+		case NUM_ONE:
+			Ret[30] = 0x01;
+			break;
+		case NUM_TWO:
+			Ret[30] = 0x02;
+			break;
+		case NUM_THREE:
+			Ret[30] = 0x03;
+			break;
+		case NUM_FOUR:
+			Ret[30] = 0x04;
+			break;
+		default:
+			Ret[30] = 0x05;
+			g_logger.TraceError("CCommunicator::SendDatatoUI - msg_ANA_ANALYSIS_RESULT error");
+		}
+
+		sendto(m_SockSrv, Ret, 32, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+
+		return true;
+	}
+
 
 	bool CCommunicator::RecvData()
 	{

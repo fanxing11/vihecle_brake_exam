@@ -236,6 +236,7 @@ namespace ANALYSISSPACE
 		if (INVALID_HANDLE_VALUE != m_hFileReader)
 		{
 			CloseHandle(m_hFileReader);
+			m_hFileReader = NULL;
 		}
 
 		if ( !bRet )
@@ -321,19 +322,23 @@ namespace ANALYSISSPACE
 		//需要减去初始地面倾角
 		theApp.m_pDataC->TransformPedalDistance(m_stResult.PedalDistance);
 
+		g_logger.TraceWarning("CAnalysis::HandleData - Result=%2f_%2f_%2f_%2f_%2f_%2f_%2f",
+			m_stResult.MaxAccelaration,
+			m_stResult.BrakeDistance,
+			m_stResult.AverageVelocity,
+			m_stResult.Gradient,
+			m_stResult.PedalDistance,
+			m_stResult.MaxHandBrakeForce,
+			m_stResult.MaxFootBrakeForce);
+
 	}
 	bool CAnalysis::AnalyseResult()
 	{
-		int nResult = 1;
-		int nDataNum=7;
-		double* pBuf = new double[nDataNum+1];
-		memset(pBuf,0,(nDataNum+1)*sizeof(double));
-		memcpy(pBuf,&m_stResult,nDataNum*sizeof(double));
-		if(!PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_RESULT ,(WPARAM)&nResult,(LPARAM)pBuf))
+		int nResult = NUM_ONE;
+
+		if(!PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_RESULT ,nResult,(LPARAM)&m_stResult))
 		{
 			g_logger.TraceError("CAnalysis::AnalyseResult - PostThreadMessage failed");
-			delete[] pBuf;
-			pBuf = NULL;
 		}
 		return true;
 	}

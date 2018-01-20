@@ -30,6 +30,7 @@ namespace COMMUNICATOR
 		bool RecvData();
 		bool ParseData(const char* pData);
 		bool SendDatatoUI(const UINT Cmd, const int nParam=0,/*o->good*/ const string strData2Send = "");
+		bool SendAnalysisResult2UI(const int nResult, const ANALYSISRESULT& stResult);
 
 	private:
 		bool cmdUserRegister( const char* pData);

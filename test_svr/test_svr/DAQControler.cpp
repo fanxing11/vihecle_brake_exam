@@ -158,7 +158,7 @@ namespace DAQCONTROLER
 		:m_wfAiCtrl(NULL)
 		,m_bDAQInitialSuccessfully(false)
 	{
-		this->Initialize();
+		//this->Initialize();
 	}
 
 	CDAQControler::~CDAQControler(void)
