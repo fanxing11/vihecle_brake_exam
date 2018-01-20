@@ -22,8 +22,16 @@ CtheApp::~CtheApp(void)
 
 CtheApp theApp;
 
-int main()
+//int main()
+int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance, __in_opt LPSTR lpCmdLine, __in int nShowCmd )
 {
+
+
+	if (!theApp.m_pCommunicator->Initialize())
+	{
+		MessageBox(NULL,TEXT("server startup failed."),NULL,MB_OK);
+		return 0;
+	}
 
 	theApp.m_dwMainThreadID = GetCurrentThreadId();
 

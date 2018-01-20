@@ -40,7 +40,6 @@ namespace COMMUNICATOR
 		,m_dwMainThreadId(0)
 	{
 		g_logger.TraceInfo("CCommunicator::CCommunicator");
-		this->Initialize();
 	}
 
 	CCommunicator::~CCommunicator(void)
@@ -91,7 +90,11 @@ namespace COMMUNICATOR
 		addrSrv.sin_family=AF_INET;
 		addrSrv.sin_port=htons(10000);
 
-		bind(m_SockSrv,(SOCKADDR*)&addrSrv,sizeof(SOCKADDR));
+		int nRet=bind(m_SockSrv,(SOCKADDR*)&addrSrv,sizeof(SOCKADDR));
+		if (NUM_ZERO != nRet)
+		{
+			return false;
+		}
 
 		m_dwMainThreadId = GetCurrentThreadId();
 		//STIN_COMTHREAD stTep;
@@ -492,19 +495,6 @@ namespace COMMUNICATOR
 			g_logger.TraceError("CCommunicator::ParseData:cmd false,cmd=%x",cb);
 			break;
 		}
-
-
-
-
-		////if rev 'quit', quit the 
-		//string strBuf(pData);
-		//string strQuit("quit");
-		//if (pData == strQuit)
-		//{
-		//	g_logger.TraceInfo("post quit msg");
-		//	PostThreadMessage(m_dwMainThreadId,2000,3000,4000);
-		//	return false;
-		//}
 
 		return true;
 	}

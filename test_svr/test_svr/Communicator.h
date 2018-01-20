@@ -15,8 +15,9 @@ namespace COMMUNICATOR
 		CCommunicator(void);
 		~CCommunicator(void);
 
-	private:
 		bool Initialize();
+
+	private:
 		// 通讯线程句柄
 		DWORD m_dwMainThreadId;
 		HANDLE m_hRevThread;
