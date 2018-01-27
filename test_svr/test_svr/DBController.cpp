@@ -250,6 +250,56 @@ namespace DBCONTROLLER
 		return rt;
 	}
 
+	//in@
+	//nErr=0,good;
+	//nErr=1,pwd error
+	//nErr=2,target user not exist
+	bool CDBController::AdminUserVerify(int& nErr, const string& sUserName, const string& sPwd)
+	{
+		printf("AdminUserVerify\n");
+		nErr=-1;
+		int nTargetState=0;
+		vector <string> vNames;
+		GetAllUserNames(vNames,sUserName,nTargetState);
+		if (nTargetState == 2)//not exist
+		{
+			nErr = 2;
+			return true;
+		}
+
+		g_uCmd = DB_VERRIFYUSERPWD;
+		bool rt = true;
+
+		if (!OpenDB())
+		{
+			rt = false;
+		}
+		string s_sql("SELECT pwd from userInfo where userName=\"");
+		s_sql.append(sUserName);
+		s_sql.append("\" and level=\"");
+		s_sql.append("0");
+		s_sql.append("\"");
+
+		int rc;
+		char *zErrMsg = 0;
+		rc = sqlite3_exec(m_pstdb, s_sql.c_str(), callback, "userName", &zErrMsg);
+		if( rc != SQLITE_OK ){
+			fprintf(stderr, "SQL error: %s\n", zErrMsg);
+			sqlite3_free(zErrMsg);
+			rt = false;
+		}else{
+			printf("SQL execute successfully\n");
+		}
+		if (g_sPwd == sPwd)
+			nErr = 0;
+		else
+			nErr = 1;
+
+		CloseDB();
+
+		return rt;
+	}
+
 
 	bool CDBController::OpenDB()
 	{

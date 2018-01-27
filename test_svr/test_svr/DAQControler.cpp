@@ -34,39 +34,38 @@ namespace DAQCONTROLER
 	// This function is used to deal with 'DataReady' Event. 
 	void BDAQCALL OnDataReadyEvent(void * sender, BfdAiEventArgs * args, void *userParam)
 	{
-
-		static int i = 1;
+		//static int i = 1;
 		//if (i>1)
 		//{
 		//	return;
 		//}
+		//1. get data
 		WaveformAiCtrl * waveformAiCtrl = NULL;
 		waveformAiCtrl = (WaveformAiCtrl *)sender;
 		int32 getDataCount = min(USER_BUFFER_SIZE, args->Count);
 		//cout<<USER_BUFFER_SIZE<<"  "<<args->Count<<"  "<<getDataCount<<endl;
 		waveformAiCtrl->GetData(getDataCount, Data);
 
-		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtSample,0))
+		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtSample,0))//是否在采集
 		{
 			return;
 		}
-		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtInitAngleFlag,0))
-		{
-			theApp.m_pDataC->SaveInitAngle2INIFile( Data );
-			ResetEvent(m_gEvtInitAngleFlag);
-		}
-
 		//printTime();
-		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtStress,0))
+		//2. data process
+		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtInitGradient,0))
 		{
-			theApp.m_pDataC->HandleStressData(Data, channelCount,sectionLength);
+			theApp.m_pDataController->HandleInitGradientData(Data, channelCount,sectionLength);
 		}
-		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtVelocity,0))
+		else if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtMoveDetection,0))
 		{
-			theApp.m_pDataC->HandleVelocityData(Data, channelCount,sectionLength,deltat);
+			theApp.m_pDataController->HandleMoveDetectionData(Data, channelCount,sectionLength,deltat);
+		}
+		else if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtStillDetection,0))
+		{
+			theApp.m_pDataController->HandleStillDetectionData(Data, channelCount,sectionLength);
 		}
 		//printTime();
-
+		//3. data save
 		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtSaveFile,0))
 		{
 			//printf("Ready to save the data...%d\n\n",getDataCount);
@@ -74,10 +73,10 @@ namespace DAQCONTROLER
 			
 			if (WriteFile(hFile, buffer, SingleSavingFileSize, &WrittenBytes, NULL))
 			{
-				printf("Saving has been executed!\n\n");
+				//printf("Saving has been executed!\n\n");
 				RealFileSize += WrittenBytes; 
-				printf("The real-time size of file is %d byte\n\n", RealFileSize);
-				printf("Executed %d time.\n\n", i++);
+				//printf("The real-time size of file is %d byte\n\n", RealFileSize);
+				//printf("Executed %d time.\n\n", i++);
 			} 
 			else
 			{
@@ -86,6 +85,7 @@ namespace DAQCONTROLER
 		}
 		//memcpy(DateOne, buffer, 10*sizeof(double));
 
+		//4. send data to UI
 		PostThreadMessage(theApp.m_dwMainThreadID, msg_DAQ_DATAONE, NULL, NULL);
 
 	}
@@ -127,7 +127,7 @@ namespace DAQCONTROLER
 			);
 
 		string strPath;
-		theApp.m_pDataC->GetProjectPath(strPath);
+		theApp.m_pDataController->GetProjectPath(strPath);
 		strPath.append(stFilename);
 
 		hFile = CreateFileA(
@@ -171,26 +171,27 @@ namespace DAQCONTROLER
 			CloseHandle(m_gEvtSample);
 			m_gEvtSample = NULL;
 		}
-		if (!m_gEvtStress)
+		if (!m_gEvtMoveDetection)
 		{
-			CloseHandle(m_gEvtStress);
-			m_gEvtStress = NULL;
+			CloseHandle(m_gEvtMoveDetection);
+			m_gEvtMoveDetection = NULL;
 		}
-		if (!m_gEvtVelocity)
+		if (!m_gEvtStillDetection)
 		{
-			CloseHandle(m_gEvtVelocity);
-			m_gEvtVelocity = NULL;
+			CloseHandle(m_gEvtStillDetection);
+			m_gEvtStillDetection = NULL;
+		}
+		if(!m_gEvtInitGradient)
+		{
+			CloseHandle(m_gEvtInitGradient);
+			m_gEvtInitGradient = NULL;
 		}
 		if (!m_gEvtSaveFile)
 		{
 			CloseHandle(m_gEvtSaveFile);
 			m_gEvtSaveFile = NULL;
 		}
-		if(!m_gEvtInitAngleFlag)
-		{
-			CloseHandle(m_gEvtInitAngleFlag);
-			m_gEvtInitAngleFlag = NULL;
-		}
+
 	}
 
 	void CDAQControler::CreateSyncEvent()
@@ -199,13 +200,14 @@ namespace DAQCONTROLER
 
 		m_gEvtSample = CreateEvent(NULL,TRUE,FALSE,L"");
 
-		m_gEvtStress = CreateEvent(NULL,TRUE,FALSE,L"");
+		m_gEvtInitGradient = CreateEvent(NULL,TRUE,FALSE,L"");
+	
+		m_gEvtMoveDetection = CreateEvent(NULL,TRUE,FALSE,L"");
 
-		m_gEvtVelocity = CreateEvent(NULL,TRUE,FALSE,L"");
+		m_gEvtStillDetection = CreateEvent(NULL,TRUE,FALSE,L"");
 
 		m_gEvtSaveFile = CreateEvent(NULL,TRUE,FALSE,L"");
 
-		m_gEvtInitAngleFlag = CreateEvent(NULL,TRUE,FALSE,L"");
 	}
 
 	void CDAQControler::DisInitialize()
@@ -313,47 +315,74 @@ namespace DAQCONTROLER
 			g_logger.TraceError("CDAQControler::Initialize:(in catch)Initial DAQ failed.");
 		}
 	}
-
-	void CDAQControler::VelocityBegin(){
+	void CDAQControler::InitGradientBegin()
+	{
 		if (!CheckDAQStarted())
 		{
 			return;
 		}
-		SetEvent(m_gEvtVelocity);
+		SetEvent(m_gEvtInitGradient);
 		SampleBegin();
 	}
-
-	void CDAQControler::VelocityEnd(){
+	void CDAQControler::InitGradientEnd()
+	{
 		if (!CheckDAQStarted())
 		{
 			return;
 		}
-
-		ResetEvent(m_gEvtVelocity);
-		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtStress,0))
+		ResetEvent(m_gEvtInitGradient);
+		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtMoveDetection,0)
+			|| WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtStillDetection,0) )
 		{
 			SampleEnd();
 		}
 	}
 
-	void CDAQControler::StressBegin(){
+	void CDAQControler::StillDetectionBegin()
+	{
 		if (!CheckDAQStarted())
 		{
 			return;
 		}
-
-		SetEvent(m_gEvtStress);
+		SetEvent(m_gEvtStillDetection);
 		SampleBegin();
 	}
 
-	void CDAQControler::StressEnd(){
+	void CDAQControler::StillDetectionEnd()
+	{
 		if (!CheckDAQStarted())
 		{
 			return;
 		}
 
-		ResetEvent(m_gEvtStress);
-		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtVelocity,0))
+		ResetEvent(m_gEvtStillDetection);
+		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtInitGradient,0)
+			&& WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtMoveDetection,0) )
+		{
+			SampleEnd();
+		}
+	}
+
+	void CDAQControler::MoveDetectionBegin()
+	{
+		if (!CheckDAQStarted())
+		{
+			return;
+		}
+		SetEvent(m_gEvtMoveDetection);
+		SampleBegin();
+	}
+
+	void CDAQControler::MoveDetectionEnd()
+	{
+		if (!CheckDAQStarted())
+		{
+			return;
+		}
+
+		ResetEvent(m_gEvtMoveDetection);
+		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtInitGradient,0)
+			|| WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtStillDetection,0) )
 		{
 			SampleEnd();
 		}
@@ -367,48 +396,26 @@ namespace DAQCONTROLER
 		ResetEvent(m_gEvtSample);
 	}
 
-	void CDAQControler::NewProject(char cMode)
+	bool CDAQControler::NewProject(char cMode)
 	{
 		if (!CheckDAQStarted())
 		{
-			return;
+			g_logger.TraceError("CDAQControler::NewProject error: DAQ was NOT been initialized");
+			return false;
 		}
 
-		//获取并保存地面初始角度
-		this->SetInitAngleFlag();
-
 		//开始保存数据
-		if (0x01 != cMode)//测试模式不需要保存文件
+		if (0x02 == cMode)//完整检测
 		{
-			//Step 2: Open file
 			openFile();
 			SetEvent(m_gEvtSaveFile);
 		}
-
-		//开始发送数据到UI
-		switch (cMode)
+		else if(0x01 == cMode)//测试模式
 		{
-		case 0x01://测试模式手动控制开始采集和停止采集
-			{
-				break;
-			}
-		case 0x02:
-			{
-				VelocityBegin();
-				break;
-			}
-		case 0x03:
-			{
-				StressBegin();
-				break;
-			}
-		case 0x04:
-			{
-				StressBegin();
-				VelocityBegin();
-				break;
-			}
+			ResetEvent(m_gEvtSaveFile);
 		}
+		return true;
+
 	}
 
 	void CDAQControler::TerminateProject()
@@ -418,18 +425,18 @@ namespace DAQCONTROLER
 			return;
 		}
 
-		StressEnd();
-		VelocityEnd();
+		MoveDetectionEnd();
+		StillDetectionEnd();
 
 		ResetEvent(m_gEvtSaveFile);
 
 		VirtualFree(buffer, SingleSavingFileSize, MEM_RELEASE);
 		CloseHandle(hFile);
 	}
-	void CDAQControler::SetInitAngleFlag()
-	{
-		SetEvent(m_gEvtInitAngleFlag);
-	}
+	//void CDAQControler::SetInitAngleFlag()
+	//{
+	//	SetEvent(m_gEvtInitAngleFlag);
+	//}
 	bool CDAQControler::CheckDAQStarted()const
 	{
 		return m_bDAQInitialSuccessfully;

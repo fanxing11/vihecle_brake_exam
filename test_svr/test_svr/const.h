@@ -49,6 +49,7 @@ const UINT msg_DATA_SETREPORTPATH = WM_USER+210;
 const UINT msg_ANA_ANALYSIS_BEGIN = WM_USER+211;
 const UINT msg_ANA_ANALYSIS_STATE = WM_USER+212;
 const UINT msg_ANA_ANALYSIS_RESULT = WM_USER+213;
+const UINT msg_DB_ADMINUSER = WM_USER+214;
 
 const UINT msg_MAIN_QIUT = WM_USER+444;
 
@@ -61,22 +62,29 @@ const BYTE cmd_USERLOGIN=0x01;//in out
 const BYTE cmd_USERREGISTER=0x02;//in out
 const BYTE cmd_MODIFYPWD=0x03;//in out
 const BYTE cmd_USERDELETE=0x04;//in out
+const BYTE cmd_ADMINUSER=0x05;//in out//v1.6
 
 const BYTE cmd_NEWPROJECT=0x11;//in out
 const BYTE cmd_TERMINATEPROJECT=0x12;//in out
 
-const BYTE cmd_VELOCITY_BEGIN=0x21;//in 
-const BYTE cmd_VELOCITY_END=0x22;//in 
-const BYTE cmd_VELOCITY=0x21;//out
+//初始地面倾角
+const BYTE cmd_INITGRADIENT_BEGIN=0x21;//in 
+const BYTE cmd_INITGRADIENT_END=0x22;//in 
+const BYTE cmd_INITGRADIENT=0x21;//out
 
-const BYTE cmd_STRESS_BEGIN=0x31;//in 
-const BYTE cmd_STRESS_END=0x32;//in
-const BYTE cmd_STRESS=0x31;//out
+const BYTE cmd_STILL_DETECT_BEGIN=0x23;//in 
+const BYTE cmd_STILL_DETECT_END=0x24;//in 
+const BYTE cmd_STILL_DETECT=0x23;//out
+
+const BYTE cmd_MOVE_DETECT_BEGIN=0x25;//in 
+const BYTE cmd_MOVE_DETECT_END=0x26;//in
+const BYTE cmd_MOVE_DETECT=0x25;//out
 
 const BYTE cmd_REPORTPATH=0x41;//in 
 const BYTE cmd_ANALYSIS_BEGIN=0x42;//in 
 const BYTE cmd_ANALYSIS_STATE=0x41;//out
 const BYTE cmd_ANALYSIS_RESULT=0x42;//out
+const BYTE cmd_ANALYSIS_DATA=0x43;//out
 //分析没有终止命令。
 
 const BYTE cmd_HEARTBEAT=0x51;//in out
@@ -91,19 +99,21 @@ const UINT msg_DAQ_DATAONE = WM_USER+303;
 
 
 
-typedef struct StressInfo
+typedef struct MoveDetectionInfo
 {
 	double MaxFootBrakeForce;
+	double PedalDistance;
 	double GradientX;
 	double GradientY;
-	double MaxHandBrakeForce;
-	double PedalDistance;
-}STRESSINFO;
-typedef struct VelocityInfo
-{
 	double LastAccelaration;
 	double LastVelocity;//只传一组数据里面的最后一个速度到UI
-}VELOCITYINFO;
+}MOVEDETECTIONINFO;
+typedef struct StillDetectionInfo
+{
+	double MaxHandBrakeForce;
+	double GradientX;
+	double GradientY;
+}STILLDETECTIONINFO;
 
 typedef struct AnalysisResult
 {
@@ -129,9 +139,34 @@ typedef struct AnalysisResult_Int
 	int MaxFootBrakeForce;
 
 }ANALYSISRESULT_INT;
-
+typedef struct  
+{
+	double Accelaration;
+	double Velocity;
+	double PedalDistance;
+	double FootBrakeForce;
+}ANALYSISDATA;
+typedef struct  
+{
+	int Accelaration;
+	int Velocity;
+	int PedalDistance;
+	int FootBrakeForce;
+}ANALYSISDATA_INT;
 const string gc_strProjectParaINI_FileName("projectparameter.ini");
 const string gc_strProjectInfo("ProjectInfo");
-const string gc_strInitialAngle("InitialAngle");
+
+const string gc_strInitialCarAngle("InitialCarAngle");
 const string gc_strInitXAngle("InitialX");
 const string gc_strInitYAngle("InitialY");
+
+const string gc_strResult("Result");
+const string gc_strMaxHandBrakeForce("MaxHandBrakeForce");
+
+enum enDETECTION_TYPE
+{
+	NONTYPE,
+	INITGRADIENT,
+	STILLDETECTION,
+	MOVEDETECTION
+};

@@ -32,20 +32,24 @@ namespace COMMUNICATOR
 		bool ParseData(const char* pData);
 		bool SendDatatoUI(const UINT Cmd, const int nParam=0,/*o->good*/ const string strData2Send = "");
 		bool SendAnalysisResult2UI(const int nResult, const ANALYSISRESULT& stResult);
+		bool SendAnalysisData2UI( vector<ANALYSISDATA>& stData );
 
 	private:
 		bool cmdUserRegister( const char* pData);
 		bool cmdUserLogin(const char* pData	);
 		bool cmdUserDelete(const char* pData );
+		bool cmdAdminUser(const char* pData );
 		bool cmdModifyPwd(const char* pData );
 		bool cmdParseUserInfo(const char* pData, char *&pUserName, char *&pPwd );
 
 		bool cmdNewProject(const char* pData );
 		bool cmdTerminateProject( );
-		bool cmdVelocityBegin(const char* pData );
-		bool cmdVelocityEnd(const char* pData );
-		bool cmdStressBegin(const char* pData );
-		bool cmdStressEnd(const char* pData );
+		bool cmdInitGradientBegin(const char* pData );
+		bool cmdInitGradientEnd(const char* pData );
+		bool cmdStillDetectionBegin(const char* pData );
+		bool cmdStillDetectionEnd(const char* pData );
+		bool cmdMoveDetectionBegin(const char* pData );
+		bool cmdMoveDetectionEnd(const char* pData );
 		bool cmdSetReportPath(const char* pData );
 		bool cmdAnalysisBegin(const char* pData );
 		bool cmdHeartBeatSignal(const char* pData);

@@ -14,15 +14,21 @@ namespace DATACONTROLER
 {
 
 	CDataControler::CDataControler(void)
-		:m_hEvtStressInfo(NULL)
-		,m_hEvtVelocityInfo(NULL)
+		:m_hEvtMoveDetectionInfo(NULL)
+		,m_hEvtStillDetectionInfo(NULL)
+		,m_hEvtInitGradientInfo(NULL)
 		,m_nCurrentProjectState(NUM_ZERO)
 		,m_dInitYAngle(0.0)
 		,m_dInitXAngle(0.0)
+		,m_dInitCarXAngle(0.0)
+		,m_dInitCarYAngle(0.0)
 		,m_strConfigFullName("")
+		,m_nCurrentType(NONTYPE)
+		,m_bUpdateCarAngleFlag(false)
 	{
-		m_hEvtStressInfo = CreateEvent(NULL,TRUE,FALSE,L"");
-		m_hEvtVelocityInfo = CreateEvent(NULL,TRUE,FALSE,L"");
+		m_hEvtMoveDetectionInfo = CreateEvent(NULL,TRUE,FALSE,L"");
+		m_hEvtStillDetectionInfo = CreateEvent(NULL,TRUE,FALSE,L"");
+		m_hEvtInitGradientInfo = CreateEvent(NULL,TRUE,FALSE,L"");
 	}
 
 	CDataControler::~CDataControler(void)
@@ -53,6 +59,30 @@ namespace DATACONTROLER
 	{
 		m_strReportPath = strPath;
 	}
+	void CDataControler::SetCurrentType(enDETECTION_TYPE dt)
+	{
+		m_nCurrentType = dt;
+	}
+
+	void CDataControler::SetUpdateCarAngleFlag()
+	{
+		m_bUpdateCarAngleFlag = true;
+	}
+	bool CDataControler::SaveMaxHandBrakeForce2INI()
+	{
+		//这里只保存了最大手刹力，所以结果分析中除此之外的参数都是运动中得到的
+		//包括地面倾角,亦即,静止检测中的地面倾角被没有作用，只在测量时展示了一下
+		char buf[40] = {0};
+		sprintf_s(buf,"%f",m_dMaxHandBrakeForce);
+		if (NUM_ZERO == WritePrivateProfileStringA(gc_strResult.c_str(),gc_strMaxHandBrakeForce.c_str(),buf,m_strConfigFullName.c_str()))
+		{
+			g_logger.TraceError("CDataControler::SaveProjectInfo2INIFile: WritePrivateProfileStringA,GetLastError=%d",
+				GetLastError());
+			return false;
+		}
+		return true;
+	}
+
 
 	void CDataControler::SetNewProjectPara(const char* pData)
 	{
@@ -111,14 +141,21 @@ namespace DATACONTROLER
 			return false;
 		}
 		//取得检测模式，设置DAQ线程中的标志位
-		char cMode = theApp.m_pDataC->GetMode();
+		char cMode = theApp.m_pDataController->GetMode();
 
-		//解析工作目录，新建工作目录，保存检测信息到文件
-		SaveProjectInfo2INIFile();
+		if(false == SaveProjectInfo2INIFile())
+		{
+			strInfo = string("检测参数保存失败。");
+			return false;
+		}
+		//设置新建标志到DAQ
+		if(false == theApp.m_pDAQController->NewProject(m_cMode))
+		{
+			strInfo = string("采集卡初始化失败。");
+			return false;
+		}
 
-		theApp.m_pDAQC->NewProject(m_cMode);
-
-		//返回新建成功与否信息
+		//新建成功，返回新建成功与否信息
 		strInfo = m_strProjectPath;
 
 		m_nCurrentProjectState = NUM_ONE;
@@ -137,7 +174,7 @@ namespace DATACONTROLER
 			return false;
 		}
 		//设置DAQ标志结束
-		theApp.m_pDAQC->TerminateProject();
+		theApp.m_pDAQController->TerminateProject();
 
 		m_nCurrentProjectState = NUM_TWO;
 		return true;
@@ -149,19 +186,39 @@ namespace DATACONTROLER
 		return m_cMode;
 	}
 
-	void CDataControler::SaveProjectInfo2INIFile()
+	//解析工作目录，新建工作目录，保存检测信息到文件
+	bool CDataControler::SaveProjectInfo2INIFile()
 	{
+		bool bRet=true;
 		m_strConfigFullName = m_strProjectPath + gc_strProjectParaINI_FileName;
 
 		char buf[40] = {0};
 		sprintf_s(buf,"%d",m_cStartChannel);
-		WritePrivateProfileStringA(gc_strProjectInfo.c_str(),"StartChannel",buf,m_strConfigFullName.c_str());
+		if (NUM_ZERO == WritePrivateProfileStringA(gc_strProjectInfo.c_str(),"StartChannel",buf,m_strConfigFullName.c_str()))
+		{
+			g_logger.TraceError("CDataControler::SaveProjectInfo2INIFile: WritePrivateProfileStringA,GetLastError=%d",
+				GetLastError());
+			bRet = false;
+		}
+
 		memset(buf,0,40);
 		sprintf_s(buf,"%d",m_cEndChannel);
-		WritePrivateProfileStringA(gc_strProjectInfo.c_str(),"EndChannel",buf,m_strConfigFullName.c_str());
+		if( NUM_ZERO == WritePrivateProfileStringA(gc_strProjectInfo.c_str(),"EndChannel",buf,m_strConfigFullName.c_str()) )
+		{
+			g_logger.TraceError("CDataControler::SaveProjectInfo2INIFile: WritePrivateProfileStringA,GetLastError=%d",
+				GetLastError());
+			bRet = false;
+		}
+
 		memset(buf,0,40);
 		sprintf_s(buf,"%d KHz",m_cSampleFrequency);
-		WritePrivateProfileStringA(gc_strProjectInfo.c_str(),"SampleFrequency",buf,m_strConfigFullName.c_str());
+		if( NUM_ZERO == WritePrivateProfileStringA(gc_strProjectInfo.c_str(),"SampleFrequency",buf,m_strConfigFullName.c_str()) )
+		{
+			g_logger.TraceError("CDataControler::SaveProjectInfo2INIFile: WritePrivateProfileStringA,GetLastError=%d",
+				GetLastError());
+			bRet = false;
+		}
+
 		memset(buf,0,40);
 		switch(m_cMode)
 		{
@@ -169,16 +226,22 @@ namespace DATACONTROLER
 			sprintf_s(buf,"测试模式");
 			break;
 		case 0x02:
-			sprintf_s(buf,"仅速度模式");
-			break;
-		case 0x03:
-			sprintf_s(buf,"仅力角模式");
-			break;
-		case 0x04:
 			sprintf_s(buf,"完整检测模式");
 			break;
+		default:
+			{
+				g_logger.TraceError("CDataControler::SaveProjectInfo2INIFile error: Mode=%d",(int)m_cMode);
+				bRet = false;
+				break;
+			}
 		}
-		WritePrivateProfileStringA(gc_strProjectInfo.c_str(),"Mode",buf,m_strConfigFullName.c_str());
+		if( NUM_ZERO == WritePrivateProfileStringA(gc_strProjectInfo.c_str(),"Mode",buf,m_strConfigFullName.c_str()))
+		{
+			g_logger.TraceError("CDataControler::SaveProjectInfo2INIFile: WritePrivateProfileStringA,GetLastError=%d",
+				GetLastError());
+			bRet = false;
+		}
+
 		memset(buf,0,40);
 		switch(m_cArchiveFormat)
 		{
@@ -192,7 +255,14 @@ namespace DATACONTROLER
 			sprintf_s(buf,"txt");
 			break;
 		}
-		WritePrivateProfileStringA(gc_strProjectInfo.c_str(),"ArchiveFormat",buf,m_strConfigFullName.c_str());		
+		if( NUM_ZERO == WritePrivateProfileStringA(gc_strProjectInfo.c_str(),"ArchiveFormat",buf,m_strConfigFullName.c_str()))
+		{
+			g_logger.TraceError("CDataControler::SaveProjectInfo2INIFile: WritePrivateProfileStringA,GetLastError=%d",
+				GetLastError());
+			bRet = false;
+		}
+
+		return bRet;
 	}
 
 	void CDataControler::SetProjectPath(string& strPath)
@@ -222,7 +292,7 @@ namespace DATACONTROLER
 		t = time(NULL);
 		local = localtime(&t);
 		char stFilePath[MAX_PATH] = {0};
-		sprintf_s(stFilePath,"D:\\Data\\%04d%02d%02d_%02d%02d%02d\\",
+		sprintf_s(stFilePath,"C:\\CJZD_Data\\%04d%02d%02d_%02d%02d%02d\\",
 			local->tm_year+1900,
 			local->tm_mon+1,
 			local->tm_mday,
@@ -233,86 +303,196 @@ namespace DATACONTROLER
 		MakeSureDirectoryPathExists(stFilePath);
 		strPath = stFilePath;
 	}
-
-	//得到速度和加速度，加速度近似取最后一个，速度取本组数据最后点处的速度
-	//V = sum(ai*t) 
-	void CDataControler::HandleVelocityData(const double* pData, const int channelCount, const int sectionLength, const double deltat)
+	void CDataControler::SaveCarAngle()
 	{
-		ResetEvent(m_hEvtVelocityInfo);
+		//第一次静止检测时，把倾角减去地面倾角作为车辆的倾角，并保存到ini中
+		m_dInitCarXAngle = m_stStillDetectionInfo.GradientX - m_dInitXAngle;
+		m_dInitCarYAngle = m_stStillDetectionInfo.GradientY - m_dInitYAngle;
+
+		char bufx[40] = {0};
+		sprintf_s(bufx,"%f",m_dInitCarXAngle);
+		if(!WritePrivateProfileStringA(gc_strInitialCarAngle.c_str(),gc_strInitXAngle.c_str(),bufx,m_strConfigFullName.c_str()) )
+		{
+			g_logger.TraceError("CDataControler::SaveCarAngleX - %d",GetLastError());
+		}
+
+		char bufy[40] = {0};
+		sprintf_s(bufy,"%f",m_dInitCarYAngle);
+		if( !WritePrivateProfileStringA(gc_strInitialCarAngle.c_str(),gc_strInitYAngle.c_str(),bufy,m_strConfigFullName.c_str()) )
+		{
+			g_logger.TraceError("CDataControler::SaveCarAngleY - %d",GetLastError());
+		}
+
+	}
+
+	//最大手刹力、XY倾角
+	//V = sum(ai*t) 
+	void CDataControler::HandleStillDetectionData(const double* pData, const int channelCount, const int sectionLength)
+	{
+		ResetEvent(m_hEvtStillDetectionInfo);
+		m_stStillDetectionInfo.MaxHandBrakeForce = *(pData+4) - *(pData+5);
+		m_stStillDetectionInfo.GradientX = *(pData+2);
+		m_stStillDetectionInfo.GradientY = *(pData+3);
+		TransformGradient(m_stStillDetectionInfo.GradientX);
+		TransformGradient(m_stStillDetectionInfo.GradientY);
+
+		STILLDETECTIONINFO stStillDetectionInfo;
+		for (int i=0;i<sectionLength;++i)
+		{
+			stStillDetectionInfo.MaxHandBrakeForce = *(pData+(i*channelCount)+4) - *(pData+(i*channelCount)+5);
+			stStillDetectionInfo.GradientX = *(pData+((i*channelCount))+2);
+			stStillDetectionInfo.GradientY = *(pData+((i*channelCount))+3);
+			TransformGradient(stStillDetectionInfo.GradientX);
+			TransformGradient(stStillDetectionInfo.GradientY);
+			if (m_stStillDetectionInfo.MaxHandBrakeForce < stStillDetectionInfo.MaxHandBrakeForce)
+			{
+				m_stStillDetectionInfo.MaxHandBrakeForce = stStillDetectionInfo.MaxHandBrakeForce;
+			}
+			if ( abs(m_stStillDetectionInfo.GradientX) < abs(stStillDetectionInfo.GradientX) )
+			{
+				m_stStillDetectionInfo.GradientX = stStillDetectionInfo.GradientX;
+			}
+			if ( abs(m_stStillDetectionInfo.GradientY) < abs(stStillDetectionInfo.GradientY) )
+			{
+				m_stStillDetectionInfo.GradientY = stStillDetectionInfo.GradientY;
+			}
+
+		}
+		TransformHandBrakeForce(m_stStillDetectionInfo.MaxHandBrakeForce);
+
+		if( m_dMaxHandBrakeForce<m_stStillDetectionInfo.MaxHandBrakeForce)//保存下静止时的最大手刹力
+		{
+			m_dMaxHandBrakeForce = m_stStillDetectionInfo.MaxHandBrakeForce;
+		}
+
+		if(m_bUpdateCarAngleFlag)
+		{
+			SaveCarAngle();
+			m_bUpdateCarAngleFlag = false;
+		}
+		SetEvent(m_hEvtStillDetectionInfo);
+	}
+	//最大脚刹力、脚刹位置、XY倾角、加速度近似取最后一个，速度取本组数据最后点处的速度
+	//得到最大手刹力和脚刹力，坡度和脚刹位置近似取第一个值
+	void CDataControler::HandleMoveDetectionData(const double* pData, const int channelCount, const int sectionLength, const double deltat)
+	{
+		ResetEvent(m_hEvtMoveDetectionInfo);
 		double dSumA = 0.0;
 		double dCompoundA = 0.0;
+
+		m_stMoveDetectionInfo.MaxFootBrakeForce = *(pData+0) - *(pData+1);
+		m_stMoveDetectionInfo.GradientX = *(pData+2);
+		m_stMoveDetectionInfo.GradientY = *(pData+3);
+		TransformGradient(m_stMoveDetectionInfo.GradientX);
+		TransformGradient(m_stMoveDetectionInfo.GradientY);
+		m_stMoveDetectionInfo.PedalDistance = *(pData+6);
+		MOVEDETECTIONINFO stMoveDetectionInfo;
 		for (int i=0;i<sectionLength;++i)
 		{
 			dCompoundA = sqrt((*(pData+(i*channelCount)+7))*(*(pData+(i*channelCount)+7))+(*(pData+(i*channelCount)+8))*(*(pData+(i*channelCount)+8))+(*(pData+(i*channelCount)+9))*(*(pData+(i*channelCount)+9)));
 			dSumA += dCompoundA;
+
+			stMoveDetectionInfo.GradientX = *(pData+((i*channelCount))+2);
+			stMoveDetectionInfo.GradientY = *(pData+((i*channelCount))+3);
+			TransformGradient(stMoveDetectionInfo.GradientX);
+			TransformGradient(stMoveDetectionInfo.GradientY);
+			if ( abs(m_stMoveDetectionInfo.GradientX) < abs(stMoveDetectionInfo.GradientX) )
+			{
+				m_stMoveDetectionInfo.GradientX = stMoveDetectionInfo.GradientX;
+			}
+			if ( abs(m_stMoveDetectionInfo.GradientY) < abs(stMoveDetectionInfo.GradientY) )
+			{
+				m_stMoveDetectionInfo.GradientY = stMoveDetectionInfo.GradientY;
+			}
+			stMoveDetectionInfo.MaxFootBrakeForce = *(pData+(i*channelCount)) - *(pData+(i*channelCount)+1);
+			if (m_stMoveDetectionInfo.MaxFootBrakeForce < stMoveDetectionInfo.MaxFootBrakeForce)
+			{
+				m_stMoveDetectionInfo.MaxFootBrakeForce = stMoveDetectionInfo.MaxFootBrakeForce;
+			}
+			stMoveDetectionInfo.PedalDistance = *(pData+(i*channelCount)+6);
+			if (m_stMoveDetectionInfo.PedalDistance < stMoveDetectionInfo.PedalDistance)
+			{
+				m_stMoveDetectionInfo.PedalDistance = stMoveDetectionInfo.PedalDistance;
+			}
+
 		}
-		m_stVelocityInfo.LastAccelaration = dCompoundA;
-		m_stVelocityInfo.LastVelocity = dSumA * deltat;
+		m_stMoveDetectionInfo.LastAccelaration = dCompoundA;
+		m_stMoveDetectionInfo.LastVelocity = dSumA * deltat;
+		TransformAcceleration(m_stMoveDetectionInfo.LastAccelaration);
+		TransformVelocity(m_stMoveDetectionInfo.LastVelocity);
 
-		TransformAcceleration(m_stVelocityInfo.LastAccelaration);
-		TransformVelocity(m_stVelocityInfo.LastVelocity);
+		TransformFootBrakeForce(m_stMoveDetectionInfo.MaxFootBrakeForce);
+		TransformPedalDistance(m_stMoveDetectionInfo.PedalDistance);
 
-		SetEvent(m_hEvtVelocityInfo);
+		//GetInitXAngle 需要减去初始车辆倾角
+		m_stMoveDetectionInfo.GradientX = m_stMoveDetectionInfo.GradientX-m_dInitCarXAngle;
+		m_stMoveDetectionInfo.GradientY = m_stMoveDetectionInfo.GradientY-m_dInitCarYAngle;
+
+		SetEvent(m_hEvtMoveDetectionInfo);
 	}
-	//得到最大手刹力和脚刹力，坡度和脚刹位置近似取第一个值
-	void CDataControler::HandleStressData(const double* pData, const int channelCount, const int sectionLength)
+
+	void CDataControler::HandleInitGradientData(const double* pData, const int channelCount, const int sectionLength)
 	{
-		ResetEvent(m_hEvtStressInfo);
-		m_stStressInfo.MaxFootBrakeForce = *(pData+0) - *(pData+1);
-		m_stStressInfo.GradientX = *(pData+2);
-		m_stStressInfo.GradientY = *(pData+3);
-		m_stStressInfo.MaxHandBrakeForce = *(pData+4) - *(pData+5);
-		m_stStressInfo.PedalDistance = *(pData+6);
-		STRESSINFO stStressInfo;
+		ResetEvent(m_hEvtInitGradientInfo);
+		double dMaxX = *(pData+2);
+		double dMaxY = *(pData+3);
+		TransformGradient(dMaxX);
+		TransformGradient(dMaxY);
+		double dX=0,dY=0;
+
 		for (int i=0;i<sectionLength;++i)
 		{
-			stStressInfo.MaxFootBrakeForce = *(pData+(i*channelCount)) - *(pData+(i*channelCount)+1);
-			stStressInfo.MaxHandBrakeForce = *(pData+(i*channelCount)+4) - *(pData+(i*channelCount)+5);
-			if (m_stStressInfo.MaxFootBrakeForce < stStressInfo.MaxFootBrakeForce)
+			dX = *(pData+(i*channelCount)) - *(pData+(i*channelCount)+2);
+			dY = *(pData+(i*channelCount)+4) - *(pData+(i*channelCount)+3);
+			TransformGradient(dX);
+			TransformGradient(dY);//由于有abs，转换中有减法，可能改变正负号，所以需要变换后再比较
+			if (abs(dMaxX)<abs(dX))
 			{
-				m_stStressInfo.MaxFootBrakeForce = stStressInfo.MaxFootBrakeForce;
+				dMaxX = dX;
 			}
-			if (m_stStressInfo.MaxHandBrakeForce< stStressInfo.MaxHandBrakeForce)
+			if ( abs(dMaxY)<abs(dY) )
 			{
-				m_stStressInfo.MaxHandBrakeForce = stStressInfo.MaxHandBrakeForce;
+				dMaxY = dY;
 			}
 		}
 
-		TransformFootBrakeForce(m_stStressInfo.MaxFootBrakeForce);
-		TransformHandBrakeForce(m_stStressInfo.MaxHandBrakeForce);
-		TransformGradient(m_stStressInfo.GradientX);
-		TransformGradient(m_stStressInfo.GradientY);
-		//GetInitXAngle 需要减去初始地面倾角
-		TransformPedalDistance(m_stStressInfo.PedalDistance);
+		m_dInitXAngle = dMaxX;
+		m_dInitYAngle = dMaxY;
 
-		SetEvent(m_hEvtStressInfo);
-	}
-	void CDataControler::SaveInitAngle2INIFile(const double* pData)
-	{
-		double dX = *(pData+2);
-		double dY = *(pData+3);
-		this->SetInitXAngle(dX);
-		this->SetInitYAngle(dY);
+		SetEvent(m_hEvtInitGradientInfo);
 	}
 
-	void CDataControler::GetStressInfo(STRESSINFO& stStressInfo)
+	void CDataControler::GetInitGradientInfo(double& dX, double& dY)
 	{
-		DWORD dwRet = WaitForSingleObject(m_hEvtStressInfo,1);
+		DWORD dwRet = WaitForSingleObject(m_hEvtMoveDetectionInfo,1);
 		if (WAIT_OBJECT_0 == dwRet)
 		{
-			stStressInfo = m_stStressInfo;
+			dX = m_dInitXAngle;
+			dY = m_dInitYAngle;
+		}
+		else
+		{
+			g_logger.TraceError("CDataControler::GetInitGradientInfo - %d",dwRet);
+		}
+	}
+	void CDataControler::GetMoveDetectionInfo(MOVEDETECTIONINFO& stStressInfo)
+	{
+		DWORD dwRet = WaitForSingleObject(m_hEvtMoveDetectionInfo,1);
+		if (WAIT_OBJECT_0 == dwRet)
+		{
+			stStressInfo = m_stMoveDetectionInfo;
 		}
 		else
 		{
 			g_logger.TraceError("CDataControler::GetStressInfo - %d",dwRet);
 		}
 	}
-	void CDataControler::GetVelocityInfo(VELOCITYINFO& stVelocityInfo)
+	void CDataControler::GetStillDetectionInfo(STILLDETECTIONINFO& stStillDetectionInfo)
 	{
-		DWORD dwRet = WaitForSingleObject(m_hEvtVelocityInfo,1);
+		DWORD dwRet = WaitForSingleObject(m_hEvtStillDetectionInfo,1);
 		if (WAIT_OBJECT_0 == dwRet)
 		{
-			stVelocityInfo = m_stVelocityInfo;
+			stStillDetectionInfo = m_stStillDetectionInfo;
 		}
 		else
 		{
@@ -320,38 +500,6 @@ namespace DATACONTROLER
 		}
 	}
 
-	void CDataControler::SetInitXAngle(const double dA)
-	{
-		m_dInitXAngle = dA;
-		TransformGradient(m_dInitXAngle);
-
-		char buf[40] = {0};
-		sprintf_s(buf,"%f",m_dInitXAngle);
-		if(!WritePrivateProfileStringA(gc_strInitialAngle.c_str(),gc_strInitXAngle.c_str(),buf,m_strConfigFullName.c_str()) )
-		{
-			g_logger.TraceError("CDataControler::SetInitXAngle - %d",GetLastError());
-		}
-	}
-	double CDataControler::GetInitXAngle() const
-	{
-		return m_dInitXAngle;
-	}
-	void CDataControler::SetInitYAngle(const double dA)
-	{
-		m_dInitYAngle = dA;
-		TransformGradient(m_dInitYAngle);
-
-		char buf[40] = {0};
-		sprintf_s(buf,"%f",m_dInitYAngle);
-		if( !WritePrivateProfileStringA(gc_strInitialAngle.c_str(),gc_strInitYAngle.c_str(),buf,m_strConfigFullName.c_str()) )
-		{
-			g_logger.TraceError("CDataControler::SetInitYAngle - %d",GetLastError());
-		}
-	}
-	double CDataControler::GetInitYAngle() const
-	{
-		return m_dInitYAngle;
-	}
 	bool TransformBrakeDistance(double & dDist)
 	{
 		dDist = dDist/0.04;

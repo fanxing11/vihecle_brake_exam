@@ -125,6 +125,24 @@ namespace COMMUNICATOR
 
 		switch (Cmd)
 		{
+		case msg_DB_ADMINUSER:
+			{
+				char Ret[4] = {cmd_HEADER,cmd_ADMINUSER,0x00,cmd_TAIL};
+				switch (nParam)
+				{
+				case NUM_ZERO://good
+					Ret[2] = 0x03;
+					break;
+				case NUM_ONE://pwd error
+					Ret[2] = 0x02;
+					break;
+				case NUM_TWO:
+					Ret[2] = 0x01;//user not exist
+					break;
+				}
+				sendto(m_SockSrv, Ret, 4, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+				break;
+			}
 		case msg_DB_USERLOGIN:
 			{
 				char Ret[4] = {cmd_HEADER,cmd_USERLOGIN,0x00,cmd_TAIL};
@@ -194,30 +212,48 @@ namespace COMMUNICATOR
 			}
 		case msg_DAQ_DATAONE:
 			{
-				if (WAIT_OBJECT_0 == WaitForSingleObject(DAQCONTROLER::m_gEvtVelocity,0))
+				if (WAIT_OBJECT_0 == WaitForSingleObject(DAQCONTROLER::m_gEvtInitGradient,0))
 				{
-					char Ret[11] = {cmd_HEADER,cmd_VELOCITY,
-						0x00,0x00,0x00,0x00,
-						0x00,0x00,0x00,0x00,
+					char Ret[11] = {cmd_HEADER,cmd_INITGRADIENT,
+						0x00,0x00,0x00,0x00,//X
+						0x00,0x00,0x00,0x00,//Y
 						cmd_TAIL};	
+					double dX=0,dY=0;
+					theApp.m_pDataController->GetInitGradientInfo(dX,dY);
 
-					VELOCITYINFO stVelocityInfo;
-					theApp.m_pDataC->GetVelocityInfo(stVelocityInfo);
-
-					int nAcceleration = (int)(100*( stVelocityInfo.LastAccelaration ));
-					int nVelocity = (int)(100*( stVelocityInfo.LastVelocity ));
-
-					//nAcceleration = 400;
-					//nVelocity = 800;
+					int nX = (int)(100*( dX ));
+					int nY = (int)(100*( dY ));
 					
-					memcpy(Ret+2, &nVelocity, sizeof(int));//4bit
-					memcpy(Ret+6, &nAcceleration, sizeof(int));//4bit
+					memcpy(Ret+2, &nX, sizeof(int));//4bit
+					memcpy(Ret+6, &nY, sizeof(int));//4bit
 
 					sendto(m_SockSrv, Ret, 11, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
 				}
-				if (WAIT_OBJECT_0 == WaitForSingleObject(DAQCONTROLER::m_gEvtStress,0))
+				else if (WAIT_OBJECT_0 == WaitForSingleObject(DAQCONTROLER::m_gEvtStillDetection,0))
 				{
-					char Ret[23] = {cmd_HEADER,cmd_STRESS,
+					char Ret[15] = {cmd_HEADER,cmd_STILL_DETECT,
+						0x00,0x00,0x00,0x00,//handbrakeforce
+						0x00,0x00,0x00,0x00,//X
+						0x00,0x00,0x00,0x00,//Y
+						cmd_TAIL};	
+
+					STILLDETECTIONINFO stStillDetectionInfo;
+					theApp.m_pDataController->GetStillDetectionInfo(stStillDetectionInfo);
+
+					int nMaxHandBrakeForce = (int)(100*( stStillDetectionInfo.MaxHandBrakeForce ));
+					int nGradientX = (int)(100*( stStillDetectionInfo.GradientX ));
+					int nGradientY = (int)(100*( stStillDetectionInfo.GradientY ));
+					
+					memcpy(Ret+2, &nMaxHandBrakeForce, sizeof(int));//4bit
+					memcpy(Ret+6, &nGradientX, sizeof(int));//4bit
+					memcpy(Ret+10, &nGradientY, sizeof(int));//4bit
+
+					sendto(m_SockSrv, Ret, 15, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+				}
+				else if (WAIT_OBJECT_0 == WaitForSingleObject(DAQCONTROLER::m_gEvtMoveDetection,0))
+				{
+					char Ret[27] = {cmd_HEADER,cmd_MOVE_DETECT,
+						0x00,0x00,0x00,0x00,
 						0x00,0x00,0x00,0x00,
 						0x00,0x00,0x00,0x00,
 						0x00,0x00,0x00,0x00,
@@ -225,29 +261,31 @@ namespace COMMUNICATOR
 						0x00,0x00,0x00,0x00,
 						cmd_TAIL};	
 
-					STRESSINFO stStressInfo;
-					theApp.m_pDataC->GetStressInfo(stStressInfo);
+					MOVEDETECTIONINFO stStressInfo;
+					theApp.m_pDataController->GetMoveDetectionInfo(stStressInfo);
 
 					int nPedalDist = (int)(100*( stStressInfo.PedalDistance ));
 					int nGradientX = (int)(100*( stStressInfo.GradientX ));
 					int nGradientY = (int)(100*( stStressInfo.GradientY ));
-					int nFootBrakeForce = (int)(100*(stStressInfo.MaxFootBrakeForce * 4166.66));
-					int nHandBrakeForce = (int)(100*(stStressInfo.MaxHandBrakeForce * 4166.66));
+					int nFootBrakeForce = (int)(100*(stStressInfo.MaxFootBrakeForce));
+					int nLastVelocity = (int)(100*(stStressInfo.LastVelocity));
+					int nLastAccelaration = (int)(100*(stStressInfo.LastAccelaration));
 
-					memcpy(Ret+2, &nPedalDist, sizeof(int));//4bit
-					memcpy(Ret+6, &nGradientX, sizeof(int));//4bit
-					memcpy(Ret+10, &nGradientY, sizeof(int));//4bit
-					memcpy(Ret+14, &nFootBrakeForce, sizeof(int));//4bit
-					memcpy(Ret+18, &nHandBrakeForce, sizeof(int));//4bit
-
-					sendto(m_SockSrv, Ret, 23, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+					memcpy(Ret+2, &nFootBrakeForce, sizeof(int));//4bit
+					memcpy(Ret+6, &nPedalDist, sizeof(int));//4bit
+					memcpy(Ret+10, &nGradientX, sizeof(int));//4bit
+					memcpy(Ret+14, &nGradientY, sizeof(int));//4bit
+					memcpy(Ret+18, &nLastVelocity, sizeof(int));//4bit
+					memcpy(Ret+22, &nLastAccelaration, sizeof(int));//4bit
+			
+					sendto(m_SockSrv, Ret, 27, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
 				}
 
 				break;
 			}
 		case msg_DAQ_NEWPROJECT:
 			{
-				char cMode = theApp.m_pDataC->GetMode();
+				char cMode = theApp.m_pDataController->GetMode();
 				char cSucceed;
 				switch (nParam)
 				{
@@ -400,6 +438,18 @@ namespace COMMUNICATOR
 		return true;
 	}
 
+	bool CCommunicator::SendAnalysisData2UI(vector<ANALYSISDATA>& stData)
+	{
+		short nLen = stData.size();
+		if (nLen>1024)
+		{
+			nLen = 1024;
+		}
+		//打包
+		//发送
+		return true;
+	}
+
 
 	bool CCommunicator::RecvData()
 	{
@@ -472,23 +522,30 @@ namespace COMMUNICATOR
 		case cmd_USERDELETE:
 			this->cmdUserDelete(pData);
 			break;
+		case cmd_ADMINUSER:
+			this->cmdAdminUser(pData);
+			break;
 		case cmd_NEWPROJECT:
 			this->cmdNewProject(pData);
 			break;
 		case cmd_TERMINATEPROJECT:
 			this->cmdTerminateProject( );
 			break;
-		case cmd_VELOCITY_BEGIN:
-			this->cmdVelocityBegin(pData);
+		case cmd_INITGRADIENT_BEGIN:
+			this->cmdInitGradientBegin(pData);
+		case cmd_INITGRADIENT_END:
+			this->cmdInitGradientEnd(pData);
+		case cmd_STILL_DETECT_BEGIN:
+			this->cmdStillDetectionBegin(pData);
 			break;
-		case cmd_VELOCITY_END:
-			this->cmdVelocityEnd(pData);
+		case cmd_STILL_DETECT_END:
+			this->cmdStillDetectionEnd(pData);
 			break;
-		case cmd_STRESS_BEGIN:
-			this->cmdStressBegin(pData);
+		case cmd_MOVE_DETECT_BEGIN:
+			this->cmdMoveDetectionBegin(pData);
 			break;
-		case cmd_STRESS_END:
-			this->cmdStressEnd(pData);
+		case cmd_MOVE_DETECT_END:
+			this->cmdMoveDetectionEnd(pData);
 			break;
 		case cmd_REPORTPATH:
 			this->cmdSetReportPath(pData);
@@ -594,9 +651,26 @@ namespace COMMUNICATOR
 
 		return true;
 	}
+	bool CCommunicator::cmdAdminUser(const char* pData )
+	{
+		g_logger.TraceWarning("CCommunicator::cmdAdminUser");
+		char* pUserName = NULL;
+		char* pPwd = NULL;
+		cmdParseUserInfo(pData,pUserName,pPwd);
+
+		if ( !PostThreadMessage(m_dwMainThreadId,msg_DB_ADMINUSER,(WPARAM)pUserName,(LPARAM)pPwd) )
+		{
+			delete [] pUserName;
+			delete [] pPwd;
+			pUserName = pPwd = NULL;
+		}
+
+		return true;
+	}
+
 	bool CCommunicator::cmdNewProject(const char* pData )
 	{
-		theApp.m_pDataC->SetNewProjectPara(pData);
+		theApp.m_pDataController->SetNewProjectPara(pData);
 		PostThreadMessage(m_dwMainThreadId, msg_DAQ_NEWPROJECT, NULL, NULL); 
 
 		return true;
@@ -606,48 +680,39 @@ namespace COMMUNICATOR
 		PostThreadMessage(m_dwMainThreadId, msg_DAQ_TERMINATEPROJECT, NULL, NULL); 
 		return true;
 	}
-	bool CCommunicator::cmdVelocityBegin(const char* pData )
+	bool CCommunicator::cmdInitGradientBegin(const char* pData )
 	{
-		char cMode = theApp.m_pDataC->GetMode();
-		if (cMode != 0x01)
-		{
-			g_logger.TraceWarning("CCommunicator::cmdVelocityBegin - only test mode have begin cmd");
-			return false;
-		}
-		theApp.m_pDAQC->VelocityBegin();
+		theApp.m_pDataController->SetCurrentType(INITGRADIENT);
+		theApp.m_pDAQController->InitGradientBegin();
 		return true;
 	}
-	bool CCommunicator::cmdVelocityEnd(const char* pData )
+	bool CCommunicator::cmdInitGradientEnd(const char* pData )
 	{
-		char cMode = theApp.m_pDataC->GetMode();
-		if (cMode != 0x01)
-		{
-			g_logger.TraceWarning("CCommunicator::cmdVelocityEnd - only test mode have begin cmd");
-			return false;
-		}
-		theApp.m_pDAQC->VelocityEnd();
+		theApp.m_pDAQController->InitGradientEnd();
+		theApp.m_pDataController->SetUpdateCarAngleFlag();
 		return true;
 	}
-	bool CCommunicator::cmdStressBegin(const char* pData )
+	bool CCommunicator::cmdStillDetectionBegin(const char* pData )
 	{
-		char cMode = theApp.m_pDataC->GetMode();
-		if (cMode != 0x01)
-		{
-			g_logger.TraceWarning("CCommunicator::cmdStressBegin - only test mode have begin cmd");
-			return false;
-		}
-		theApp.m_pDAQC->StressBegin();
+		theApp.m_pDataController->SetCurrentType(STILLDETECTION);
+		theApp.m_pDAQController->StillDetectionBegin();
 		return true;
 	}
-	bool CCommunicator::cmdStressEnd(const char* pData )
+	bool CCommunicator::cmdStillDetectionEnd(const char* pData )
 	{
-		char cMode = theApp.m_pDataC->GetMode();
-		if (cMode != 0x01)
-		{
-			g_logger.TraceWarning("CCommunicator::cmdStressEnd - only test mode have begin cmd");
-			return false;
-		}
-		theApp.m_pDAQC->StressEnd();
+		theApp.m_pDAQController->StillDetectionEnd();
+		theApp.m_pDataController->SaveMaxHandBrakeForce2INI();//静止检测结束时保存到INI
+		return true;
+	}
+	bool CCommunicator::cmdMoveDetectionBegin(const char* pData )
+	{
+		theApp.m_pDataController->SetCurrentType(MOVEDETECTION);
+		theApp.m_pDAQController->MoveDetectionBegin();
+		return true;
+	}
+	bool CCommunicator::cmdMoveDetectionEnd(const char* pData )
+	{
+		theApp.m_pDAQController->MoveDetectionEnd();
 		return true;
 	}
 	bool CCommunicator::cmdSetReportPath(const char* pData )

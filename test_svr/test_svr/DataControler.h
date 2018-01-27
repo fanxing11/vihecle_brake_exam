@@ -13,6 +13,7 @@ namespace DATACONTROLER
 		//1 - 正在进行
 		//2 - 已经完成
 		short m_nCurrentProjectState;
+		enDETECTION_TYPE m_nCurrentType;
 
 		char m_cStartChannel;
 		char m_cEndChannel;
@@ -21,9 +22,7 @@ namespace DATACONTROLER
 		//0x03:3K
 		char m_cSampleFrequency;
 		//0x01:测试模式
-		//0x02:仅速度
-		//0x03:仅力角
-		//0x04:完整检测
+		//0x02:完整检测
 		char m_cMode;//检测模式
 		//0x01:word
 		//0x02:excel
@@ -51,17 +50,22 @@ namespace DATACONTROLER
 		void SetArchiveFromat(char cFormat);
 		void SetProjectPath(string& strPath);
 		void CreateDefaultProjectPath(string &strPath);
-		void SaveProjectInfo2INIFile();
+		bool SaveProjectInfo2INIFile();
 
 
 	public:
+		//called in main
 		int GetCurrentProjectState()const;
 		bool GetProjectPath(string& strPath) const;
+		
+		//called by communicator
 		void SetNewProjectPara(const char* pData);
 		bool NewProject(string& strInfo);
 		bool TerminateCurrentProject();
 		char GetMode()const;
+		void SetCurrentType(enDETECTION_TYPE dt);
 
+		//-----useless
 		void SetUserName(const string strUserName);
 
 		void SetMaxAcceleratedVel(const float ff);
@@ -72,32 +76,37 @@ namespace DATACONTROLER
 		void SetMaxHandBrakeForce(const float ff);
 		void SetMaxFootBrakeForce(const float ff);
 		void SetResult(const char cResult);
+		//----useless
 
 		void SetReportPath(const string strPath);
 		 
-			
-	public:
-		void SaveInitAngle2INIFile(const double* pData);
-		void HandleVelocityData(const double* pData, const int channelCount, const int sectionLength, const double deltat);
-		void HandleStressData(const double* pData, const int channelCount, const int sectionLength);
+		// called by DAQ
+		void HandleStillDetectionData(const double* pData, const int channelCount, const int sectionLength);
+		void HandleMoveDetectionData(const double* pData, const int channelCount, const int sectionLength, const double deltat);
+		void HandleInitGradientData(const double* pData, const int channelCount, const int sectionLength);
 
-
-		void GetStressInfo(STRESSINFO& stStressInfo);
-		void GetVelocityInfo(VELOCITYINFO& stVelocityInfo);
+		// called by send2UI(main)
+		void GetInitGradientInfo(double& dX, double& dY);
+		void GetMoveDetectionInfo(MOVEDETECTIONINFO& stStressInfo);
+		void GetStillDetectionInfo(STILLDETECTIONINFO& stStillDetectionInfo);
+		void SetUpdateCarAngleFlag();
+		bool SaveMaxHandBrakeForce2INI();
 
 	private:
-		STRESSINFO m_stStressInfo;
-		VELOCITYINFO m_stVelocityInfo;
-		HANDLE m_hEvtStressInfo;
-		HANDLE m_hEvtVelocityInfo;
+		MOVEDETECTIONINFO m_stMoveDetectionInfo;
+		STILLDETECTIONINFO m_stStillDetectionInfo;
+		HANDLE m_hEvtMoveDetectionInfo;
+		HANDLE m_hEvtStillDetectionInfo;
+		HANDLE m_hEvtInitGradientInfo;
 		string m_strConfigFullName;
 
-		double m_dInitXAngle;
+		double m_dInitXAngle;//初始地面倾角
 		double m_dInitYAngle;
-		double GetInitXAngle() const;
-		double GetInitYAngle() const;
-		void SetInitXAngle(const double dA);
-		void SetInitYAngle(const double dA);
+		double m_dInitCarXAngle;//车辆倾角
+		double m_dInitCarYAngle;
+		bool m_bUpdateCarAngleFlag;
+		void SaveCarAngle();
+		double m_dMaxHandBrakeForce;
 
 	public:
 		bool TransformBrakeDistance(double & dVel);

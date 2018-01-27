@@ -34,10 +34,10 @@ namespace DAQCONTROLER
 
 	//event
 	HANDLE m_gEvtSample;//-ing
-	HANDLE m_gEvtStress;
-	HANDLE m_gEvtVelocity;
+	HANDLE m_gEvtInitGradient;
+	HANDLE m_gEvtMoveDetection;
+	HANDLE m_gEvtStillDetection;
 	HANDLE m_gEvtSaveFile;
-	HANDLE m_gEvtInitAngleFlag;//First need save InitAngle
 
 	class CDAQControler
 	{
@@ -46,12 +46,14 @@ namespace DAQCONTROLER
 		~CDAQControler(void);
 
 	public:
-		void VelocityBegin();
-		void VelocityEnd();
-		void StressBegin();
-		void StressEnd();
+		void InitGradientBegin();
+		void InitGradientEnd();
+		void StillDetectionBegin();
+		void StillDetectionEnd();
+		void MoveDetectionBegin();
+		void MoveDetectionEnd();
 
-		void NewProject(char cMode);
+		bool NewProject(char cMode);
 		void TerminateProject();
 
 
@@ -59,7 +61,7 @@ namespace DAQCONTROLER
 	private:
 		void Initialize();
 
-		void SetInitAngleFlag();
+		//void SetInitAngleFlag();
 		void SampleBegin();
 		void SampleEnd();
 		void CreateSyncEvent();

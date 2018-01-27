@@ -98,6 +98,8 @@ namespace DBCONTROLLER
 		bool DeleteUser(const string& sUserName, const string& sPwd="");
 		//改密码
 		bool ModifyPwd(const string& sUserName, const string& csPwd,const int level = 1);
+		//删除用户
+		bool AdminUserVerify(int& nErr, const string& sUserName, const string& sPwd);
 
 		//private, call by adduser and verifypwd
 		bool GetAllUserNames(vector<string>& vUsers,const string& sTargetUserName, int& nTargetState);

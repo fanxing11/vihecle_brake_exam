@@ -23,8 +23,8 @@ public:
 public:
 	CCommunicator* m_pCommunicator;
 	CDBController* m_pDBC;
-	CDataControler* m_pDataC;
-	CDAQControler* m_pDAQC;
+	CDataControler* m_pDataController;
+	CDAQControler* m_pDAQController;
 	CAnalysis* m_pAnalysis;
 	DWORD m_dwMainThreadID;
 
