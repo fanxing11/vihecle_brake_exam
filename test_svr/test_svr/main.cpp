@@ -20,20 +20,19 @@ CtheApp::~CtheApp(void)
 	delete m_pDAQController;
 }
 
-CtheApp theApp;
+CtheApp* theApp = NULL;
 
 //int main()
 int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance, __in_opt LPSTR lpCmdLine, __in int nShowCmd )
 {
-
-
-	if (!theApp.m_pCommunicator->Initialize())
+	theApp = new CtheApp;
+	if (!theApp->m_pCommunicator->Initialize())
 	{
 		MessageBox(NULL,TEXT("server startup failed."),NULL,MB_OK);
 		return 0;
 	}
 
-	theApp.m_dwMainThreadID = GetCurrentThreadId();
+	theApp->m_dwMainThreadID = GetCurrentThreadId();
 
 	g_logger.TraceWarning("_func_in_main");
 
@@ -60,13 +59,13 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 				g_logger.TraceWarning("in main::msg_DB_USERLOGIN,UserName=%s,Pwd=%s",pUserName,"pPwd");
 
 				int nErr = NUM_NEGONE;
-				if( !theApp.m_pDBC->UserLogin(nErr,string(pUserName),string(pPwd)) )
+				if( !theApp->m_pDBC->UserLogin(nErr,string(pUserName),string(pPwd)) )
 				{
 					g_logger.TraceError("DBC.UserLogin error");
 				}
 				else
 				{
-					theApp.m_pCommunicator->SendDatatoUI(msg.message,nErr);
+					theApp->m_pCommunicator->SendDatatoUI(msg.message,nErr);
 				}
 				delete [] pUserName;pUserName = NULL;
 				delete [] pPwd;pPwd = NULL;
@@ -80,13 +79,13 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 				g_logger.TraceWarning("in main::msg_DB_USERLOGIN,UserName=%s,Pwd=%s",pUserName,"pPwd");
 
 				int nErr = NUM_NEGONE;
-				if( !theApp.m_pDBC->UserRegister(nErr,string(pUserName),string(pPwd)) )
+				if( !theApp->m_pDBC->UserRegister(nErr,string(pUserName),string(pPwd)) )
 				{
 					g_logger.TraceError("DBC.UserRegister error");
 				}
 				else
 				{
-					theApp.m_pCommunicator->SendDatatoUI(msg.message,nErr);
+					theApp->m_pCommunicator->SendDatatoUI(msg.message,nErr);
 				}
 				delete [] pUserName;
 				pUserName = NULL;
@@ -100,14 +99,14 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 				char* pPwd = (char*)msg.lParam;
 				g_logger.TraceWarning("in main::msg_DB_CHANGEPASSWORD,UserName=%s,Pwd=%s",pUserName,"pPwd");
 
-				if( !theApp.m_pDBC->ModifyPwd(string(pUserName),string(pPwd)) )
+				if( !theApp->m_pDBC->ModifyPwd(string(pUserName),string(pPwd)) )
 				{
 					g_logger.TraceError("DBC.ModifyPwd error");
-					theApp.m_pCommunicator->SendDatatoUI(msg.message,NUM_ONE);
+					theApp->m_pCommunicator->SendDatatoUI(msg.message,NUM_ONE);
 				}
 				else
 				{
-					theApp.m_pCommunicator->SendDatatoUI(msg.message);
+					theApp->m_pCommunicator->SendDatatoUI(msg.message);
 				}
 				delete [] pUserName;pUserName = NULL;
 				delete [] pPwd;pPwd = NULL;
@@ -119,14 +118,14 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 				char* pPwd = (char*)msg.lParam;
 				g_logger.TraceWarning("in main::msg_DB_DELETEUSER,UserName=%s,Pwd=%s",pUserName,"pPwd");
 
-				if( !theApp.m_pDBC->DeleteUser(string(pUserName),string(pPwd)) )
+				if( !theApp->m_pDBC->DeleteUser(string(pUserName),string(pPwd)) )
 				{
 					g_logger.TraceError("DBC.DeleteUser failed");
-					theApp.m_pCommunicator->SendDatatoUI(msg.message,NUM_ONE);
+					theApp->m_pCommunicator->SendDatatoUI(msg.message,NUM_ONE);
 				}
 				else
 				{
-					theApp.m_pCommunicator->SendDatatoUI(msg.message);
+					theApp->m_pCommunicator->SendDatatoUI(msg.message);
 				}
 				delete [] pUserName;pUserName = NULL;
 				delete [] pPwd;pPwd = NULL;
@@ -139,13 +138,13 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 				g_logger.TraceWarning("in main::msg_DB_USERLOGIN,UserName=%s,Pwd=%s",pUserName,"pPwd");
 
 				int nErr = NUM_NEGONE;
-				if( !theApp.m_pDBC->AdminUserVerify(nErr,string(pUserName),string(pPwd)) )
+				if( !theApp->m_pDBC->AdminUserVerify(nErr,string(pUserName),string(pPwd)) )
 				{
 					g_logger.TraceError("DBC.AdminUserVerify error");
 				}
 				else
 				{
-					theApp.m_pCommunicator->SendDatatoUI(msg.message,nErr);
+					theApp->m_pCommunicator->SendDatatoUI(msg.message,nErr);
 				}
 				delete [] pUserName;pUserName = NULL;
 				delete [] pPwd;pPwd = NULL;
@@ -154,29 +153,29 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 		case msg_DAQ_DATAONE:
 			{
 				g_logger.TraceInfo("in main::msg_DAQ_DATAONE");
-				theApp.m_pCommunicator->SendDatatoUI(msg.message);
+				theApp->m_pCommunicator->SendDatatoUI(msg.message);
 
 				break;
 			}
 		case msg_DAQ_NEWPROJECT:
 			{
 				string strInfo("");
-				bool bRet = theApp.m_pDataController->NewProject( strInfo ) ;
+				bool bRet = theApp->m_pDataController->NewProject( strInfo ) ;
 
 				if ( bRet )//success
 				{
-					theApp.m_pCommunicator->SendDatatoUI(msg.message, NUM_ZERO, strInfo );
+					theApp->m_pCommunicator->SendDatatoUI(msg.message, NUM_ZERO, strInfo );
 				}
 				else
 				{
-					theApp.m_pCommunicator->SendDatatoUI(msg.message, NUM_ONE, strInfo);
+					theApp->m_pCommunicator->SendDatatoUI(msg.message, NUM_ONE, strInfo);
 				}
 				break;
 			}
 		case msg_DAQ_TERMINATEPROJECT:
 			{
-				theApp.m_pDataController->TerminateCurrentProject();
-				theApp.m_pCommunicator->SendDatatoUI(msg.message,NUM_ZERO,"");
+				theApp->m_pDataController->TerminateCurrentProject();
+				theApp->m_pCommunicator->SendDatatoUI(msg.message,NUM_ZERO,"");
 
 				break;
 			}
@@ -184,7 +183,7 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 			{
 				char* pPath = (char*)msg.wParam;
 				string strPath(pPath);
-				theApp.m_pDataController->SetReportPath(strPath);
+				theApp->m_pDataController->SetReportPath(strPath);
 				delete[] pPath;
 				pPath = NULL;
 
@@ -206,20 +205,20 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 
 				if (cCurrentTest == 0x01)//current test
 				{
-					if ( NUM_TWO == theApp.m_pDataController->GetCurrentProjectState() )
+					if ( NUM_TWO == theApp->m_pDataController->GetCurrentProjectState() )
 					{
-						theApp.m_pDataController->GetProjectPath(strProjPath);
-						theApp.m_pAnalysis->BeginAnalysis(strProjPath);
+						theApp->m_pDataController->GetProjectPath(strProjPath);
+						theApp->m_pAnalysis->BeginAnalysis(strProjPath);
 					}
 					else
 					{
 
-						if ( NUM_ONE == theApp.m_pDataController->GetCurrentProjectState() )
+						if ( NUM_ONE == theApp->m_pDataController->GetCurrentProjectState() )
 						{
 							g_logger.TraceWarning("msg_ANA_ANALYSIS_BEGIN:CurrentProject is onGoing");
 							strRetInfo = ("当前检测正在进行");
 						}
-						else if ( NUM_ZERO == theApp.m_pDataController->GetCurrentProjectState() )
+						else if ( NUM_ZERO == theApp->m_pDataController->GetCurrentProjectState() )
 						{
 							g_logger.TraceWarning("msg_ANA_ANALYSIS_BEGIN:CurrentProject has not started");
 							strRetInfo = ("当前检测尚未开始");
@@ -229,7 +228,7 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 						pBuf = new char[nLen+1];
 						memset(pBuf,0,nLen+1);
 						memcpy(pBuf,strRetInfo.c_str(),nLen);
-						if(!PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)pBuf))
+						if(!PostThreadMessage(theApp->m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)pBuf))
 						{
 							g_logger.TraceError("main::msg_ANA_ANALYSIS_BEGIN - PostThreadMessage failed");
 							delete[] pBuf;
@@ -239,7 +238,27 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 				}
 				else if (cCurrentTest == 0x02)//history test
 				{
-					theApp.m_pAnalysis->BeginAnalysis(strProjPath);
+					if ( NUM_ONE == theApp->m_pDataController->GetCurrentProjectState() )
+					{
+						g_logger.TraceWarning("msg_ANA_ANALYSIS_BEGIN:CurrentProject is onGoing");
+						strRetInfo = ("检测正在进行,请等待检测结束后进行分析");
+
+						char* pBuf = NULL;
+						int nLen = strRetInfo.length();
+						pBuf = new char[nLen+1];
+						memset(pBuf,0,nLen+1);
+						memcpy(pBuf,strRetInfo.c_str(),nLen);
+						if(!PostThreadMessage(theApp->m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)pBuf))
+						{
+							g_logger.TraceError("main::msg_ANA_ANALYSIS_BEGIN - PostThreadMessage failed");
+							delete[] pBuf;
+							pBuf = NULL;
+						}
+					}
+					else
+					{
+						theApp->m_pAnalysis->BeginAnalysis(strProjPath);
+					}
 				}
 				else
 				{
@@ -257,26 +276,28 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 					delete[] pp;
 					pp = NULL;
 				}
-				theApp.m_pCommunicator->SendDatatoUI(msg.message,msg.wParam,strInfo);
+				theApp->m_pCommunicator->SendDatatoUI(msg.message,msg.wParam,strInfo);
 				break;
 			}
 		case msg_ANA_ANALYSIS_RESULT:
 			{
 				ANALYSISRESULT stResult;
 				stResult = *(ANALYSISRESULT*)msg.lParam;
-				theApp.m_pCommunicator->SendAnalysisResult2UI((int)msg.wParam, stResult);
+				theApp->m_pCommunicator->SendAnalysisResult2UI((int)msg.wParam, stResult);
 				break;
 			}
 		case  cmd_ANALYSIS_DATA:
 			{
 				//ANALYSISDATA stData;
 				//stData = *(ANALYSISDATA*)msg.lParam;
-				//theApp.m_pCommunicator->SendAnalysisData2UI((int)msg.wParam, stData);
+				//theApp->m_pCommunicator->SendAnalysisData2UI((int)msg.wParam, stData);
 				break;
 			}
 		}
 
 	}
+	delete theApp;
+	theApp = NULL;
 
 	cout<<"this is last line"<<endl;
 

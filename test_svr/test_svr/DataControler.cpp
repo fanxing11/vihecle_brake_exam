@@ -7,7 +7,7 @@
 #include <Dbghelp.h>
 #pragma comment(lib,"Dbghelp.lib")
 
-extern CtheApp theApp;
+extern CtheApp* theApp;
 
 
 namespace DATACONTROLER
@@ -26,6 +26,7 @@ namespace DATACONTROLER
 		,m_nCurrentType(NONTYPE)
 		,m_bUpdateCarAngleFlag(false)
 	{
+		g_logger.TraceInfo("CDataControler::CDataControler");
 		m_hEvtMoveDetectionInfo = CreateEvent(NULL,TRUE,FALSE,L"");
 		m_hEvtStillDetectionInfo = CreateEvent(NULL,TRUE,FALSE,L"");
 		m_hEvtInitGradientInfo = CreateEvent(NULL,TRUE,FALSE,L"");
@@ -141,17 +142,17 @@ namespace DATACONTROLER
 			return false;
 		}
 		//取得检测模式，设置DAQ线程中的标志位
-		char cMode = theApp.m_pDataController->GetMode();
+		char cMode = theApp->m_pDataController->GetMode();
+		//设置新建标志到DAQ
+		if(false == theApp->m_pDAQController->NewProject(m_cMode))
+		{
+			strInfo = string("采集卡初始化失败。");
+			return false;
+		}
 
 		if(false == SaveProjectInfo2INIFile())
 		{
 			strInfo = string("检测参数保存失败。");
-			return false;
-		}
-		//设置新建标志到DAQ
-		if(false == theApp.m_pDAQController->NewProject(m_cMode))
-		{
-			strInfo = string("采集卡初始化失败。");
 			return false;
 		}
 
@@ -174,7 +175,7 @@ namespace DATACONTROLER
 			return false;
 		}
 		//设置DAQ标志结束
-		theApp.m_pDAQController->TerminateProject();
+		theApp->m_pDAQController->TerminateProject();
 
 		m_nCurrentProjectState = NUM_TWO;
 		return true;
@@ -464,7 +465,7 @@ namespace DATACONTROLER
 
 	void CDataControler::GetInitGradientInfo(double& dX, double& dY)
 	{
-		DWORD dwRet = WaitForSingleObject(m_hEvtMoveDetectionInfo,1);
+		DWORD dwRet = WaitForSingleObject(m_hEvtInitGradientInfo,1);
 		if (WAIT_OBJECT_0 == dwRet)
 		{
 			dX = m_dInitXAngle;

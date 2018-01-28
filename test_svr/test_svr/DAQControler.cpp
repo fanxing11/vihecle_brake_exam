@@ -2,7 +2,7 @@
 
 #include "time.h"
 
-extern CtheApp theApp;
+extern CtheApp* theApp;
 
 #include "DAQControler.h"
 
@@ -54,15 +54,15 @@ namespace DAQCONTROLER
 		//2. data process
 		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtInitGradient,0))
 		{
-			theApp.m_pDataController->HandleInitGradientData(Data, channelCount,sectionLength);
+			theApp->m_pDataController->HandleInitGradientData(Data, channelCount,sectionLength);
 		}
 		else if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtMoveDetection,0))
 		{
-			theApp.m_pDataController->HandleMoveDetectionData(Data, channelCount,sectionLength,deltat);
+			theApp->m_pDataController->HandleMoveDetectionData(Data, channelCount,sectionLength,deltat);
 		}
 		else if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtStillDetection,0))
 		{
-			theApp.m_pDataController->HandleStillDetectionData(Data, channelCount,sectionLength);
+			theApp->m_pDataController->HandleStillDetectionData(Data, channelCount,sectionLength);
 		}
 		//printTime();
 		//3. data save
@@ -86,7 +86,7 @@ namespace DAQCONTROLER
 		//memcpy(DateOne, buffer, 10*sizeof(double));
 
 		//4. send data to UI
-		PostThreadMessage(theApp.m_dwMainThreadID, msg_DAQ_DATAONE, NULL, NULL);
+		PostThreadMessage(theApp->m_dwMainThreadID, msg_DAQ_DATAONE, NULL, NULL);
 
 	}
 	//The function is used to deal with 'OverRun' Event.
@@ -127,7 +127,7 @@ namespace DAQCONTROLER
 			);
 
 		string strPath;
-		theApp.m_pDataController->GetProjectPath(strPath);
+		theApp->m_pDataController->GetProjectPath(strPath);
 		strPath.append(stFilename);
 
 		hFile = CreateFileA(
@@ -157,6 +157,7 @@ namespace DAQCONTROLER
 		:m_wfAiCtrl(NULL)
 		,m_bDAQInitialSuccessfully(false)
 	{
+		g_logger.TraceInfo("CDAQControler::CDAQControler");
 		this->Initialize();
 	}
 

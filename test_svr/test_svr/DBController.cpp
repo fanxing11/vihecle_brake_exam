@@ -13,6 +13,7 @@ namespace DBCONTROLLER
 		:m_sDBName("carexamine.db")
 		,m_pstdb(NULL)
 	{
+		g_logger.TraceInfo("CDBController::CDBController");
 	}
 
 	CDBController::~CDBController(void)
@@ -42,7 +43,7 @@ namespace DBCONTROLLER
 			return true;
 		}
 
-		g_uCmd = DB_VERRIFYUSERPWD;
+		g_uCmd = DB_ADDUSER;
 		bool rt = true;
 
 		if (!OpenDB())
@@ -247,6 +248,8 @@ namespace DBCONTROLLER
 
 		CloseDB();
 
+		g_sPwd = "";
+
 		return rt;
 	}
 
@@ -294,8 +297,9 @@ namespace DBCONTROLLER
 			nErr = 0;
 		else
 			nErr = 1;
-
+		
 		CloseDB();
+		g_sPwd = "";
 
 		return rt;
 	}

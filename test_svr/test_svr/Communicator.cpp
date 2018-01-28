@@ -4,7 +4,7 @@
 #include "Communicator.h"
 #include "DataControler.h"
 
-extern CtheApp theApp;
+extern CtheApp* theApp;
 
 namespace COMMUNICATOR
 {
@@ -219,7 +219,7 @@ namespace COMMUNICATOR
 						0x00,0x00,0x00,0x00,//Y
 						cmd_TAIL};	
 					double dX=0,dY=0;
-					theApp.m_pDataController->GetInitGradientInfo(dX,dY);
+					theApp->m_pDataController->GetInitGradientInfo(dX,dY);
 
 					int nX = (int)(100*( dX ));
 					int nY = (int)(100*( dY ));
@@ -238,7 +238,7 @@ namespace COMMUNICATOR
 						cmd_TAIL};	
 
 					STILLDETECTIONINFO stStillDetectionInfo;
-					theApp.m_pDataController->GetStillDetectionInfo(stStillDetectionInfo);
+					theApp->m_pDataController->GetStillDetectionInfo(stStillDetectionInfo);
 
 					int nMaxHandBrakeForce = (int)(100*( stStillDetectionInfo.MaxHandBrakeForce ));
 					int nGradientX = (int)(100*( stStillDetectionInfo.GradientX ));
@@ -262,7 +262,7 @@ namespace COMMUNICATOR
 						cmd_TAIL};	
 
 					MOVEDETECTIONINFO stStressInfo;
-					theApp.m_pDataController->GetMoveDetectionInfo(stStressInfo);
+					theApp->m_pDataController->GetMoveDetectionInfo(stStressInfo);
 
 					int nPedalDist = (int)(100*( stStressInfo.PedalDistance ));
 					int nGradientX = (int)(100*( stStressInfo.GradientX ));
@@ -270,6 +270,17 @@ namespace COMMUNICATOR
 					int nFootBrakeForce = (int)(100*(stStressInfo.MaxFootBrakeForce));
 					int nLastVelocity = (int)(100*(stStressInfo.LastVelocity));
 					int nLastAccelaration = (int)(100*(stStressInfo.LastAccelaration));
+
+					static int n=0;
+					if (n<50)
+					{
+						n++;
+					}
+					else
+					{
+						n--;
+					}
+					nLastAccelaration -= 100*n;
 
 					memcpy(Ret+2, &nFootBrakeForce, sizeof(int));//4bit
 					memcpy(Ret+6, &nPedalDist, sizeof(int));//4bit
@@ -285,7 +296,7 @@ namespace COMMUNICATOR
 			}
 		case msg_DAQ_NEWPROJECT:
 			{
-				char cMode = theApp.m_pDataController->GetMode();
+				char cMode = theApp->m_pDataController->GetMode();
 				char cSucceed;
 				switch (nParam)
 				{
@@ -533,8 +544,10 @@ namespace COMMUNICATOR
 			break;
 		case cmd_INITGRADIENT_BEGIN:
 			this->cmdInitGradientBegin(pData);
+			break;
 		case cmd_INITGRADIENT_END:
 			this->cmdInitGradientEnd(pData);
+			break;
 		case cmd_STILL_DETECT_BEGIN:
 			this->cmdStillDetectionBegin(pData);
 			break;
@@ -670,7 +683,7 @@ namespace COMMUNICATOR
 
 	bool CCommunicator::cmdNewProject(const char* pData )
 	{
-		theApp.m_pDataController->SetNewProjectPara(pData);
+		theApp->m_pDataController->SetNewProjectPara(pData);
 		PostThreadMessage(m_dwMainThreadId, msg_DAQ_NEWPROJECT, NULL, NULL); 
 
 		return true;
@@ -682,37 +695,37 @@ namespace COMMUNICATOR
 	}
 	bool CCommunicator::cmdInitGradientBegin(const char* pData )
 	{
-		theApp.m_pDataController->SetCurrentType(INITGRADIENT);
-		theApp.m_pDAQController->InitGradientBegin();
+		theApp->m_pDataController->SetCurrentType(INITGRADIENT);
+		theApp->m_pDAQController->InitGradientBegin();
 		return true;
 	}
 	bool CCommunicator::cmdInitGradientEnd(const char* pData )
 	{
-		theApp.m_pDAQController->InitGradientEnd();
-		theApp.m_pDataController->SetUpdateCarAngleFlag();
+		theApp->m_pDAQController->InitGradientEnd();
+		theApp->m_pDataController->SetUpdateCarAngleFlag();
 		return true;
 	}
 	bool CCommunicator::cmdStillDetectionBegin(const char* pData )
 	{
-		theApp.m_pDataController->SetCurrentType(STILLDETECTION);
-		theApp.m_pDAQController->StillDetectionBegin();
+		theApp->m_pDataController->SetCurrentType(STILLDETECTION);
+		theApp->m_pDAQController->StillDetectionBegin();
 		return true;
 	}
 	bool CCommunicator::cmdStillDetectionEnd(const char* pData )
 	{
-		theApp.m_pDAQController->StillDetectionEnd();
-		theApp.m_pDataController->SaveMaxHandBrakeForce2INI();//静止检测结束时保存到INI
+		theApp->m_pDAQController->StillDetectionEnd();
+		theApp->m_pDataController->SaveMaxHandBrakeForce2INI();//静止检测结束时保存到INI
 		return true;
 	}
 	bool CCommunicator::cmdMoveDetectionBegin(const char* pData )
 	{
-		theApp.m_pDataController->SetCurrentType(MOVEDETECTION);
-		theApp.m_pDAQController->MoveDetectionBegin();
+		theApp->m_pDataController->SetCurrentType(MOVEDETECTION);
+		theApp->m_pDAQController->MoveDetectionBegin();
 		return true;
 	}
 	bool CCommunicator::cmdMoveDetectionEnd(const char* pData )
 	{
-		theApp.m_pDAQController->MoveDetectionEnd();
+		theApp->m_pDAQController->MoveDetectionEnd();
 		return true;
 	}
 	bool CCommunicator::cmdSetReportPath(const char* pData )

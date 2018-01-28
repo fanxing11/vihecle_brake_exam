@@ -4,7 +4,7 @@
 
 #include <algorithm>
 
-extern CtheApp theApp;
+extern CtheApp* theApp;
 
 namespace ANALYSISSPACE
 {
@@ -31,7 +31,7 @@ namespace ANALYSISSPACE
 					pBuf = new char[nLen+1];
 					memset(pBuf,0,nLen+1);
 					memcpy(pBuf,strInfo.c_str(),nLen);
-					if(!PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)pBuf))
+					if(!PostThreadMessage(theApp->m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)pBuf))
 					{
 						g_logger.TraceError("AnalysisThreadFunc - PostThreadMessage failed");
 						delete[] pBuf;
@@ -41,7 +41,7 @@ namespace ANALYSISSPACE
 				}
 				else
 				{
-					PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_TWO,NULL);
+					PostThreadMessage(theApp->m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_TWO,NULL);
 				}
 			}
 		}
@@ -57,6 +57,7 @@ namespace ANALYSISSPACE
 		,m_dCarInitYAngle(0.0)
 		,m_dMaxHandBrakeForce(0.0)
 	{
+		g_logger.TraceInfo("CAnalysis::CAnalysis");
 	}
 
 
@@ -109,7 +110,7 @@ namespace ANALYSISSPACE
 			pBuf = new char[nLen+1];
 			memset(pBuf,0,nLen+1);
 			memcpy(pBuf,strInfo.c_str(),nLen);
-			if(!PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)pBuf))
+			if(!PostThreadMessage(theApp->m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_THREE,(LPARAM)pBuf))
 			{
 				g_logger.TraceError("CAnalysis::BeginAnalysis - PostThreadMessage failed");
 				delete[] pBuf;
@@ -355,17 +356,17 @@ namespace ANALYSISSPACE
 		SendAnalysisData();
 
 
-		theApp.m_pDataController->TransformAcceleration(m_stResult.MaxAccelaration);
-		theApp.m_pDataController->TransformVelocity(m_stResult.AverageVelocity);
+		theApp->m_pDataController->TransformAcceleration(m_stResult.MaxAccelaration);
+		theApp->m_pDataController->TransformVelocity(m_stResult.AverageVelocity);
 
-		theApp.m_pDataController->TransformFootBrakeForce(m_stResult.MaxFootBrakeForce);
-		//theApp.m_pDataController->TransformHandBrakeForce(m_stResult.MaxHandBrakeForce);
-		theApp.m_pDataController->TransformGradient(m_stResult.GradientX);
-		theApp.m_pDataController->TransformGradient(m_stResult.GradientY);
+		theApp->m_pDataController->TransformFootBrakeForce(m_stResult.MaxFootBrakeForce);
+		//theApp->m_pDataController->TransformHandBrakeForce(m_stResult.MaxHandBrakeForce);
+		theApp->m_pDataController->TransformGradient(m_stResult.GradientX);
+		theApp->m_pDataController->TransformGradient(m_stResult.GradientY);
 		//需要减去检测时车辆参考面的相对倾角，得到地面实际倾角
 		m_stResult.GradientX -= m_dCarInitXAngle;
 		m_stResult.GradientY -= m_dCarInitYAngle;
-		theApp.m_pDataController->TransformPedalDistance(m_stResult.PedalDistance);
+		theApp->m_pDataController->TransformPedalDistance(m_stResult.PedalDistance);
 
 		m_stResult.MaxHandBrakeForce = m_dMaxHandBrakeForce;//from ini，不再需要转换
 
@@ -384,7 +385,7 @@ namespace ANALYSISSPACE
 	{
 		int nResult = NUM_ONE;
 
-		if(!PostThreadMessage(theApp.m_dwMainThreadID,msg_ANA_ANALYSIS_RESULT ,nResult,(LPARAM)&m_stResult))
+		if(!PostThreadMessage(theApp->m_dwMainThreadID,msg_ANA_ANALYSIS_RESULT ,nResult,(LPARAM)&m_stResult))
 		{
 			g_logger.TraceError("CAnalysis::AnalyseResult - PostThreadMessage failed");
 		}
@@ -418,8 +419,8 @@ namespace ANALYSISSPACE
 
 	void CAnalysis::SendAnalysisData()
 	{
-		theApp.m_pCommunicator->SendAnalysisData2UI(m_vAnalysisData);
-		//if(!PostThreadMessage(theApp.m_dwMainThreadID, cmd_ANALYSIS_DATA, 1, (LPARAM)&stData))
+		theApp->m_pCommunicator->SendAnalysisData2UI(m_vAnalysisData);
+		//if(!PostThreadMessage(theApp->m_dwMainThreadID, cmd_ANALYSIS_DATA, 1, (LPARAM)&stData))
 		{
 			g_logger.TraceError("CAnalysis::AnalyseResult - PostThreadMessage failed");
 		}
