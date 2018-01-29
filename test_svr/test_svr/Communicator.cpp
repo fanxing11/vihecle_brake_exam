@@ -44,7 +44,7 @@ namespace COMMUNICATOR
 
 	CCommunicator::~CCommunicator(void)
 	{
-		DWORD dw =WaitForSingleObject(m_hRevThread,1000);
+		DWORD dw =WaitForSingleObject(m_hRevThread,1);
 		if( dw == WAIT_TIMEOUT )
 		{
 			//cout<<"wait for thread timeout"<<endl;
@@ -387,6 +387,7 @@ namespace COMMUNICATOR
 
 	bool CCommunicator::SendAnalysisResult2UI(const int nResult, const ANALYSISRESULT& stResult)
 	{
+		g_logger.TraceInfo("CCommunicator::SendAnalysisResult2UI-in");
 		char Ret[36] = {cmd_HEADER,cmd_ANALYSIS_RESULT,
 			0x00,0x00,0x00,0x00,
 			0x00,0x00,0x00,0x00,
@@ -446,18 +447,100 @@ namespace COMMUNICATOR
 
 		sendto(m_SockSrv, Ret, 36, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
 
+		g_logger.TraceInfo("CCommunicator::SendAnalysisResult2UI-out");
 		return true;
 	}
 
 	bool CCommunicator::SendAnalysisData2UI(vector<ANALYSISDATA>& stData)
 	{
-		short nLen = stData.size();
-		if (nLen>1024)
-		{
-			nLen = 1024;
-		}
+		g_logger.TraceInfo("CCommunicator::SendAnalysisData2UI-in");
+		int nSendTime=0;
 		//打包
+
+		WORD wPointNumber = 0;//2byte
+		char cPackNumber = 0x00;
+		char cCurPack = 0x00;
+		char cPointPerPack = 0x00;
+		char cAcc = 0x00;
+		char cVel = 0x00;
+		char cPedalLoc = 0x00;
+		char cForce = 0x00;
+
+		UINT nLeftofSumGroup = stData.size();
+		UINT nSumGroup = stData.size();
+		int nSizeofSend = 5 + 4*(2 + 4*64) + 1;
+		char* pBuf = new char[nSizeofSend];
+		do 
+		{
+			int nLoc = 0;
+			memset(pBuf+nLoc,'\0',nSizeofSend);
+			nLoc ++;
+			memcpy(pBuf+nLoc, &cmd_HEADER, 1);
+			nLoc ++;
+			memcpy(pBuf+nLoc, &cmd_ANALYSIS_DATA, 1);
+			nLoc ++;
+			//wPointNumber = 256*4;
+			memcpy(pBuf+nLoc, &wPointNumber, 2);
+			nLoc += 2;
+			cPackNumber = 0x04;
+			memcpy(pBuf+nLoc, &cPackNumber, 1);
+			nLoc++;
+			for (cCurPack = 0;cCurPack<4;cCurPack++)
+			{
+				memcpy(pBuf+nLoc, &cCurPack, 1);
+				nLoc++;
+				cPointPerPack = 0xFF;
+				memcpy(pBuf+nLoc, &cPointPerPack, 1);//这个点数，在最后一包的时候是不准的，解包时需要根据实际总点数计算出来
+				nLoc++;
+				int nGroup = -1;
+				bool bOver = false;
+				while( ++nGroup < 64 )
+				{
+					int nCurLocInVerctor = cCurPack*64 +  nGroup;
+					if ( nCurLocInVerctor > nSumGroup -1 )
+					{
+						bOver = true;
+						break;//导致地址最后几个数为0
+					}
+					ANALYSISDATA stGrop = stData.at( nCurLocInVerctor );
+					cAcc = (int)stGrop.Accelaration;
+					cVel = (int)stGrop.Velocity;
+					cPedalLoc = (int)stGrop.PedalDistance;
+					cForce = (int)stGrop.FootBrakeForce;
+					memcpy(pBuf+nLoc, &cAcc, 1);
+					nLoc++;
+					memcpy(pBuf+nLoc, &cVel, 1);
+					nLoc++;
+					memcpy(pBuf+nLoc, &cPedalLoc, 1);
+					nLoc++;
+					memcpy(pBuf+nLoc, &cForce, 1);
+					nLoc++;
+
+					++wPointNumber;
+				}
+				if (bOver)
+				{
+					break;
+				}
+			}
+
+			memcpy(pBuf+2, &wPointNumber, sizeof(WORD) );//实际点数
+			memcpy(pBuf+nSizeofSend-1,&cmd_TAIL, 1);
+
+			nSendTime = nSizeofSend+1;
+			sendto(m_SockSrv, pBuf, nSizeofSend, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+			g_logger.TraceInfo("CCommunicator::SendAnalysisData2UI-send");
+			//Sleep(5);
+
+			nLeftofSumGroup = nLeftofSumGroup-256;
+
+		}while(nLeftofSumGroup>256);//每次发送256组点，1024个点;分四个包,每包64组256个点
+		
+		delete [] pBuf;
+		pBuf = NULL;
+
 		//发送
+		g_logger.TraceInfo("CCommunicator::SendAnalysisData2UI-out");
 		return true;
 	}
 

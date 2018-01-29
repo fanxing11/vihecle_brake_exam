@@ -41,7 +41,8 @@ namespace ANALYSISSPACE
 				}
 				else
 				{
-					PostThreadMessage(theApp->m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_TWO,NULL);
+					pAnalysis->PostAnalysisStateMsg(NUM_TWO);
+					//PostThreadMessage(theApp->m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,NUM_TWO,NULL);
 				}
 			}
 		}
@@ -282,6 +283,8 @@ namespace ANALYSISSPACE
 
 	void CAnalysis::HandleData(const double* pData, const int channelCount, const DWORD dwDataSize/*Byte*/, const double deltat)
 	{
+		this->PostAnalysisStateMsg();
+
 		m_vAnalysisData.clear();
 		m_vAccelaration.clear();
 		m_vVelocity.clear();
@@ -337,6 +340,7 @@ namespace ANALYSISSPACE
 				m_stResult.PedalDistance = stAnalysisInfo.PedalDistance;
 			}
 
+			//save file data to vector for send to UI curve
 			ANALYSISDATA stData = {0.0};
 			stData.Accelaration = dCompoundA;
 			stData.Velocity = dCurrentVel;
@@ -347,6 +351,7 @@ namespace ANALYSISSPACE
 			m_vFootBrakeForce.push_back(stData.FootBrakeForce);
 			m_vPedalDistance.push_back(stData.PedalDistance);
 			m_vVelocity.push_back(stData.Velocity);
+
 		}
 		m_stResult.AverageVelocity = dSumVel / (doubleNum/channelCount);
 		m_stResult.BrakeDistance = dCurrentDist;
@@ -383,7 +388,8 @@ namespace ANALYSISSPACE
 	}
 	bool CAnalysis::AnalyseResult()
 	{
-		int nResult = NUM_ONE;
+		g_logger.TraceInfo("CAnalysis::AnalyseResult-in");
+		int nResult = NUM_ONE;//need add judge
 
 		if(!PostThreadMessage(theApp->m_dwMainThreadID,msg_ANA_ANALYSIS_RESULT ,nResult,(LPARAM)&m_stResult))
 		{
@@ -394,37 +400,78 @@ namespace ANALYSISSPACE
 	void CAnalysis::NormalizData()
 	{//归一化到1-100之间的char类型
 		//accelaration - -0.625~0.625
+		g_logger.TraceInfo("CAnalysis::NormalizData-in");
+		double dminAccelaration=0,dmaxAccelaration=0;
+		FindMaxMinRange(m_vAccelaration,dminAccelaration,dmaxAccelaration);
+		double dminVelocity=0,dmaxVelocity=0;
+		FindMaxMinRange(m_vAccelaration,dminVelocity,dmaxVelocity);
+		double dminFootBrakeForce=0,dmaxFootBrakeForce=0;
+		FindMaxMinRange(m_vAccelaration,dminFootBrakeForce,dmaxFootBrakeForce);
+		double dminPedalDistance=0,dmaxPedalDistance=0;
+		FindMaxMinRange(m_vAccelaration,dminPedalDistance,dmaxPedalDistance);
 
 		for( std::vector<ANALYSISDATA>::iterator itData = m_vAnalysisData.begin();
 			itData!=m_vAnalysisData.end();
 			++itData )
 		{
-			itData->Accelaration = itData->Accelaration / (FindMaxMinRange(m_vAccelaration)) * 100;
-			itData->Velocity = itData->Velocity / (FindMaxMinRange(m_vVelocity)) * 100;
-			itData->FootBrakeForce = itData->FootBrakeForce / (FindMaxMinRange(m_vFootBrakeForce)) * 100;
-			itData->PedalDistance = itData->PedalDistance / (FindMaxMinRange(m_vPedalDistance)) * 100;
+			NormalizDataOne(itData->Accelaration, dminAccelaration, dmaxAccelaration);
+			NormalizDataOne(itData->Velocity, dminVelocity, dmaxVelocity);
+			NormalizDataOne(itData->FootBrakeForce, dminFootBrakeForce, dmaxFootBrakeForce);
+			NormalizDataOne(itData->PedalDistance, dminPedalDistance, dmaxPedalDistance);
+
 		}
 
 
 	}
-	double CAnalysis::FindMaxMinRange( vector<double> &vData )
+	void CAnalysis::NormalizDataOne(double dData, const double dOriginMin, const double dOriginMax, const int nNewRange)
 	{
-		std::vector<double>::iterator max_ = std::max_element(std::begin(vData), std::end(vData));
-		double dMax = *max_;
-		auto min_ = std::min_element(std::begin(vData), std::end(vData));
-		double dMin = *min_;
+		double dOriginRange = dOriginMax - dOriginMin;
+		if (dOriginRange == 0)//采集到数据是恒值
+		{
+			if (dData>=nNewRange)
+			{
+				dData = nNewRange;
+			}
+			else if(dData <= 0)
+			{
+				dData = 0;
+			}
+			else
+			{
+				//do nothing
+			}
+		}
+		else
+		{
+			dData = (dData-dOriginMin) / dOriginRange * nNewRange;
+		}
+	}
 
-		return (dMax-dMin);
+	void CAnalysis::FindMaxMinRange(vector<double> &vData/*in*/, double& minData, double maxData)
+	{
+		g_logger.TraceInfo("CAnalysis::FindMaxMinRange-in");
+		std::vector<double>::iterator max_ = std::max_element(std::begin(vData), std::end(vData));
+		maxData = *max_;
+		auto min_ = std::min_element(std::begin(vData), std::end(vData));
+		minData = *min_;
 	}
 
 	void CAnalysis::SendAnalysisData()
 	{
 		theApp->m_pCommunicator->SendAnalysisData2UI(m_vAnalysisData);
+		g_logger.TraceInfo("CAnalysis::SendAnalysisData-in");
 		//if(!PostThreadMessage(theApp->m_dwMainThreadID, cmd_ANALYSIS_DATA, 1, (LPARAM)&stData))
-		{
-			g_logger.TraceError("CAnalysis::AnalyseResult - PostThreadMessage failed");
-		}
+		//{
+		//	g_logger.TraceError("CAnalysis::AnalyseResult - PostThreadMessage failed");
+		//}
 
+	}
+	//1 - 分析中
+	//2 - 分析成功
+	void CAnalysis::PostAnalysisStateMsg(const int nState)
+	{
+		PostThreadMessage(theApp->m_dwMainThreadID,msg_ANA_ANALYSIS_STATE,nState,NULL);//分析中
+		g_logger.TraceInfo("CAnalysis::PostAnalysisStateMsg:%d",nState);
 	}
 
 }

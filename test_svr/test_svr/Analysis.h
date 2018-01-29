@@ -13,6 +13,7 @@ namespace ANALYSISSPACE
 		void BeginAnalysis(const string &strProjectPath);
 
 		bool _BeginaAnalysis(string &strErrInfo);
+		void PostAnalysisStateMsg(const int nState=1);
 
 	private:
 		HANDLE m_hAnalysisThread;
@@ -29,7 +30,11 @@ namespace ANALYSISSPACE
 		void HandleData(const double* pData, const int channelCount, const DWORD dwDataSize/*Byte*/, const double deltat);
 		bool AnalyseResult();
 		void NormalizData();
-		double FindMaxMinRange( vector<double> &vData );
+		//dData - in out,
+		//nOriginRange - in
+		//nNewRange - out (0-nRange)
+		void NormalizDataOne(double dData, const double dOriginMin, const double dOriginMax, const int nNewRange=100);
+		void FindMaxMinRange(vector<double> &vData/*in*/, double& minData, double maxData);
 		void SendAnalysisData();
 		ANALYSISRESULT m_stResult;
 		vector <ANALYSISDATA> m_vAnalysisData;
