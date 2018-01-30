@@ -454,87 +454,97 @@ namespace COMMUNICATOR
 	bool CCommunicator::SendAnalysisData2UI(vector<ANALYSISDATA>& stData)
 	{
 		g_logger.TraceInfo("CCommunicator::SendAnalysisData2UI-in");
-		int nSendTime=0;
-		//打包
-
-		WORD wPointNumber = 0;//2byte
+		//一个点数包括一个加速度+一个速度+一个脚刹位置+一个脚刹力
+		WORD wPointNumber = stData.size();//2byte
+		int nPointPerPack = 250;
 		char cPackNumber = 0x00;
-		char cCurPack = 0x00;
-		char cPointPerPack = 0x00;
-		char cAcc = 0x00;
-		char cVel = 0x00;
-		char cPedalLoc = 0x00;
-		char cForce = 0x00;
-
-		UINT nLeftofSumGroup = stData.size();
-		UINT nSumGroup = stData.size();
-		int nSizeofSend = 5 + 4*(2 + 4*64) + 1;
-		char* pBuf = new char[nSizeofSend];
-		do 
+		cPackNumber = wPointNumber / nPointPerPack;
+		if (0 != wPointNumber % nPointPerPack)
 		{
+			cPackNumber ++;
+		}
+		if (cPackNumber > 256)
+		{
+			g_logger.TraceError("CCommunicator::SendAnalysisData2UI - cPackNumber = %d > 256, wPoitNumber=%d ",cPackNumber,wPointNumber);
+			cPackNumber = 256;
+			wPointNumber = cPackNumber*nPointPerPack;
+		}
+		int nSizeofSend = 7 + 4*nPointPerPack + 1;
+		char* pBuf = new char[nSizeofSend];
+		int nSendTime = 0;
+		for (char cCurPack=1;cCurPack<=cPackNumber;cCurPack++)
+		{
+			char cAcc = 0x00;
+			char cVel = 0x00;
+			char cPedalLoc = 0x00;
+			char cForce = 0x00;
+
+			memset(pBuf,'\0',nSizeofSend);
+
 			int nLoc = 0;
-			memset(pBuf+nLoc,'\0',nSizeofSend);
-			nLoc ++;
 			memcpy(pBuf+nLoc, &cmd_HEADER, 1);
 			nLoc ++;
 			memcpy(pBuf+nLoc, &cmd_ANALYSIS_DATA, 1);
 			nLoc ++;
-			//wPointNumber = 256*4;
 			memcpy(pBuf+nLoc, &wPointNumber, 2);
 			nLoc += 2;
-			cPackNumber = 0x04;
 			memcpy(pBuf+nLoc, &cPackNumber, 1);
 			nLoc++;
-			for (cCurPack = 0;cCurPack<4;cCurPack++)
+			memcpy(pBuf+nLoc, &cCurPack, 1);
+			nLoc++;
+			char cPointCurPack = 0x00;
+			memcpy(pBuf+nLoc, &cPointCurPack, 1);//点数，在最后一包的时候是不准的，解包时需要根据实际总点数计算出来
+			nLoc++;
+			int nPoint = -1;
+			while( ++nPoint < nPointPerPack )
 			{
-				memcpy(pBuf+nLoc, &cCurPack, 1);
-				nLoc++;
-				cPointPerPack = 0xFF;
-				memcpy(pBuf+nLoc, &cPointPerPack, 1);//这个点数，在最后一包的时候是不准的，解包时需要根据实际总点数计算出来
-				nLoc++;
-				int nGroup = -1;
-				bool bOver = false;
-				while( ++nGroup < 64 )
+				int nCurLocInVerctor = (cCurPack-1)*nPointPerPack +  nPoint;
+				if ( nCurLocInVerctor > wPointNumber -1 )
 				{
-					int nCurLocInVerctor = cCurPack*64 +  nGroup;
-					if ( nCurLocInVerctor > nSumGroup -1 )
-					{
-						bOver = true;
-						break;//导致地址最后几个数为0
-					}
-					ANALYSISDATA stGrop = stData.at( nCurLocInVerctor );
-					cAcc = (int)stGrop.Accelaration;
-					cVel = (int)stGrop.Velocity;
-					cPedalLoc = (int)stGrop.PedalDistance;
-					cForce = (int)stGrop.FootBrakeForce;
-					memcpy(pBuf+nLoc, &cAcc, 1);
-					nLoc++;
-					memcpy(pBuf+nLoc, &cVel, 1);
-					nLoc++;
-					memcpy(pBuf+nLoc, &cPedalLoc, 1);
-					nLoc++;
-					memcpy(pBuf+nLoc, &cForce, 1);
-					nLoc++;
+					break;//导致地址最后几个数为0
+				}
+				ANALYSISDATA stGrop = stData.at( nCurLocInVerctor );
+				cAcc = (int)stGrop.Accelaration;
+				cVel = (int)stGrop.Velocity;
+				cPedalLoc = (int)stGrop.PedalDistance;
+				cForce = (int)stGrop.FootBrakeForce;
+				g_logger.TraceInfo("CCommunicator::SendAnalysisData2UI - data to send:%d\t%d\t%d\t%d",
+					cAcc,cVel,cPedalLoc,cForce);
 
-					++wPointNumber;
-				}
-				if (bOver)
-				{
-					break;
-				}
+				memcpy(pBuf+nLoc, &cAcc, 1);
+				nLoc++;
+				memcpy(pBuf+nLoc, &cVel, 1);
+				nLoc++;
+				memcpy(pBuf+nLoc, &cPedalLoc, 1);
+				nLoc++;
+				memcpy(pBuf+nLoc, &cForce, 1);
+				nLoc++;
+
+				++cPointCurPack;
 			}
-
-			memcpy(pBuf+2, &wPointNumber, sizeof(WORD) );//实际点数
+			memcpy(pBuf+6, &cPointCurPack, 1 );//实际点数
 			memcpy(pBuf+nSizeofSend-1,&cmd_TAIL, 1);
 
-			nSendTime = nSizeofSend+1;
-			sendto(m_SockSrv, pBuf, nSizeofSend, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
-			g_logger.TraceInfo("CCommunicator::SendAnalysisData2UI-send");
+			//send
+			nSendTime++;
+			int nLenSend = sendto(m_SockSrv, pBuf, nSizeofSend, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
 			//Sleep(5);
+			if ( nLenSend == SOCKET_ERROR)
+			{
+				g_logger.TraceError("CCommunicator::SendAnalysisData2UI - sendto return SOCKET_ERROR,error code:%d ",WSAGetLastError());
+			}
+			else if( nLenSend != nSizeofSend )
+			{
+				g_logger.TraceError("CCommunicator::SendAnalysisData2UI - sendto length not match:send=%d,sent=%d",nSizeofSend,nLenSend);
+			}
+			else
+			{
+				g_logger.TraceWarning("CCommunicator::SendAnalysisData2UI - send success,sentLen=%d,sendTime=%d",nLenSend,nSendTime);
+				g_logger.TraceWarning("CCommunicator::SendAnalysisData2UI - send success,curPack=%d",cPointCurPack);
+			}
+			Sleep(50);
+		}
 
-			nLeftofSumGroup = nLeftofSumGroup-256;
-
-		}while(nLeftofSumGroup>256);//每次发送256组点，1024个点;分四个包,每包64组256个点
 		
 		delete [] pBuf;
 		pBuf = NULL;
@@ -563,10 +573,12 @@ namespace COMMUNICATOR
 		if (nLenRev == 0)
 		{
 			g_logger.TraceError("CCommunicator::ParseRevData - connection has teminated");
+			return false;
 		}
 		else if ( SOCKET_ERROR == nLenRev )
 		{
 			g_logger.TraceError("CCommunicator::ParseRevData - recvfrom return SOCKET_ERROR,error code:%d ",WSAGetLastError());
+			return false;
 		}
 		else
 		{

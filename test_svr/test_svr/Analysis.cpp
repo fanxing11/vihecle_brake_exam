@@ -290,6 +290,7 @@ namespace ANALYSISSPACE
 		m_vVelocity.clear();
 		m_vFootBrakeForce.clear();
 		m_vPedalDistance.clear();
+
 		DWORD doubleNum = dwDataSize / (sizeof(double)) / channelCount;//几组10通道double值
 		double dSumA = 0.0;
 		double dCompoundA = 0.0;
@@ -341,16 +342,23 @@ namespace ANALYSISSPACE
 			}
 
 			//save file data to vector for send to UI curve
-			ANALYSISDATA stData = {0.0};
-			stData.Accelaration = dCompoundA;
-			stData.Velocity = dCurrentVel;
-			stData.FootBrakeForce = stAnalysisInfo.MaxFootBrakeForce;
-			stData.PedalDistance = m_stResult.PedalDistance;
-			m_vAnalysisData.push_back(stData);
-			m_vAccelaration.push_back(stData.Accelaration);
-			m_vFootBrakeForce.push_back(stData.FootBrakeForce);
-			m_vPedalDistance.push_back(stData.PedalDistance);
-			m_vVelocity.push_back(stData.Velocity);
+			static int nCountBetweenSend = 0;
+			++nCountBetweenSend;
+			if (nCountBetweenSend > COUNTBETWEENSEND)//每COUNTBETWEENSEND个数发送一个数
+			{
+				nCountBetweenSend = 0;
+				ANALYSISDATA stData = {0.0};
+				stData.Accelaration = dCompoundA;
+				stData.Velocity = dCurrentVel;
+				stData.FootBrakeForce = stAnalysisInfo.MaxFootBrakeForce;
+				stData.PedalDistance = m_stResult.PedalDistance;
+				m_vAnalysisData.push_back(stData);
+				m_vAccelaration.push_back(stData.Accelaration);
+				m_vFootBrakeForce.push_back(stData.FootBrakeForce);
+				m_vPedalDistance.push_back(stData.PedalDistance);
+				m_vVelocity.push_back(stData.Velocity);	
+			}
+
 
 		}
 		m_stResult.AverageVelocity = dSumVel / (doubleNum/channelCount);
@@ -404,11 +412,11 @@ namespace ANALYSISSPACE
 		double dminAccelaration=0,dmaxAccelaration=0;
 		FindMaxMinRange(m_vAccelaration,dminAccelaration,dmaxAccelaration);
 		double dminVelocity=0,dmaxVelocity=0;
-		FindMaxMinRange(m_vAccelaration,dminVelocity,dmaxVelocity);
+		FindMaxMinRange(m_vVelocity,dminVelocity,dmaxVelocity);
 		double dminFootBrakeForce=0,dmaxFootBrakeForce=0;
-		FindMaxMinRange(m_vAccelaration,dminFootBrakeForce,dmaxFootBrakeForce);
+		FindMaxMinRange(m_vFootBrakeForce,dminFootBrakeForce,dmaxFootBrakeForce);
 		double dminPedalDistance=0,dmaxPedalDistance=0;
-		FindMaxMinRange(m_vAccelaration,dminPedalDistance,dmaxPedalDistance);
+		FindMaxMinRange(m_vPedalDistance,dminPedalDistance,dmaxPedalDistance);
 
 		for( std::vector<ANALYSISDATA>::iterator itData = m_vAnalysisData.begin();
 			itData!=m_vAnalysisData.end();
@@ -418,12 +426,11 @@ namespace ANALYSISSPACE
 			NormalizDataOne(itData->Velocity, dminVelocity, dmaxVelocity);
 			NormalizDataOne(itData->FootBrakeForce, dminFootBrakeForce, dmaxFootBrakeForce);
 			NormalizDataOne(itData->PedalDistance, dminPedalDistance, dmaxPedalDistance);
-
 		}
 
 
 	}
-	void CAnalysis::NormalizDataOne(double dData, const double dOriginMin, const double dOriginMax, const int nNewRange)
+	void CAnalysis::NormalizDataOne(double& dData, const double dOriginMin, const double dOriginMax, const int nNewRange)
 	{
 		double dOriginRange = dOriginMax - dOriginMin;
 		if (dOriginRange == 0)//采集到数据是恒值
@@ -447,7 +454,7 @@ namespace ANALYSISSPACE
 		}
 	}
 
-	void CAnalysis::FindMaxMinRange(vector<double> &vData/*in*/, double& minData, double maxData)
+	void CAnalysis::FindMaxMinRange(vector<double> &vData/*in*/, double& minData, double& maxData)
 	{
 		g_logger.TraceInfo("CAnalysis::FindMaxMinRange-in");
 		std::vector<double>::iterator max_ = std::max_element(std::begin(vData), std::end(vData));
@@ -458,8 +465,8 @@ namespace ANALYSISSPACE
 
 	void CAnalysis::SendAnalysisData()
 	{
-		theApp->m_pCommunicator->SendAnalysisData2UI(m_vAnalysisData);
 		g_logger.TraceInfo("CAnalysis::SendAnalysisData-in");
+		theApp->m_pCommunicator->SendAnalysisData2UI(m_vAnalysisData);
 		//if(!PostThreadMessage(theApp->m_dwMainThreadID, cmd_ANALYSIS_DATA, 1, (LPARAM)&stData))
 		//{
 		//	g_logger.TraceError("CAnalysis::AnalyseResult - PostThreadMessage failed");

@@ -25,6 +25,8 @@ CtheApp* theApp = NULL;
 //int main()
 int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance, __in_opt LPSTR lpCmdLine, __in int nShowCmd )
 {
+	g_logger.TraceWarning("_func_in_main");
+
 	theApp = new CtheApp;
 	if (!theApp->m_pCommunicator->Initialize())
 	{
@@ -34,7 +36,6 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 
 	theApp->m_dwMainThreadID = GetCurrentThreadId();
 
-	g_logger.TraceWarning("_func_in_main");
 
 	g_logger.ChangeLogLevel(LOGGER::LogLevel_Info);
 

@@ -158,6 +158,8 @@ namespace DAQCONTROLER
 		,m_bDAQInitialSuccessfully(false)
 	{
 		g_logger.TraceInfo("CDAQControler::CDAQControler");
+		CreateSyncEvent();
+
 		this->Initialize();
 	}
 
@@ -239,7 +241,6 @@ namespace DAQCONTROLER
 	{
 		try
 		{
-			CreateSyncEvent();
 
 			ErrorCode        ret = Success;
 

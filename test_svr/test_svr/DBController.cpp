@@ -103,6 +103,8 @@ namespace DBCONTROLLER
 
 		string s_sql("delete from userInfo where userName=\"");
 		s_sql.append(sUserName);
+		s_sql.append("\" and level=\"");
+		s_sql.append("1");
 		s_sql.append("\"");
 
 		int rc;

@@ -2,7 +2,7 @@
 #include "const.h"
 namespace ANALYSISSPACE
 {
-
+const int COUNTBETWEENSEND = 500;
 	class CAnalysis
 	{
 	public:
@@ -33,8 +33,8 @@ namespace ANALYSISSPACE
 		//dData - in out,
 		//nOriginRange - in
 		//nNewRange - out (0-nRange)
-		void NormalizDataOne(double dData, const double dOriginMin, const double dOriginMax, const int nNewRange=100);
-		void FindMaxMinRange(vector<double> &vData/*in*/, double& minData, double maxData);
+		void NormalizDataOne(double& dData, const double dOriginMin, const double dOriginMax, const int nNewRange=100);
+		void FindMaxMinRange(vector<double> &vData/*in*/, double& minData, double& maxData);
 		void SendAnalysisData();
 		ANALYSISRESULT m_stResult;
 		vector <ANALYSISDATA> m_vAnalysisData;
