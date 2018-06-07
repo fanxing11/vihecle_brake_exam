@@ -181,6 +181,21 @@ const string gc_strInitYAngle("InitialY");
 const string gc_strResult("Result");
 const string gc_strMaxHandBrakeForce("MaxHandBrakeForce");
 
+//-----------------------------for sensor config paramaters
+const string gc_strSensorConfig_FileName(".\\config.ini");
+
+const string gc_strParaFootBrakeForce("FootBrakeForce");
+const string gc_strParaHandBrakeForce("HandBrakeForce");
+const string gc_strParaXYAngle("XYAngle");
+const string gc_strParaPedalDistance("PedalDistance");
+const string gc_strParaAccelaration("Accelaration");
+
+const string gc_strPara1("Para1");
+const string gc_strPara2("Para2");
+const string gc_strPara3("Para3");
+const string gc_strPara4("Para4");
+const string gc_strPara5("Para5");
+
 enum enDETECTION_TYPE
 {
 	NONTYPE,

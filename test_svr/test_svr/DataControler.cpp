@@ -7,6 +7,8 @@
 #include <Dbghelp.h>
 #pragma comment(lib,"Dbghelp.lib")
 
+#include <sstream>
+
 extern CtheApp* theApp;
 
 
@@ -25,11 +27,25 @@ namespace DATACONTROLER
 		,m_strConfigFullName("")
 		,m_nCurrentType(NONTYPE)
 		,m_bUpdateCarAngleFlag(false)
+		,m_dFootBrakePara1(0.0)
+		,m_dFootBrakePara2(0.0)
+		,m_dHandBrakePara1(0.0)
+		,m_dHandBrakePara2(0.0)
+		,m_dAnglePara1(0.0)
+		,m_dAnglePara2(0.0)
+		,m_dPedalDistance1(0.0)
+		,m_dPedalDistance2(0.0)
+		,m_dPedalDistance3(0.0)
+		,m_dPedalDistance4(0.0)
+		,m_dPedalDistance5(0.0)
+		,m_dAccelaration1(0.0)
 	{
 		g_logger.TraceInfo("CDataControler::CDataControler");
 		m_hEvtMoveDetectionInfo = CreateEvent(NULL,TRUE,FALSE,L"");
 		m_hEvtStillDetectionInfo = CreateEvent(NULL,TRUE,FALSE,L"");
 		m_hEvtInitGradientInfo = CreateEvent(NULL,TRUE,FALSE,L"");
+
+		ReadSensorConfigFromINI();
 	}
 
 	CDataControler::~CDataControler(void)
@@ -40,7 +56,67 @@ namespace DATACONTROLER
 	{
 		return m_nCurrentProjectState;
 	}
+	bool CDataControler::ReadSensorConfigFromINI()
+	{
+		if (ReadOneParaFromINI(gc_strParaFootBrakeForce,gc_strPara1,m_dFootBrakePara1))
+		{
+		}
+		if (ReadOneParaFromINI(gc_strParaFootBrakeForce,gc_strPara2,m_dFootBrakePara2))
+		{
+		}
+		if (ReadOneParaFromINI(gc_strParaHandBrakeForce,gc_strPara1,m_dHandBrakePara1))
+		{
+		}
+		if (ReadOneParaFromINI(gc_strParaHandBrakeForce,gc_strPara2,m_dHandBrakePara2))
+		{
+		}
+		if (ReadOneParaFromINI(gc_strParaXYAngle,gc_strPara1,m_dAnglePara1))
+		{
+		}
+		if (ReadOneParaFromINI(gc_strParaXYAngle,gc_strPara2,m_dAnglePara2))
+		{
+		}
+		if (ReadOneParaFromINI(gc_strParaPedalDistance,gc_strPara1,m_dPedalDistance1))
+		{
+		}
+		if (ReadOneParaFromINI(gc_strParaPedalDistance,gc_strPara2,m_dPedalDistance2))
+		{
+		}
+		if (ReadOneParaFromINI(gc_strParaPedalDistance,gc_strPara3,m_dPedalDistance3))
+		{
+		}
+		if (ReadOneParaFromINI(gc_strParaPedalDistance,gc_strPara4,m_dPedalDistance4))
+		{
+		}
+		if (ReadOneParaFromINI(gc_strParaPedalDistance,gc_strPara5,m_dPedalDistance5))
+		{
+		}
+		if (ReadOneParaFromINI(gc_strParaAccelaration,gc_strPara1,m_dAccelaration1))
+		{
+		}
+		return true;
+	}
+	bool CDataControler::ReadOneParaFromINI(const string SectionName, 
+											const string ParaName,
+											double & dPara)
+	{
+		char stPara[50]={0};  
+		DWORD dwRet3;
+		dwRet3 = GetPrivateProfileStringA(SectionName.c_str(), ParaName.c_str(), "", stPara, 50, gc_strSensorConfig_FileName.c_str());  
+		if ( dwRet3 <= 0 )
+		{
+			g_logger.TraceError("CDataControler::ReadOneParaFromINI failed- %s,%s",SectionName.c_str(),ParaName.c_str() );
+			return false;
+		}
+		std::stringstream stream;
+		stream.clear();
+		stream<<stPara;
+		stream>>dPara;
 
+		//dPara = atof(stPara);
+
+		return true;
+	}
 
 	void CDataControler::SetStartChannel(const char cStart){m_cStartChannel = cStart;}
 	void CDataControler::SetEndChannel(const char cEnd){m_cEndChannel = cEnd;}
@@ -647,45 +723,66 @@ namespace DATACONTROLER
 		}
 	}
 
-	bool TransformBrakeDistance(double & dDist)
-	{
-		dDist = dDist/0.04;
-		return true;
-	}
+	//bool TransformBrakeDistance(double & dDist)//discard
+	//{
+	//	dDist = dDist/0.04;
+	//	return true;
+	//}
 	bool CDataControler::TransformVelocity(double & dVel)
 	{//nothing - DO NOT calc repeatedly!
-		dVel = dVel/4.1;
-		//dVel = dVel/0.04;
+//<<<<<<< Updated upstream
+//		dVel = dVel/4.1;
+//=======
+//		dVel = dVel/m_dAccelaration1;
+//>>>>>>> Stashed changes
+//		//dVel = dVel/0.04;
 		return true;
 	}
 	bool CDataControler::TransformAcceleration(double & dAcc)
 	{
-		dAcc  = dAcc/4.1;
-		//dAcc  = dAcc/0.04;
+//<<<<<<< Updated upstream
+//		dAcc  = dAcc/4.1;
+//=======
+		dAcc  = dAcc/m_dAccelaration1;
 		return true;
 	}
 	bool CDataControler::TransformFootBrakeForce(double &dForce)
 	{
-		dForce = (dForce-15.2) * 0.87048384;
-		//dForce = (dForce-0.095)*245.0259728;
+//<<<<<<< Updated upstream
+//		dForce = (dForce-15.2) * 0.87048384;
+//=======
+		dForce = (dForce + m_dFootBrakePara1)*m_dFootBrakePara2;
+
 		return true;
 	}
 	bool CDataControler::TransformHandBrakeForce(double &dForce)
 	{
-		dForce = (dForce - 4) * 0.27674141;
-		//dForce = dForce * 4166.6666;
+//<<<<<<< Updated upstream
+//		dForce = (dForce - 4) * 0.27674141;
+//=======
+		dForce = (dForce + m_dHandBrakePara1) *m_dHandBrakePara2;
+//>>>>>>> Stashed changes
+//		//dForce = dForce * 4166.6666;
 		return true;
 	}
 	bool CDataControler::TransformGradient(double &dGradient)
 	{
-		dGradient = tan( (dGradient-2500)/83.333 ) * 100;//%坡度单位用100%表示，所以*100
-		//dGradient = (dGradient-2.59)*0.08333;
+//<<<<<<< Updated upstream
+//		dGradient = tan( (dGradient-2500)/83.333 ) * 100;//%坡度单位用100%表示，所以*100
+//=======
+		dGradient = (dGradient + m_dAnglePara1)*m_dAnglePara2 *100;//%坡度单位用100%表示，所以*100
+//>>>>>>> Stashed changes
+//		//dGradient = (dGradient-2.59)*0.08333;
 		return true;
 	}
 	bool CDataControler::TransformPedalDistance(double &dDist)
 	{
-		dDist = 1 / (0.12592593*dDist-0.01703704);
-		//dDist = 1 / (dDist-0.44) * 0.1026856240126 + 1/30;
+//<<<<<<< Updated upstream
+//		dDist = 1 / (0.12592593*dDist-0.01703704);
+//=======
+		dDist = m_dPedalDistance1 / (dDist*m_dPedalDistance2+m_dPedalDistance3);
+//>>>>>>> Stashed changes
+//		//dDist = 1 / (dDist-0.44) * 0.1026856240126 + 1/30;
 		return true;
 	}
 

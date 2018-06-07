@@ -52,6 +52,22 @@ namespace DATACONTROLER
 		void CreateDefaultProjectPath(string &strPath);
 		bool SaveProjectInfo2INIFile();
 
+		bool ReadSensorConfigFromINI();
+		bool ReadOneParaFromINI(const string SectionName, 
+			const string ParaName,
+			double & dPara);
+		double m_dFootBrakePara1;//Initial sensor para
+		double m_dFootBrakePara2;
+		double m_dHandBrakePara1;
+		double m_dHandBrakePara2;
+		double m_dAnglePara1;
+		double m_dAnglePara2;
+		double m_dPedalDistance1;
+		double m_dPedalDistance2;
+		double m_dPedalDistance3;
+		double m_dPedalDistance4;
+		double m_dPedalDistance5;
+		double m_dAccelaration1;
 
 	public:
 		//called in main
