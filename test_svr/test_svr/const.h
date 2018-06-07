@@ -53,6 +53,9 @@ const UINT msg_DB_ADMINUSER = WM_USER+214;
 
 const UINT msg_MAIN_QIUT = WM_USER+444;
 
+const UINT msg_DAQ_ASD = WM_USER+500;//system detect
+
+
 
 //----- UDP cmd from/to UI
 const BYTE cmd_HEADER=0x7E;
@@ -72,13 +75,28 @@ const BYTE cmd_INITGRADIENT_BEGIN=0x21;//in
 const BYTE cmd_INITGRADIENT_END=0x22;//in 
 const BYTE cmd_INITGRADIENT=0x21;//out
 
-const BYTE cmd_STILL_DETECT_BEGIN=0x23;//in 
-const BYTE cmd_STILL_DETECT_END=0x24;//in 
-const BYTE cmd_STILL_DETECT=0x23;//out
+//20180607 实时检测流程变化：--begin
+//增加了自检命令；
+//没有静态/动态，只有初始、开始/结束 两组命令
+//svr-clt:初始时获取初始倾角；开始时开始静态+动态检测。
 
-const BYTE cmd_MOVE_DETECT_BEGIN=0x25;//in 
-const BYTE cmd_MOVE_DETECT_END=0x26;//in
+//Automatic System Check
+const BYTE cmd_ASD = 0x13;//in out
+
+//const BYTE cmd_STILL_DETECT_BEGIN=0x23;//in 
+//const BYTE cmd_STILL_DETECT_END=0x24;//in 
+const BYTE cmd_STILL_DETECT=0x23;//out
+//
+//const BYTE cmd_MOVE_DETECT_BEGIN=0x25;//in 
+//const BYTE cmd_MOVE_DETECT_END=0x26;//in
 const BYTE cmd_MOVE_DETECT=0x25;//out
+
+const BYTE cmd_BEGIN_DETECT=0x27;//in
+const BYTE cmd_END_DETECT=0x28;//in
+
+
+//20180607 实时检测流程变化：--end
+
 
 const BYTE cmd_REPORTPATH=0x41;//in 
 const BYTE cmd_ANALYSIS_BEGIN=0x42;//in 

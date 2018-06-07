@@ -35,6 +35,7 @@ namespace COMMUNICATOR
 		bool SendAnalysisData2UI( vector<ANALYSISDATA>& stData );
 
 	private:
+		bool cmdASD(const char* pData	);
 		bool cmdUserRegister( const char* pData);
 		bool cmdUserLogin(const char* pData	);
 		bool cmdUserDelete(const char* pData );
@@ -54,6 +55,9 @@ namespace COMMUNICATOR
 		bool cmdAnalysisBegin(const char* pData );
 		bool cmdHeartBeatSignal(const char* pData);
 		bool cmdQuit();
+
+		UINT_PTR nTimer;//temp
+		bool bTest;
 	};
 
 }

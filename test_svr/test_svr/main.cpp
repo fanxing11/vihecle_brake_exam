@@ -53,6 +53,21 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 		}
 		switch (msg.message)
 		{
+		case msg_DAQ_ASD:
+			{
+				int nErr = NUM_NEGONE;
+				if ( theApp->m_pDAQController->CheckDAQStarted() )
+				{
+					nErr = NUM_ZERO;
+				}
+				else
+				{
+					nErr = NUM_ONE;
+				}
+				theApp->m_pCommunicator->SendDatatoUI(msg.message,nErr);
+
+				break;
+			}
 		case msg_DB_USERLOGIN:
 			{
 				char* pUserName = (char*)msg.wParam;

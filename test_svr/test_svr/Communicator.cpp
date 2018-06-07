@@ -4,6 +4,9 @@
 #include "Communicator.h"
 #include "DataControler.h"
 
+#include <Mmsystem.h>
+#pragma comment(lib, "winmm.lib")
+
 extern CtheApp* theApp;
 
 namespace COMMUNICATOR
@@ -38,6 +41,7 @@ namespace COMMUNICATOR
 		:m_hRevThread(NULL)
 		,m_SockSrv(NULL)
 		,m_dwMainThreadId(0)
+		,bTest(false)
 	{
 		g_logger.TraceInfo("CCommunicator::CCommunicator");
 	}
@@ -125,6 +129,21 @@ namespace COMMUNICATOR
 
 		switch (Cmd)
 		{
+		case msg_DAQ_ASD:
+			{
+				char Ret[4] = {cmd_HEADER,cmd_ASD,0x00,cmd_TAIL};
+				switch (nParam)
+				{
+				case NUM_ZERO://pass
+					Ret[2] = 0x00;
+					break;
+				case NUM_ONE://error
+					Ret[2] = 0x01;
+					break;
+				}
+				sendto(m_SockSrv, Ret, 4, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+				break;
+			}
 		case msg_DB_ADMINUSER:
 			{
 				char Ret[4] = {cmd_HEADER,cmd_ADMINUSER,0x00,cmd_TAIL};
@@ -212,6 +231,55 @@ namespace COMMUNICATOR
 			}
 		case msg_DAQ_DATAONE:
 			{
+				//test
+				if (bTest)
+				{
+					char Ret[27] = {cmd_HEADER,cmd_MOVE_DETECT,
+						0x00,0x00,0x00,0x00,
+						0x00,0x00,0x00,0x00,
+						0x00,0x00,0x00,0x00,
+						0x00,0x00,0x00,0x00,
+						0x00,0x00,0x00,0x00,
+						0x00,0x00,0x00,0x00,
+						cmd_TAIL};	
+
+					MOVEDETECTIONINFO stStressInfo;
+					theApp->m_pDataController->GetMoveDetectionInfo(stStressInfo);
+
+					int nPedalDist = (int)(100*( stStressInfo.PedalDistance ));
+					int nGradientX = (int)(100*( stStressInfo.GradientX ));
+					int nGradientY = (int)(100*( stStressInfo.GradientY ));
+					int nFootBrakeForce = (int)(100*(stStressInfo.MaxFootBrakeForce));
+					int nLastVelocity = (int)(100*(stStressInfo.LastVelocity));
+					int nLastAccelaration = (int)(100*(stStressInfo.LastAccelaration));
+
+					static int n=0;
+					static bool bTransform = false;
+					if (n == 50 || n ==-50)
+					{
+						bTransform = !bTransform;
+					}
+					if (bTransform)
+					{
+						n++;
+					}
+					else
+					{
+						n--;
+					}
+					//nLastAccelaration -= 100*n;
+					nLastAccelaration = 100*n;
+
+					memcpy(Ret+2, &nFootBrakeForce, sizeof(int));//4bit
+					memcpy(Ret+6, &nPedalDist, sizeof(int));//4bit
+					memcpy(Ret+10, &nGradientX, sizeof(int));//4bit
+					memcpy(Ret+14, &nGradientY, sizeof(int));//4bit
+					memcpy(Ret+18, &nLastVelocity, sizeof(int));//4bit
+					memcpy(Ret+22, &nLastAccelaration, sizeof(int));//4bit
+
+					sendto(m_SockSrv, Ret, 27, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+
+				}
 				if (WAIT_OBJECT_0 == WaitForSingleObject(DAQCONTROLER::m_gEvtInitGradient,0))
 				{
 					char Ret[11] = {cmd_HEADER,cmd_INITGRADIENT,
@@ -229,7 +297,7 @@ namespace COMMUNICATOR
 
 					sendto(m_SockSrv, Ret, 11, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
 				}
-				else if (WAIT_OBJECT_0 == WaitForSingleObject(DAQCONTROLER::m_gEvtStillDetection,0))
+				if (WAIT_OBJECT_0 == WaitForSingleObject(DAQCONTROLER::m_gEvtStillDetection,0))
 				{
 					char Ret[15] = {cmd_HEADER,cmd_STILL_DETECT,
 						0x00,0x00,0x00,0x00,//handbrakeforce
@@ -250,7 +318,7 @@ namespace COMMUNICATOR
 
 					sendto(m_SockSrv, Ret, 15, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
 				}
-				else if (WAIT_OBJECT_0 == WaitForSingleObject(DAQCONTROLER::m_gEvtMoveDetection,0))
+				if (WAIT_OBJECT_0 == WaitForSingleObject(DAQCONTROLER::m_gEvtMoveDetection,0))
 				{
 					char Ret[27] = {cmd_HEADER,cmd_MOVE_DETECT,
 						0x00,0x00,0x00,0x00,
@@ -616,6 +684,9 @@ namespace COMMUNICATOR
 		g_logger.TraceInfo("CCommunicator::ParseData:cmd=0x%x",cb);
 		switch (cb)
 		{
+		case cmd_ASD:
+			this->cmdASD(pData);
+			break;
 		case cmd_USERLOGIN:
 			this->cmdUserLogin(pData);
 			break;
@@ -643,16 +714,24 @@ namespace COMMUNICATOR
 		case cmd_INITGRADIENT_END:
 			this->cmdInitGradientEnd(pData);
 			break;
-		case cmd_STILL_DETECT_BEGIN:
+		//case cmd_STILL_DETECT_BEGIN:
+		//	this->cmdStillDetectionBegin(pData);
+		//	break;
+		//case cmd_STILL_DETECT_END:
+		//	this->cmdStillDetectionEnd(pData);
+		//	break;
+		//case cmd_MOVE_DETECT_BEGIN:
+		//	this->cmdMoveDetectionBegin(pData);
+		//	break;
+		//case cmd_MOVE_DETECT_END:
+		//	this->cmdMoveDetectionEnd(pData);
+		//	break;
+		case cmd_BEGIN_DETECT:
 			this->cmdStillDetectionBegin(pData);
-			break;
-		case cmd_STILL_DETECT_END:
-			this->cmdStillDetectionEnd(pData);
-			break;
-		case cmd_MOVE_DETECT_BEGIN:
 			this->cmdMoveDetectionBegin(pData);
 			break;
-		case cmd_MOVE_DETECT_END:
+		case cmd_END_DETECT:
+			this->cmdStillDetectionEnd(pData);
 			this->cmdMoveDetectionEnd(pData);
 			break;
 		case cmd_REPORTPATH:
@@ -691,6 +770,17 @@ namespace COMMUNICATOR
 		++nLoc;
 		memcpy(pPwd,pData+nLoc,nPwdLen);
 
+		return true;
+	}
+
+	bool CCommunicator::cmdASD(const char* pData)
+	{
+		g_logger.TraceWarning("CCommunicator::cmdASD");
+		if ( !PostThreadMessage(m_dwMainThreadId,msg_DAQ_ASD,NULL,NULL ))
+		{
+			g_logger.TraceError("CCommunicator::cmdASD");
+			return false;
+		}
 		return true;
 	}
 
@@ -790,39 +880,81 @@ namespace COMMUNICATOR
 	}
 	bool CCommunicator::cmdInitGradientBegin(const char* pData )
 	{
+		g_logger.TraceInfo("CCommunicator::cmdInitGradientBegin");
+
 		theApp->m_pDataController->SetCurrentType(INITGRADIENT);
 		theApp->m_pDAQController->InitGradientBegin();
 		return true;
 	}
 	bool CCommunicator::cmdInitGradientEnd(const char* pData )
 	{
+		g_logger.TraceInfo("CCommunicator::cmdInitGradientEnd");
+
 		theApp->m_pDAQController->InitGradientEnd();
 		theApp->m_pDataController->SetUpdateCarAngleFlag();
 		return true;
 	}
 	bool CCommunicator::cmdStillDetectionBegin(const char* pData )
 	{
+		g_logger.TraceInfo("CCommunicator::cmdStillDetectionBegin");
+
 		theApp->m_pDataController->SetCurrentType(STILLDETECTION);
 		theApp->m_pDAQController->StillDetectionBegin();
 		return true;
 	}
 	bool CCommunicator::cmdStillDetectionEnd(const char* pData )
 	{
+		g_logger.TraceInfo("CCommunicator::cmdStillDetectionEnd");
+
 		theApp->m_pDAQController->StillDetectionEnd();
 		theApp->m_pDataController->SaveMaxHandBrakeForce2INI();//静止检测结束时保存到INI
 		return true;
 	}
+
+	////temp by fx for test20180314
+	//void CALLBACK TimerProc(HWND hWnd,UINT nMsg,UINT nTimerid,DWORD dwTime)
+	void CALLBACK TimerProc(UINT uID,UINT uMsg,DWORD dwUser,DWORD dw1,DWORD dw2)
+	{
+		//MessageBox(NULL, L"", L"",MB_OK);
+		theApp->m_pCommunicator->SendDatatoUI(msg_DAQ_DATAONE);
+	}
+
 	bool CCommunicator::cmdMoveDetectionBegin(const char* pData )
 	{
+		g_logger.TraceInfo("CCommunicator::cmdMoveDetectionBegin");
+
 		theApp->m_pDataController->SetCurrentType(MOVEDETECTION);
 		theApp->m_pDAQController->MoveDetectionBegin();
+
+		////temp by fx for test20180314
+		//bTest = true;
+		//nTimer = 0;
+		//nTimer = timeSetEvent( 100,0, TimerProc, 0, (UINT)TIME_PERIODIC);
+		//if (nTimer == 0)
+		//{
+		//	g_logger.TraceError("set timer failed");
+		//	return false;
+		//}
+		//return true;
+
 		return true;
 	}
+
 	bool CCommunicator::cmdMoveDetectionEnd(const char* pData )
 	{
+		g_logger.TraceInfo("CCommunicator::cmdMoveDetectionEnd");
+
+
 		theApp->m_pDAQController->MoveDetectionEnd();
+
+		////temp by fx for test20180314
+		//bTest = false;
+		//timeKillEvent(nTimer);
+		//return true;
+
 		return true;
 	}
+
 	bool CCommunicator::cmdSetReportPath(const char* pData )
 	{
 		int nPathLen=0;

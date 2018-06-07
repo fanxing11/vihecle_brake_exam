@@ -28,6 +28,8 @@ const int COUNTBETWEENSEND = 500;
 		bool ReadDataFromFile(string &strErrInfo);
 
 		void HandleData(const double* pData, const int channelCount, const DWORD dwDataSize/*Byte*/, const double deltat);
+		// for wireless DAQ file
+		void HandleDataW(const double* pData, const int channelCount, const DWORD dwDataSize/*Byte*/, const double deltat);
 		bool AnalyseResult();
 		void NormalizData();
 		//dData - in out,

@@ -8,7 +8,6 @@ extern CtheApp* theApp;
 
 namespace DAQCONTROLER
 {
-
 	void printTime()
 	{
 		LARGE_INTEGER lv;
@@ -31,78 +30,110 @@ namespace DAQCONTROLER
 
 	}
 
-	// This function is used to deal with 'DataReady' Event. 
-	void BDAQCALL OnDataReadyEvent(void * sender, BfdAiEventArgs * args, void *userParam)
+	unsigned int WINAPI DAQThreadFunc(LPVOID lp)
 	{
-		//static int i = 1;
-		//if (i>1)
-		//{
-		//	return;
-		//}
-		//1. get data
-		WaveformAiCtrl * waveformAiCtrl = NULL;
-		waveformAiCtrl = (WaveformAiCtrl *)sender;
-		int32 getDataCount = min(USER_BUFFER_SIZE, args->Count);
-		//cout<<USER_BUFFER_SIZE<<"  "<<args->Count<<"  "<<getDataCount<<endl;
-		waveformAiCtrl->GetData(getDataCount, Data);
+		g_logger.TraceInfo("DAQThreadFunc_funcin");
 
-		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtSample,0))//是否在采集
+		//STIN_COMTHREAD stTep;
+		//stTep = *( STIN_COMTHREAD* )lp;
+		CDAQControler* pCDAQControler=(CDAQControler*)lp;
+
+		while(1)
 		{
-			return;
-		}
-		//printTime();
-		//2. data process
-		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtInitGradient,0))
-		{
-			theApp->m_pDataController->HandleInitGradientData(Data, channelCount,sectionLength);
-		}
-		else if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtMoveDetection,0))
-		{
-			theApp->m_pDataController->HandleMoveDetectionData(Data, channelCount,sectionLength,deltat);
-		}
-		else if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtStillDetection,0))
-		{
-			theApp->m_pDataController->HandleStillDetectionData(Data, channelCount,sectionLength);
-		}
-		//printTime();
-		//3. data save
-		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtSaveFile,0))
-		{
-			//printf("Ready to save the data...%d\n\n",getDataCount);
-			memcpy(buffer, Data, SingleSavingFileSize);
-			
-			if (WriteFile(hFile, buffer, SingleSavingFileSize, &WrittenBytes, NULL))
+			int nDataLen = 0;
+			nDataLen = dll_GetDataLen();
+			//cout<< "GetDataLen = " << nDataLen << endl;
+			float fMultiple = nDataLen / 1024.0;
+			if (fMultiple > 1)
 			{
-				//printf("Saving has been executed!\n\n");
-				RealFileSize += WrittenBytes; 
-				//printf("The real-time size of file is %d byte\n\n", RealFileSize);
-				//printf("Executed %d time.\n\n", i++);
-			} 
+				//cout<< "- begin sample"<<endl;
+				pCDAQControler->GetData();
+
+				//-----
+				LONGLONG nPoints = 0;
+				int readBuffer[32768]={0};//32768 bits
+				//int readBuffer[1024]={0};//32768 bits
+				nPoints = dll_ReadBuf(readBuffer, 1024);
+				cout<< "nPoints = " << nPoints << endl;
+
+
+				int dFactor[8]={1,1,1,1,1,1,1,1};
+				short nEnableCh_short[8]={1,1,1,1,1,1,1,1};
+				double dXTime[8*1024]={0};
+				double dYAm[8*1024]={0};
+				//double dYAm[8][1024]={0};
+				dll_OutLabDate(nPoints, readBuffer, dFactor, nEnableCh_short, dXTime, dYAm);
+
+				//double dXTime_Get2Wave[1024] = {0};
+				//double dYAm1[1024] = {0};
+				//double dYAm2[1024] = {0};
+				//double dt = dll_Get2Wave(1, dXTime, dYAm, dXTime_Get2Wave, dYAm1, dYAm2);
+				//cout<<"dYAm1"<<'\t'<<"dYAm2"<<endl;
+				//for (int i=0;i<100;i++)
+				//{
+				//	cout<<dYAm1[i]<<'\t'<<dYAm2[i]<<endl;
+				//	cout<<"-"<<readBuffer[i]<<readBuffer[i+1024]<<endl;
+				//	cout<<"="<<dYAm[i]<<dYAm[i+1024]<<endl;
+				//	cout<<"+"<<dXTime[i]<<dXTime[i+1024]<<endl;
+				//	cout<<"+"<<dXTime_Get2Wave[i]<<endl;
+				//}
+
+				if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtSample,0))//是否在采集
+				{
+					continue;
+				}
+				//printTime();
+				//2. data process
+				if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtInitGradient,0))
+				{
+					theApp->m_pDataController->HandleInitGradientDataW(dYAm, channelCountW,sectionLengthW);
+				}
+				if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtMoveDetection,0))
+				{
+					theApp->m_pDataController->HandleMoveDetectionDataW(dYAm, channelCountW,sectionLengthW,deltatW);
+				}
+				if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtStillDetection,0))
+				{
+					theApp->m_pDataController->HandleStillDetectionDataW(dYAm, channelCountW,sectionLengthW);
+				}
+				//printTime();
+				//3. data save
+				if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtSaveFile,0))
+				{
+					//printf("Ready to save the data...%d\n\n",getDataCount);
+					memcpy(buffer, dYAm, SingleSavingFileSizeW);
+
+					if (WriteFile(hFile, buffer, SingleSavingFileSizeW, &WrittenBytes, NULL))
+					{
+						//printf("Saving has been executed!\n\n");
+						RealFileSize += WrittenBytes; 
+						//printf("The real-time size of file is %d byte\n\n", RealFileSize);
+						//printf("Executed %d time.\n\n", i++);
+					} 
+					else
+					{
+						g_logger.TraceError("DAQThreadFunc:WriteFile error!");
+					}	
+				}
+				//memcpy(DateOne, buffer, 10*sizeof(double));
+
+				//4. send data to UI
+				PostThreadMessage(theApp->m_dwMainThreadID, msg_DAQ_DATAONE, NULL, NULL);
+
+			}
 			else
 			{
-				g_logger.TraceError("OnDataReadyEvent:error!");
-			}	
+				//cout<<"!failed to sample "<<endl;
+				Sleep(1);
+			}
+
 		}
-		//memcpy(DateOne, buffer, 10*sizeof(double));
 
-		//4. send data to UI
-		PostThreadMessage(theApp->m_dwMainThreadID, msg_DAQ_DATAONE, NULL, NULL);
+		_endthreadex(0);
 
-	}
-	//The function is used to deal with 'OverRun' Event.
-	void BDAQCALL OnOverRunEvent(void * sender, BfdAiEventArgs * args, void *userParam)
-	{
-		printf("Streaming AI Overrun: offset = %d, count = %d\n", args->Offset, args->Count);
-	}
-	//The function is used to deal with 'CacheOverflow' Event.
-	void BDAQCALL OnCacheOverflowEvent(void * sender, BfdAiEventArgs * args, void *userParam)
-	{
-		printf(" Streaming AI Cache Overflow: offset = %d, count = %d\n", args->Offset, args->Count);
-	}
-	//The function is used to deal with 'Stopped' Event.
-	void BDAQCALL OnStoppedEvent(void * sender, BfdAiEventArgs * args, void *userParam)
-	{
-		printf("Streaming AI stopped: offset = %d, count = %d\n", args->Offset, args->Count);
+		g_logger.TraceInfo("UDPRevThreadFunc_funcout");
+
+		return 0;
 	}
 
 	inline void waitAnyKey()
@@ -145,7 +176,7 @@ namespace DAQCONTROLER
 			g_logger.TraceError("openFile:Cannot open file (error %d)\n", GetLastError());
 		}
 
-		buffer = (double*)VirtualAlloc(NULL, SingleSavingFileSize, MEM_COMMIT, PAGE_READWRITE);
+		buffer = (double*)VirtualAlloc(NULL, SingleSavingFileSizeW, MEM_COMMIT, PAGE_READWRITE);
 		if (!buffer)
 		{
 			g_logger.TraceError("openFile:Allocate buffer fail(error %d)\n",GetLastError());
@@ -156,6 +187,7 @@ namespace DAQCONTROLER
 	CDAQControler::CDAQControler(void)
 		:m_wfAiCtrl(NULL)
 		,m_bDAQInitialSuccessfully(false)
+		,m_hDAQThread(NULL)
 	{
 		g_logger.TraceInfo("CDAQControler::CDAQControler");
 		CreateSyncEvent();
@@ -166,6 +198,10 @@ namespace DAQCONTROLER
 	CDAQControler::~CDAQControler(void)
 	{
 		this->DisInitialize();
+	}
+	void CDAQControler::GetData()
+	{
+		
 	}
 	void CDAQControler::CloseEvtHandle()
 	{
@@ -215,101 +251,128 @@ namespace DAQCONTROLER
 
 	void CDAQControler::DisInitialize()
 	{
-		ErrorCode        ret = Success;
-
-		do 
-		{
-			// step 8: Stop the operation if it is running.
-			ret = m_wfAiCtrl->Stop(); 
-			CHK_RESULT(ret);
-		} while (false);
-
-		// Step 9: Close device, release any allocated resource.
-		m_wfAiCtrl->Dispose();
-
-		// If something wrong in this execution, print the error code on screen for tracking.
-		if(BioFailed(ret))
-		{
-			g_logger.TraceWarning("CDAQControler::DisInitialize:Some error occurred. And the last error code is 0x%X.\n", ret);
-			//waitAnyKey();// wait any key to quit!
-		}
-
 		this->CloseEvtHandle();
 	}
 
 	void CDAQControler::Initialize()
 	{
+		g_logger.TraceInfo("CDAQControler::Initialize:-in.");
 		try
 		{
 
-			ErrorCode        ret = Success;
+			bool ret = true;
 
-			// Step 1: Create a 'WaveformAiCtrl' for buffered AI function.
-			m_wfAiCtrl = WaveformAiCtrl::Create();
+			HMODULE hInst = NULL;
+			//cout<<"LoadLibrary start"<<endl;
+			hInst = LoadLibrary(L"UsbAD.dll"); //UsbAD.dll
 
-			////Step 2: Open file
-			//openFile();
+			DWORD dw = GetLastError();
 
-			// Step 3: Set the notification event Handler by which we can known the state of operation effectively.
-			m_wfAiCtrl->addDataReadyHandler(OnDataReadyEvent, NULL);
-			m_wfAiCtrl->addOverrunHandler(OnOverRunEvent, NULL);
-			m_wfAiCtrl->addCacheOverflowHandler(OnCacheOverflowEvent, NULL);
-			m_wfAiCtrl->addStoppedHandler(OnStoppedEvent, NULL);
-			do
+			if (hInst == NULL)
 			{
-				// Step 4: Select a device by device number or device description and specify the access mode.
-				// in this example we use ModeWrite mode so that we can fully control the device, including configuring, sampling, etc.
-				DeviceInformation devInfo(deviceDescription);
-				ret = m_wfAiCtrl->setSelectedDevice(devInfo);
-				CHK_RESULT(ret);
-				ret = m_wfAiCtrl->LoadProfile(profilePath);//Loads a profile to initialize the device.
-				CHK_RESULT(ret);
+				//cout<<"hInst = NULL"<<endl;
+				g_logger.TraceError("CDAQControler::Initialize:hInst = NULL");
+				ret = false;
+				//return false;
+			}
+			else
+			{
+				cout<<"LoadLibrary ok"<<endl;
+			}
 
-				// Step 5: Set necessary parameters.
-				Conversion * conversion = m_wfAiCtrl->getConversion();
-				ret = conversion->setChannelStart(startChannel);
-				CHK_RESULT(ret);
-				ret = conversion->setChannelCount(channelCount);
-				CHK_RESULT(ret);
-				Record * record = m_wfAiCtrl->getRecord();
-				ret = record->setSectionCount(sectionCount);//The 0 means setting 'streaming' mode.
-				CHK_RESULT(ret);
-				ret = record->setSectionLength(sectionLength);
-				CHK_RESULT(ret);
+			//*********************************Dll import start*****************************************//
+			//-----Lab_ConnectUT89
+			dll_ConnectUT89 = *(Dll_ConnectUT89)GetProcAddress(hInst, "Lab_ConnectUT89");
+			//-----Lab_SetPar
+			dll_SetPar = *(Dll_SetPar)GetProcAddress(hInst, "Lab_SetPar");
+			//-----Lab_SetPar
+			dll_Start = *(Dll_OnStart)GetProcAddress(hInst, "Lab_OnStart");
+			//-----Lab_GetDataLen n_DateSize
+			dll_GetDataLen = *(Dll_GetDataLen)GetProcAddress(hInst, "Lab_GetDataLen");
+			//-----Lab_ReadBuf
+			dll_ReadBuf = *(Dll_ReadBuf)GetProcAddress(hInst, "Lab_ReadBuf");
+			//-----Lab_OutLabDate
+			dll_OutLabDate = *(Dll_OutLabDate)GetProcAddress(hInst, "Lab_OutLabDate");
+			//-----Lab_Get2Wave
+			dll_Get2Wave = *(Dll_Get2Wave)GetProcAddress(hInst, "Lab_Get2Wave");
+			//*********************************Dll import end*****************************************//
 
-				// Step 6: The operation has been started.
-				// We can get samples via event handlers.
-				ret = m_wfAiCtrl->Prepare();
-				CHK_RESULT(ret);
-				ret = m_wfAiCtrl->Start();
-				CHK_RESULT(ret);
+			//-----
+			string strIP("192.168.0.187");
 
-				//// Step 7: The device is acquiring data.
-				//printf("Streaming AI is in progress.\nplease wait...  any key to quit!\n\n");
-				//do
-				//{
-				//	SLEEP(1);
-				//}	while((RealFileSize < RequirementFileSize) ? true : false);
-				//printf("Saving completely!\n");
+			char* pIP =NULL;
+			pIP = (char*)(strIP.c_str());
 
-				//// step 8: Stop the operation if it is running.
-				//ret = m_wfAiCtrl->Stop(); 
-				//CHK_RESULT(ret);
-			}while(false);
+			char cFilePath[MAX_PATH]={0};
+			GetModuleFileNameA(NULL, cFilePath, MAX_PATH); 
+			(strrchr(cFilePath, '\\'))[1] = 0;
+			//cout<< cFilePath <<endl;
 
-			//// Step 9: Close device, release any allocated resource.
-			//m_wfAiCtrl->Dispose();
-			//VirtualFree(buffer, SingleSavingFileSize, MEM_RELEASE);
-			//CloseHandle(hFile);
+			bool bConnected = dll_ConnectUT89(cFilePath, pIP );
+			if (!bConnected)
+			{	
+				g_logger.TraceError("CDAQControler::Initialize:can not connect to wireless IP");
+				ret = false;
+				//cout<<"!can not connect to IP."<<endl;
+			}
+			//else
+			//{
+			//	cout<<"-connect to IP:"<<strIP<<endl;
+			//}
+
+			//-----
+			int nEnableCh[8]={1,1,1,1,1,1,1,1};
+			int sCoupling[8]={0,0,0,0,0,0,0,0};
+			int pComInput[8]={0,0,0,0,0,0,0,0};
+			int pZoom[8]={0,0,0,0,0,0,0,0};
+			bool bSetPara = dll_SetPar(WirelessDAQFrq, nEnableCh, sCoupling, pComInput, pZoom);
+			if (!bSetPara)
+			{
+				ret = false;
+				g_logger.TraceError("CDAQControler::Initialize:failed to set para");
+				//cout<<"!failed to set para"<<endl;
+			}
+			//else
+			//{
+			//	cout<<"- set para success"<<endl;
+			//}
 
 			// If something wrong in this execution, print the error code on screen for tracking.
 			m_bDAQInitialSuccessfully = true;
-			if(BioFailed(ret))
+			if(!ret)
 			{
 				//u初始化错误，弹框或者返回错误信息----
-				g_logger.TraceError("CDAQControler::Initialize:Initial DAQ failed. And the last error code is 0x%X.\n", ret);
+				//g_logger.TraceError("CDAQControler::Initialize:Initial DAQ failed. And the last error code is 0x%X.\n", ret);
 				//waitAnyKey();// wait any key to quit!
 				m_bDAQInitialSuccessfully = false;
+				//throw;
+			}
+			else
+			{
+				//-----
+				if (dll_Start == 0)
+				{
+					g_logger.TraceError("CDAQControler::Initialize:dll_Start == 0");
+					//cout<<"GetProcAddress dll_Start failed"<<endl;
+				}
+				else
+				{
+					int ret = dll_Start();
+					if (!ret)
+					{
+						//cout<<"!failed to start"<<endl;s
+						g_logger.TraceError("CDAQControler::Initialize:failed to start");
+					}
+					else
+					{
+						//cout<<"- start"<<endl;
+						g_logger.TraceInfo("CDAQControler::Initialize:_beginthreadex");
+
+						m_hDAQThread = (HANDLE)_beginthreadex(NULL, 0, DAQThreadFunc, (LPVOID)this, 0, NULL);  
+					}
+					//cout<<"DllStart return:"<<ret<<endl;
+				}
+
 			}
 		}
 		catch (exception &e)
@@ -400,11 +463,12 @@ namespace DAQCONTROLER
 
 	bool CDAQControler::NewProject(char cMode)
 	{
-		if (!CheckDAQStarted())
-		{
-			g_logger.TraceError("CDAQControler::NewProject error: DAQ was NOT been initialized");
-			return false;
-		}
+		//20180313temp for new project
+		//if (!CheckDAQStarted())
+		//{
+		//	g_logger.TraceError("CDAQControler::NewProject error: DAQ was NOT been initialized");
+		//	return false;
+		//}
 
 		//开始保存数据
 		if (0x02 == cMode)//完整检测
@@ -432,7 +496,7 @@ namespace DAQCONTROLER
 
 		ResetEvent(m_gEvtSaveFile);
 
-		VirtualFree(buffer, SingleSavingFileSize, MEM_RELEASE);
+		VirtualFree(buffer, SingleSavingFileSizeW, MEM_RELEASE);
 		CloseHandle(hFile);
 	}
 	//void CDAQControler::SetInitAngleFlag()
@@ -444,6 +508,5 @@ namespace DAQCONTROLER
 		return m_bDAQInitialSuccessfully;
 	}
 
-	
 }
 

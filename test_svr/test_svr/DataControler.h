@@ -85,6 +85,11 @@ namespace DATACONTROLER
 		void HandleMoveDetectionData(const double* pData, const int channelCount, const int sectionLength, const double deltat);
 		void HandleInitGradientData(const double* pData, const int channelCount, const int sectionLength);
 
+		// called by DAQ- wireless
+		void HandleStillDetectionDataW(const double* pData, const int channelCount, const int sectionLength);
+		void HandleMoveDetectionDataW(const double* pData, const int channelCount, const int sectionLength, const double deltat);
+		void HandleInitGradientDataW(const double* pData, const int channelCount, const int sectionLength);
+
 		// called by send2UI(main)
 		void GetInitGradientInfo(double& dX, double& dY);
 		void GetMoveDetectionInfo(MOVEDETECTIONINFO& stStressInfo);
