@@ -60,6 +60,7 @@ namespace DAQCONTROLER
 		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtInitGradient,0))
 		{
 			theApp->m_pDataController->HandleInitGradientData(Data, channelCount,sectionLength);
+			theApp->m_pDataController->GetInitValue(Data, channelCount,sectionLength);
 		}
 		/*else*/ if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtMoveDetection,0))
 		{
@@ -251,6 +252,7 @@ namespace DAQCONTROLER
 				if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtInitGradient,0))
 				{
 					theApp->m_pDataController->HandleInitGradientDataW(dYAm, channelCountW,sectionLengthW);
+					theApp->m_pDataController->GetInitValueW(dYAm, channelCountW, sectionLengthW);
 				}
 				if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtMoveDetection,0))
 				{

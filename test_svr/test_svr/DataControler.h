@@ -103,11 +103,12 @@ namespace DATACONTROLER
 		void HandleStillDetectionData(const double* pData, const int channelCount, const int sectionLength);
 		void HandleMoveDetectionData(const double* pData, const int channelCount, const int sectionLength, const double deltat);
 		void HandleInitGradientData(const double* pData, const int channelCount, const int sectionLength);
-
+		void GetInitValue(const double* pData, const int channelCount, const int sectionLength);
 		// called by DAQ- wireless
 		void HandleStillDetectionDataW(const double* pData, const int channelCount, const int sectionLength);
 		void HandleMoveDetectionDataW(const double* pData, const int channelCount, const int sectionLength, const double deltat);
 		void HandleInitGradientDataW(const double* pData, const int channelCount, const int sectionLength);
+		void GetInitValueW(const double* pData, const int channelCount, const int sectionLength);
 
 		// called by send2UI(main)
 		void GetInitGradientInfo(double& dX, double& dY);
@@ -131,6 +132,12 @@ namespace DATACONTROLER
 		bool m_bUpdateCarAngleFlag;
 		void SaveCarAngle();
 		double m_dMaxHandBrakeForce;
+
+		double m_dInitHandForce;
+		double m_dInitFootForce;
+		double m_dInitAccA;
+		double m_dInitAccB;
+		double m_dInitAccC;
 
 	public:
 		bool TransformBrakeDistance(double & dVel);
