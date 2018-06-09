@@ -28,6 +28,7 @@ const int NUM_EIGHT = 8;
 const int NUM_NINE = 9;
 const int NUM_TEN = 10;
 const int NUM_ELENEN = 11;
+const double NUM_PI = 3.141592654;
 
 
 //----- UDP_rev_thread to main thread msg  
@@ -183,12 +184,19 @@ const string gc_strMaxHandBrakeForce("MaxHandBrakeForce");
 
 //-----------------------------for sensor config paramaters
 const string gc_strSensorConfig_FileName(".\\config.ini");
+const string gc_strDAQType("DAQTYPE");
+const string gc_strIsWireless("Wireless");
 
-const string gc_strParaFootBrakeForce("FootBrakeForce");
-const string gc_strParaHandBrakeForce("HandBrakeForce");
-const string gc_strParaXYAngle("XYAngle");
-const string gc_strParaPedalDistance("PedalDistance");
-const string gc_strParaAccelaration("Accelaration");
+const string gc_strParaFootBrakeForce("FootBrakeForce_Wired");
+const string gc_strParaHandBrakeForce("HandBrakeForce_Wired");
+const string gc_strParaXYAngle("XYAngle_Wired");
+const string gc_strParaPedalDistance("PedalDistance_Wired");
+const string gc_strParaAccelaration("Accelaration_Wired");
+const string gc_strParaFootBrakeForceW("FootBrakeForce_Wireless");
+const string gc_strParaHandBrakeForceW("HandBrakeForce_Wireless");
+const string gc_strParaXYAngleW("XYAngle_Wireless");
+const string gc_strParaPedalDistanceW("PedalDistance_Wireless");
+const string gc_strParaAccelarationW("Accelaration_Wireless");
 
 const string gc_strPara1("Para1");
 const string gc_strPara2("Para2");

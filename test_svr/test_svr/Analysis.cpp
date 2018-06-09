@@ -246,8 +246,14 @@ namespace ANALYSISSPACE
 
 		} while (dwBytesToRead > 0);
 
-		//HandleData(buffer, DAQCONTROLER::channelCount, dwFileSize, DAQCONTROLER::deltat);
-		HandleDataW(buffer, DAQCONTROLER::channelCountW, dwFileSize, DAQCONTROLER::deltatW);
+		if (theApp->m_pDataController->DAQIsWirelessType())
+		{
+			HandleDataW(buffer, DAQCONTROLER::channelCountW, dwFileSize, DAQCONTROLER::deltatW);
+		}
+		else
+		{
+			HandleData(buffer, DAQCONTROLER::channelCount, dwFileSize, DAQCONTROLER::deltat);
+		}
 
 		if (NULL != buffer)
 		{

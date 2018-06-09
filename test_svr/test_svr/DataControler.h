@@ -53,9 +53,10 @@ namespace DATACONTROLER
 		bool SaveProjectInfo2INIFile();
 
 		bool ReadSensorConfigFromINI();
-		bool ReadOneParaFromINI(const string SectionName, 
+		bool ReadOneParaFromConfigINI(const string SectionName, 
 			const string ParaName,
 			double & dPara);
+		double m_dIsWireless;//Initial sensor para
 		double m_dFootBrakePara1;//Initial sensor para
 		double m_dFootBrakePara2;
 		double m_dHandBrakePara1;
@@ -70,6 +71,8 @@ namespace DATACONTROLER
 		double m_dAccelaration1;
 
 	public:
+		//wired / wireless
+		bool DAQIsWirelessType();
 		//called in main
 		int GetCurrentProjectState()const;
 		bool GetProjectPath(string& strPath) const;

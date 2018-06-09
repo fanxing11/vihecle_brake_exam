@@ -2,6 +2,8 @@
 
 CLogger g_logger(LOGGER::LogLevel_Info,CLogger::GetAppPathA().append("log\\"));
 
+using namespace DAQCONTROLER;
+
 CtheApp::CtheApp(void)
 {
 	m_pCommunicator = new CCommunicator;
@@ -33,6 +35,8 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 		MessageBox(NULL,TEXT("server startup failed."),NULL,MB_OK);
 		return 0;
 	}
+	theApp->m_pDAQController->Initialize();
+
 
 	theApp->m_dwMainThreadID = GetCurrentThreadId();
 

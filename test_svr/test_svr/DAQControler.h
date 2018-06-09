@@ -56,10 +56,12 @@ namespace DAQCONTROLER
 		bool NewProject(char cMode);
 		void TerminateProject();
 
+		void Initialize();
 
 
 	private:
-		void Initialize();
+		void InitializeWiredDAQ();
+		void InitializeWirelessDAQ();
 
 		//void SetInitAngleFlag();
 		void SampleBegin();
@@ -80,7 +82,7 @@ namespace DAQCONTROLER
 	public:
 
 		bool CheckDAQStarted()const;
-		void GetData();
+		//void GetData();
 	};
 
 
@@ -129,7 +131,6 @@ namespace DAQCONTROLER
 	//*********************************Dll import end*****************************************//
 	const int WirelessDAQFrq = 2000;//2kHz
 	const double deltatW = 0.0005;//sample rate = 2kHz,采样周期为1/2k
-	HANDLE m_hDAQThread;
 	const int channelCountW = 8;
 	const int sectionLengthW = 1024;
 	DWORD    SingleSavingFileSizeW = 1024 * 8  * sizeof(double);//每次采集(保存)1024*8个点

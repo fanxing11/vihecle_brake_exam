@@ -339,16 +339,20 @@ namespace COMMUNICATOR
 					int nLastVelocity = (int)(100*(stStressInfo.LastVelocity));
 					int nLastAccelaration = (int)(100*(stStressInfo.LastAccelaration));
 
-					static int n=0;
-					if (n<50)
-					{
-						n++;
-					}
-					else
-					{
-						n--;
-					}
-					nLastAccelaration -= 100*n;
+					g_logger.TraceWarning("sendData2UI-GradientX = %f,GradientY = %f,nPedalDist= %f",
+						nGradientX/100.0,
+						nGradientY/100.0,
+						nPedalDist/100.0);
+					//static int n=0;
+					//if (n<50)
+					//{
+					//	n++;
+					//}
+					//else
+					//{
+					//	n--;
+					//}
+					//nLastAccelaration -= 100*n;
 
 					memcpy(Ret+2, &nFootBrakeForce, sizeof(int));//4bit
 					memcpy(Ret+6, &nPedalDist, sizeof(int));//4bit

@@ -80,6 +80,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AMeanFilter.cpp" />
     <ClCompile Include="Analysis.cpp" />
     <ClCompile Include="Communicator.cpp" />
     <ClCompile Include="DAQControler.cpp" />
@@ -91,6 +92,7 @@
     <ClCompile Include="sqlite3.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AMeanFilter.h" />
     <ClInclude Include="Analysis.h" />
     <ClInclude Include="Communicator.h" />
     <ClInclude Include="const.h" />

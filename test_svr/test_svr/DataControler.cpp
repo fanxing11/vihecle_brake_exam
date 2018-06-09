@@ -9,6 +9,9 @@
 
 #include <sstream>
 
+#include "AMeanFilter.h"
+
+
 extern CtheApp* theApp;
 
 
@@ -27,6 +30,7 @@ namespace DATACONTROLER
 		,m_strConfigFullName("")
 		,m_nCurrentType(NONTYPE)
 		,m_bUpdateCarAngleFlag(false)
+		,m_dIsWireless(-1)
 		,m_dFootBrakePara1(0.0)
 		,m_dFootBrakePara2(0.0)
 		,m_dHandBrakePara1(0.0)
@@ -45,7 +49,10 @@ namespace DATACONTROLER
 		m_hEvtStillDetectionInfo = CreateEvent(NULL,TRUE,FALSE,L"");
 		m_hEvtInitGradientInfo = CreateEvent(NULL,TRUE,FALSE,L"");
 
-		ReadSensorConfigFromINI();
+		if(!ReadSensorConfigFromINI())
+		{
+			g_logger.TraceError("CDataControler::CDataControler-error");
+		}
 	}
 
 	CDataControler::~CDataControler(void)
@@ -56,47 +63,61 @@ namespace DATACONTROLER
 	{
 		return m_nCurrentProjectState;
 	}
+	bool CDataControler::DAQIsWirelessType()
+	{
+		g_logger.TraceInfo("CDataControler::DAQIsWirelessType:-in.");
+
+		bool ret = false;
+		if (m_dIsWireless == 1.0)
+		{
+			ret = true;
+		}
+		else if (m_dIsWireless == 0.0)
+		{
+			ret = false;
+		}
+		else
+		{
+			g_logger.TraceError("CDataControler::DAQIsWirelessType - DAQ type error");
+		}
+		return ret;
+	}
 	bool CDataControler::ReadSensorConfigFromINI()
 	{
-		if (ReadOneParaFromINI(gc_strParaFootBrakeForce,gc_strPara1,m_dFootBrakePara1))
+		ReadOneParaFromConfigINI(gc_strDAQType,gc_strIsWireless,m_dIsWireless);
+		if (DAQIsWirelessType())
 		{
+			ReadOneParaFromConfigINI(gc_strParaFootBrakeForceW,gc_strPara1,m_dFootBrakePara1);
+			ReadOneParaFromConfigINI(gc_strParaFootBrakeForceW,gc_strPara2,m_dFootBrakePara2);
+			ReadOneParaFromConfigINI(gc_strParaHandBrakeForceW,gc_strPara1,m_dHandBrakePara1);
+			ReadOneParaFromConfigINI(gc_strParaHandBrakeForceW,gc_strPara2,m_dHandBrakePara2);
+			ReadOneParaFromConfigINI(gc_strParaXYAngleW,gc_strPara1,m_dAnglePara1);
+			ReadOneParaFromConfigINI(gc_strParaXYAngleW,gc_strPara2,m_dAnglePara2);
+			ReadOneParaFromConfigINI(gc_strParaPedalDistanceW,gc_strPara1,m_dPedalDistance1);
+			ReadOneParaFromConfigINI(gc_strParaPedalDistanceW,gc_strPara2,m_dPedalDistance2);
+			ReadOneParaFromConfigINI(gc_strParaPedalDistanceW,gc_strPara3,m_dPedalDistance3);
+			ReadOneParaFromConfigINI(gc_strParaPedalDistanceW,gc_strPara4,m_dPedalDistance4);
+			ReadOneParaFromConfigINI(gc_strParaPedalDistanceW,gc_strPara5,m_dPedalDistance5);
+			ReadOneParaFromConfigINI(gc_strParaAccelarationW,gc_strPara1,m_dAccelaration1);
 		}
-		if (ReadOneParaFromINI(gc_strParaFootBrakeForce,gc_strPara2,m_dFootBrakePara2))
+		else
 		{
-		}
-		if (ReadOneParaFromINI(gc_strParaHandBrakeForce,gc_strPara1,m_dHandBrakePara1))
-		{
-		}
-		if (ReadOneParaFromINI(gc_strParaHandBrakeForce,gc_strPara2,m_dHandBrakePara2))
-		{
-		}
-		if (ReadOneParaFromINI(gc_strParaXYAngle,gc_strPara1,m_dAnglePara1))
-		{
-		}
-		if (ReadOneParaFromINI(gc_strParaXYAngle,gc_strPara2,m_dAnglePara2))
-		{
-		}
-		if (ReadOneParaFromINI(gc_strParaPedalDistance,gc_strPara1,m_dPedalDistance1))
-		{
-		}
-		if (ReadOneParaFromINI(gc_strParaPedalDistance,gc_strPara2,m_dPedalDistance2))
-		{
-		}
-		if (ReadOneParaFromINI(gc_strParaPedalDistance,gc_strPara3,m_dPedalDistance3))
-		{
-		}
-		if (ReadOneParaFromINI(gc_strParaPedalDistance,gc_strPara4,m_dPedalDistance4))
-		{
-		}
-		if (ReadOneParaFromINI(gc_strParaPedalDistance,gc_strPara5,m_dPedalDistance5))
-		{
-		}
-		if (ReadOneParaFromINI(gc_strParaAccelaration,gc_strPara1,m_dAccelaration1))
-		{
+			ReadOneParaFromConfigINI(gc_strParaFootBrakeForce,gc_strPara1,m_dFootBrakePara1);
+			ReadOneParaFromConfigINI(gc_strParaFootBrakeForce,gc_strPara2,m_dFootBrakePara2);
+			ReadOneParaFromConfigINI(gc_strParaHandBrakeForce,gc_strPara1,m_dHandBrakePara1);
+			ReadOneParaFromConfigINI(gc_strParaHandBrakeForce,gc_strPara2,m_dHandBrakePara2);
+			ReadOneParaFromConfigINI(gc_strParaXYAngle,gc_strPara1,m_dAnglePara1);
+			ReadOneParaFromConfigINI(gc_strParaXYAngle,gc_strPara2,m_dAnglePara2);
+			ReadOneParaFromConfigINI(gc_strParaPedalDistance,gc_strPara1,m_dPedalDistance1);
+			ReadOneParaFromConfigINI(gc_strParaPedalDistance,gc_strPara2,m_dPedalDistance2);
+			ReadOneParaFromConfigINI(gc_strParaPedalDistance,gc_strPara3,m_dPedalDistance3);
+			ReadOneParaFromConfigINI(gc_strParaPedalDistance,gc_strPara4,m_dPedalDistance4);
+			ReadOneParaFromConfigINI(gc_strParaPedalDistance,gc_strPara5,m_dPedalDistance5);
+			ReadOneParaFromConfigINI(gc_strParaAccelaration,gc_strPara1,m_dAccelaration1);
 		}
 		return true;
 	}
-	bool CDataControler::ReadOneParaFromINI(const string SectionName, 
+	bool CDataControler::ReadOneParaFromConfigINI(const string SectionName, 
 											const string ParaName,
 											double & dPara)
 	{
@@ -464,6 +485,10 @@ namespace DATACONTROLER
 		TransformGradient(m_stMoveDetectionInfo.GradientX);
 		TransformGradient(m_stMoveDetectionInfo.GradientY);
 		m_stMoveDetectionInfo.PedalDistance = *(pData+6);
+		AMeanFilter FilterFootBrakeForce;
+		AMeanFilter FilterGradientX ;
+		AMeanFilter FilterGradientY ;
+		AMeanFilter FilterPedalDistance ;
 		MOVEDETECTIONINFO stMoveDetectionInfo;
 		for (int i=0;i<sectionLength;++i)
 		{
@@ -474,26 +499,36 @@ namespace DATACONTROLER
 			stMoveDetectionInfo.GradientY = *(pData+((i*channelCount))+3);
 			TransformGradient(stMoveDetectionInfo.GradientX);
 			TransformGradient(stMoveDetectionInfo.GradientY);
-			if ( abs(m_stMoveDetectionInfo.GradientX) < abs(stMoveDetectionInfo.GradientX) )
-			{
-				m_stMoveDetectionInfo.GradientX = stMoveDetectionInfo.GradientX;
-			}
-			if ( abs(m_stMoveDetectionInfo.GradientY) < abs(stMoveDetectionInfo.GradientY) )
-			{
-				m_stMoveDetectionInfo.GradientY = stMoveDetectionInfo.GradientY;
-			}
+			////取一组数据中的max值代表这组数据
+			//if ( abs(m_stMoveDetectionInfo.GradientX) < abs(stMoveDetectionInfo.GradientX) )
+			//{
+			//	m_stMoveDetectionInfo.GradientX = stMoveDetectionInfo.GradientX;
+			//}
+			//if ( abs(m_stMoveDetectionInfo.GradientY) < abs(stMoveDetectionInfo.GradientY) )
+			//{
+			//	m_stMoveDetectionInfo.GradientY = stMoveDetectionInfo.GradientY;
+			//}
 			stMoveDetectionInfo.MaxFootBrakeForce = *(pData+(i*channelCount)) - *(pData+(i*channelCount)+1);
-			if (m_stMoveDetectionInfo.MaxFootBrakeForce < stMoveDetectionInfo.MaxFootBrakeForce)
-			{
-				m_stMoveDetectionInfo.MaxFootBrakeForce = stMoveDetectionInfo.MaxFootBrakeForce;
-			}
+			//if (m_stMoveDetectionInfo.MaxFootBrakeForce < stMoveDetectionInfo.MaxFootBrakeForce)
+			//{
+			//	m_stMoveDetectionInfo.MaxFootBrakeForce = stMoveDetectionInfo.MaxFootBrakeForce;
+			//}
 			stMoveDetectionInfo.PedalDistance = *(pData+(i*channelCount)+6);
-			if (m_stMoveDetectionInfo.PedalDistance < stMoveDetectionInfo.PedalDistance)
-			{
-				m_stMoveDetectionInfo.PedalDistance = stMoveDetectionInfo.PedalDistance;
-			}
-
+			//if (m_stMoveDetectionInfo.PedalDistance < stMoveDetectionInfo.PedalDistance)
+			//{
+			//	m_stMoveDetectionInfo.PedalDistance = stMoveDetectionInfo.PedalDistance;
+			//}
+			//均值滤波
+			FilterGradientX.AddData(stMoveDetectionInfo.GradientX);
+			FilterGradientY.AddData(stMoveDetectionInfo.GradientY);
+			FilterFootBrakeForce.AddData(stMoveDetectionInfo.MaxFootBrakeForce);
+			FilterPedalDistance.AddData(stMoveDetectionInfo.PedalDistance);
 		}
+		m_stMoveDetectionInfo.GradientX = FilterGradientX.GetMeanData();
+		m_stMoveDetectionInfo.GradientY = FilterGradientY.GetMeanData();
+		m_stMoveDetectionInfo.MaxFootBrakeForce = FilterFootBrakeForce.GetMeanData();
+		m_stMoveDetectionInfo.PedalDistance = FilterPedalDistance.GetMeanData();
+
 		m_stMoveDetectionInfo.LastAccelaration = dCompoundA;
 		m_stMoveDetectionInfo.LastVelocity = dSumA * deltat;
 		TransformAcceleration(m_stMoveDetectionInfo.LastAccelaration);
@@ -556,6 +591,10 @@ namespace DATACONTROLER
 		TransformGradient(m_stMoveDetectionInfo.GradientX);
 		TransformGradient(m_stMoveDetectionInfo.GradientY);
 		m_stMoveDetectionInfo.PedalDistance = *(pData+5*1024);
+		AMeanFilter FilterFootBrakeForce;
+		AMeanFilter FilterGradientX ;
+		AMeanFilter FilterGradientY ;
+		AMeanFilter FilterPedalDistance ;
 		MOVEDETECTIONINFO stMoveDetectionInfo;
 		for (int i=0;i<sectionLength;++i)
 		{
@@ -566,26 +605,38 @@ namespace DATACONTROLER
 			stMoveDetectionInfo.GradientY = *(pData+4*1024+i);
 			TransformGradient(stMoveDetectionInfo.GradientX);
 			TransformGradient(stMoveDetectionInfo.GradientY);
-			if ( abs(m_stMoveDetectionInfo.GradientX) < abs(stMoveDetectionInfo.GradientX) )
-			{
-				m_stMoveDetectionInfo.GradientX = stMoveDetectionInfo.GradientX;
-			}
-			if ( abs(m_stMoveDetectionInfo.GradientY) < abs(stMoveDetectionInfo.GradientY) )
-			{
-				m_stMoveDetectionInfo.GradientY = stMoveDetectionInfo.GradientY;
-			}
-			stMoveDetectionInfo.MaxFootBrakeForce = *(pData+7*1024+i);
-			if (m_stMoveDetectionInfo.MaxFootBrakeForce < stMoveDetectionInfo.MaxFootBrakeForce)
-			{
-				m_stMoveDetectionInfo.MaxFootBrakeForce = stMoveDetectionInfo.MaxFootBrakeForce;
-			}
 			stMoveDetectionInfo.PedalDistance = *(pData+5*1024+i);
-			if (m_stMoveDetectionInfo.PedalDistance < stMoveDetectionInfo.PedalDistance)
-			{
-				m_stMoveDetectionInfo.PedalDistance = stMoveDetectionInfo.PedalDistance;
-			}
-
+			stMoveDetectionInfo.MaxFootBrakeForce = *(pData+7*1024+i);
+			////取一组数据中的max值代表这组数据
+			//if ( abs(m_stMoveDetectionInfo.GradientX) < abs(stMoveDetectionInfo.GradientX) )
+			//{
+			//	m_stMoveDetectionInfo.GradientX = stMoveDetectionInfo.GradientX;
+			//}
+			//if ( abs(m_stMoveDetectionInfo.GradientY) < abs(stMoveDetectionInfo.GradientY) )
+			//{
+			//	m_stMoveDetectionInfo.GradientY = stMoveDetectionInfo.GradientY;
+			//}
+			//stMoveDetectionInfo.MaxFootBrakeForce = *(pData+7*1024+i);
+			//if (m_stMoveDetectionInfo.MaxFootBrakeForce < stMoveDetectionInfo.MaxFootBrakeForce)
+			//{
+			//	m_stMoveDetectionInfo.MaxFootBrakeForce = stMoveDetectionInfo.MaxFootBrakeForce;
+			//}
+			//stMoveDetectionInfo.PedalDistance = *(pData+5*1024+i);
+			//if (m_stMoveDetectionInfo.PedalDistance < stMoveDetectionInfo.PedalDistance)
+			//{
+			//	m_stMoveDetectionInfo.PedalDistance = stMoveDetectionInfo.PedalDistance;
+			//}
+			//均值滤波
+			FilterGradientX.AddData(stMoveDetectionInfo.GradientX);
+			FilterGradientY.AddData(stMoveDetectionInfo.GradientY);
+			FilterFootBrakeForce.AddData(stMoveDetectionInfo.MaxFootBrakeForce);
+			FilterPedalDistance.AddData(stMoveDetectionInfo.PedalDistance);
 		}
+		m_stMoveDetectionInfo.GradientX = FilterGradientX.GetMeanData();
+		m_stMoveDetectionInfo.GradientY = FilterGradientY.GetMeanData();
+		m_stMoveDetectionInfo.MaxFootBrakeForce = FilterFootBrakeForce.GetMeanData();
+		m_stMoveDetectionInfo.PedalDistance = FilterPedalDistance.GetMeanData();
+
 		m_stMoveDetectionInfo.LastAccelaration = dCompoundA;
 		m_stMoveDetectionInfo.LastVelocity = dSumA * deltat * 1024;
 		TransformAcceleration(m_stMoveDetectionInfo.LastAccelaration);
@@ -765,22 +816,40 @@ namespace DATACONTROLER
 //		//dForce = dForce * 4166.6666;
 		return true;
 	}
+
 	bool CDataControler::TransformGradient(double &dGradient)
 	{
 //<<<<<<< Updated upstream
 //		dGradient = tan( (dGradient-2500)/83.333 ) * 100;//%坡度单位用100%表示，所以*100
 //=======
-		dGradient = (dGradient + m_dAnglePara1)*m_dAnglePara2 *100;//%坡度单位用100%表示，所以*100
+		//v1.7.2 采集到是弧度
+		//dGradient = tan((dGradient + m_dAnglePara1)/m_dAnglePara2) *100;//%坡度单位用100%表示，所以*100
+		//tan函数默认参数应该是弧度制
+		dGradient = tan( (dGradient + m_dAnglePara1)/m_dAnglePara2 / 180.0 * NUM_PI ) *100;//%坡度单位用100%表示，所以*100
 //>>>>>>> Stashed changes
 //		//dGradient = (dGradient-2.59)*0.08333;
 		return true;
 	}
+
 	bool CDataControler::TransformPedalDistance(double &dDist)
 	{
 //<<<<<<< Updated upstream
 //		dDist = 1 / (0.12592593*dDist-0.01703704);
 //=======
+		//static int nCount=20;
+		//nCount--;
+		//if (nCount<0 )
+		//{
+		//	g_logger.TraceWarning("TransformPedalDistance- dist=%f",dDist);
+		//}
+		//g_logger.TraceWarning("TransformPedalDistance=%f - %f - %f",m_dPedalDistance1,m_dPedalDistance2,m_dPedalDistance3);
+		
 		dDist = m_dPedalDistance1 / (dDist*m_dPedalDistance2+m_dPedalDistance3);
+		//if (nCount<0)
+		//{
+		//	g_logger.TraceWarning("TransformPedalDistance- dist1=%f",dDist);
+		//	//nCount = 20;
+		//}
 //>>>>>>> Stashed changes
 //		//dDist = 1 / (dDist-0.44) * 0.1026856240126 + 1/30;
 		return true;
