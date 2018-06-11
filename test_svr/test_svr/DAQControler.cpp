@@ -313,14 +313,15 @@ namespace DAQCONTROLER
 
 			HMODULE hInst = NULL;
 			//cout<<"LoadLibrary start"<<endl;
-			hInst = LoadLibrary(L"UsbAD.dll"); //UsbAD.dll
+			hInst = LoadLibraryExA("UsbAD.dll", NULL, LOAD_WITH_ALTERED_SEARCH_PATH); //UsbAD.dll
+			//hInst = LoadLibrary(L".\\UsbAD.dll"); //UsbAD.dll
 
 			DWORD dw = GetLastError();
 
 			if (hInst == NULL)
 			{
 				//cout<<"hInst = NULL"<<endl;
-				g_logger.TraceError("CDAQControler::Initialize:hInst = NULL");
+				g_logger.TraceError("CDAQControler::Initialize:hInst = NULL,dw=%d",dw);
 				ret = false;
 				//return false;
 			}

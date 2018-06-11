@@ -101,8 +101,8 @@ namespace DATACONTROLER
 			ReadOneParaFromConfigINI(gc_strParaPedalDistanceW,gc_strPara1,m_dPedalDistance1);
 			ReadOneParaFromConfigINI(gc_strParaPedalDistanceW,gc_strPara2,m_dPedalDistance2);
 			ReadOneParaFromConfigINI(gc_strParaPedalDistanceW,gc_strPara3,m_dPedalDistance3);
-			ReadOneParaFromConfigINI(gc_strParaPedalDistanceW,gc_strPara4,m_dPedalDistance4);
-			ReadOneParaFromConfigINI(gc_strParaPedalDistanceW,gc_strPara5,m_dPedalDistance5);
+			//ReadOneParaFromConfigINI(gc_strParaPedalDistanceW,gc_strPara4,m_dPedalDistance4);
+			//ReadOneParaFromConfigINI(gc_strParaPedalDistanceW,gc_strPara5,m_dPedalDistance5);
 			ReadOneParaFromConfigINI(gc_strParaAccelarationW,gc_strPara1,m_dAccelaration1);
 		}
 		else
@@ -116,8 +116,8 @@ namespace DATACONTROLER
 			ReadOneParaFromConfigINI(gc_strParaPedalDistance,gc_strPara1,m_dPedalDistance1);
 			ReadOneParaFromConfigINI(gc_strParaPedalDistance,gc_strPara2,m_dPedalDistance2);
 			ReadOneParaFromConfigINI(gc_strParaPedalDistance,gc_strPara3,m_dPedalDistance3);
-			ReadOneParaFromConfigINI(gc_strParaPedalDistance,gc_strPara4,m_dPedalDistance4);
-			ReadOneParaFromConfigINI(gc_strParaPedalDistance,gc_strPara5,m_dPedalDistance5);
+			//ReadOneParaFromConfigINI(gc_strParaPedalDistance,gc_strPara4,m_dPedalDistance4);
+			//ReadOneParaFromConfigINI(gc_strParaPedalDistance,gc_strPara5,m_dPedalDistance5);
 			ReadOneParaFromConfigINI(gc_strParaAccelaration,gc_strPara1,m_dAccelaration1);
 		}
 		return true;
