@@ -28,6 +28,8 @@ CtheApp* theApp = NULL;
 int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance, __in_opt LPSTR lpCmdLine, __in int nShowCmd )
 {
 	g_logger.TraceWarning("_func_in_main");
+	try{
+
 
 	theApp = new CtheApp;
 	if (!theApp->m_pCommunicator->Initialize())
@@ -318,6 +320,12 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 	}
 	delete theApp;
 	theApp = NULL;
+
+		}//try...catch
+		catch(exception* e)
+		{
+			g_logger.TraceError("Main: some thing error.-%s",e->what());
+		}
 
 	cout<<"this is last line"<<endl;
 

@@ -116,6 +116,7 @@ namespace DATACONTROLER
 		void GetStillDetectionInfo(STILLDETECTIONINFO& stStillDetectionInfo);
 		void SetUpdateCarAngleFlag();
 		bool SaveMaxHandBrakeForce2INI();
+		bool SaveInitValue2INI();
 
 	private:
 		MOVEDETECTIONINFO m_stMoveDetectionInfo;

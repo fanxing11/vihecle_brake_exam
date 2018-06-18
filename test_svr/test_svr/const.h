@@ -141,7 +141,7 @@ typedef struct AnalysisResult
 	double AverageVelocity;
 	double GradientX;//max value
 	double GradientY;//max value
-	double PedalDistance;//max value
+	double PedalDistance;//max -min
 	double MaxHandBrakeForce;
 	double MaxFootBrakeForce;
 
@@ -181,6 +181,12 @@ const string gc_strInitYAngle("InitialY");
 
 const string gc_strResult("Result");
 const string gc_strMaxHandBrakeForce("MaxHandBrakeForce");
+const string gc_strInitValue("InitValue");
+const string gc_strInitAccA("InitAccA");//初始加速度值
+const string gc_strInitAccB("InitAccB");
+const string gc_strInitAccC("InitAccC");
+const string gc_strInitFootBrakeForce("InitFootBrakeForce");
+const string gc_strInitHandBrakeForce("InitHandBrakeForce");
 
 //-----------------------------for sensor config paramaters
 const string gc_strSensorConfig_FileName(".\\config.ini");

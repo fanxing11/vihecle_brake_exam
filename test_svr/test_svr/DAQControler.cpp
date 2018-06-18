@@ -62,13 +62,13 @@ namespace DAQCONTROLER
 			theApp->m_pDataController->HandleInitGradientData(Data, channelCount,sectionLength);
 			theApp->m_pDataController->GetInitValue(Data, channelCount,sectionLength);
 		}
-		/*else*/ if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtMoveDetection,0))
-		{
-			theApp->m_pDataController->HandleMoveDetectionData(Data, channelCount,sectionLength,deltat);
-		}
 		/*else*/ if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtStillDetection,0))
 		{
 			theApp->m_pDataController->HandleStillDetectionData(Data, channelCount,sectionLength);
+		}
+		/*else*/ if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtMoveDetection,0))
+		{
+			theApp->m_pDataController->HandleMoveDetectionData(Data, channelCount,sectionLength,deltat);
 		}
 		//printTime();
 		//3. data save
@@ -254,13 +254,13 @@ namespace DAQCONTROLER
 					theApp->m_pDataController->HandleInitGradientDataW(dYAm, channelCountW,sectionLengthW);
 					theApp->m_pDataController->GetInitValueW(dYAm, channelCountW, sectionLengthW);
 				}
-				if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtMoveDetection,0))
-				{
-					theApp->m_pDataController->HandleMoveDetectionDataW(dYAm, channelCountW,sectionLengthW,deltatW);
-				}
 				if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtStillDetection,0))
 				{
 					theApp->m_pDataController->HandleStillDetectionDataW(dYAm, channelCountW,sectionLengthW);
+				}
+				if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtMoveDetection,0))
+				{
+					theApp->m_pDataController->HandleMoveDetectionDataW(dYAm, channelCountW,sectionLengthW,deltatW);
 				}
 				//printTime();
 				//3. data save
@@ -313,91 +313,72 @@ namespace DAQCONTROLER
 
 			HMODULE hInst = NULL;
 			//cout<<"LoadLibrary start"<<endl;
-			hInst = LoadLibraryExA("UsbAD.dll", NULL, LOAD_WITH_ALTERED_SEARCH_PATH); //UsbAD.dll
-			//hInst = LoadLibrary(L".\\UsbAD.dll"); //UsbAD.dll
+			hInst = LoadLibrary(L"UsbAD.dll"); //UsbAD.dll
 
 			DWORD dw = GetLastError();
 
 			if (hInst == NULL)
 			{
 				//cout<<"hInst = NULL"<<endl;
-				g_logger.TraceError("CDAQControler::Initialize:hInst = NULL,dw=%d",dw);
+				g_logger.TraceError("CDAQControler::Initialize:hInst = NULL");
 				ret = false;
 				//return false;
 			}
 			else
 			{
 				cout<<"LoadLibrary ok"<<endl;
+
+				//*********************************Dll import start*****************************************//
+				//-----Lab_ConnectUT89
+				dll_ConnectUT89 = *(Dll_ConnectUT89)GetProcAddress(hInst, "Lab_ConnectUT89");
+				//-----Lab_SetPar
+				dll_SetPar = *(Dll_SetPar)GetProcAddress(hInst, "Lab_SetPar");
+				//-----Lab_SetPar
+				dll_Start = *(Dll_OnStart)GetProcAddress(hInst, "Lab_OnStart");
+				//-----Lab_GetDataLen n_DateSize
+				dll_GetDataLen = *(Dll_GetDataLen)GetProcAddress(hInst, "Lab_GetDataLen");
+				//-----Lab_ReadBuf
+				dll_ReadBuf = *(Dll_ReadBuf)GetProcAddress(hInst, "Lab_ReadBuf");
+				//-----Lab_OutLabDate
+				dll_OutLabDate = *(Dll_OutLabDate)GetProcAddress(hInst, "Lab_OutLabDate");
+				//-----Lab_Get2Wave
+				dll_Get2Wave = *(Dll_Get2Wave)GetProcAddress(hInst, "Lab_Get2Wave");
+				//*********************************Dll import end*****************************************//
+
+				//-----
+				string strIP("192.168.0.187");
+
+				char* pIP =NULL;
+				pIP = (char*)(strIP.c_str());
+
+				char cFilePath[MAX_PATH]={0};
+				GetModuleFileNameA(NULL, cFilePath, MAX_PATH); 
+				(strrchr(cFilePath, '\\'))[1] = 0;
+				//cout<< cFilePath <<endl;
+
+				bool bConnected = dll_ConnectUT89(cFilePath, pIP );
+				if (!bConnected)
+				{	
+					g_logger.TraceError("CDAQControler::Initialize:can not connect to wireless IP");
+					ret = false;
+					//cout<<"!can not connect to IP."<<endl;
+				}
+
+				//-----
+				int nEnableCh[8]={1,1,1,1,1,1,1,1};
+				int sCoupling[8]={0,0,0,0,0,0,0,0};
+				int pComInput[8]={0,0,0,0,0,0,0,0};
+				int pZoom[8]={0,0,0,0,0,0,0,0};
+				bool bSetPara = dll_SetPar(WirelessDAQFrq, nEnableCh, sCoupling, pComInput, pZoom);
+				if (!bSetPara)
+				{
+					ret = false;
+					g_logger.TraceError("CDAQControler::Initialize:failed to set para");
+					//cout<<"!failed to set para"<<endl;
+				}
 			}
 
-			//*********************************Dll import start*****************************************//
-			//-----Lab_ConnectUT89
-			dll_ConnectUT89 = *(Dll_ConnectUT89)GetProcAddress(hInst, "Lab_ConnectUT89");
-			//-----Lab_SetPar
-			dll_SetPar = *(Dll_SetPar)GetProcAddress(hInst, "Lab_SetPar");
-			//-----Lab_SetPar
-			dll_Start = *(Dll_OnStart)GetProcAddress(hInst, "Lab_OnStart");
-			//-----Lab_GetDataLen n_DateSize
-			dll_GetDataLen = *(Dll_GetDataLen)GetProcAddress(hInst, "Lab_GetDataLen");
-			//-----Lab_ReadBuf
-			dll_ReadBuf = *(Dll_ReadBuf)GetProcAddress(hInst, "Lab_ReadBuf");
-			//-----Lab_OutLabDate
-			dll_OutLabDate = *(Dll_OutLabDate)GetProcAddress(hInst, "Lab_OutLabDate");
-			//-----Lab_Get2Wave
-			dll_Get2Wave = *(Dll_Get2Wave)GetProcAddress(hInst, "Lab_Get2Wave");
-			//*********************************Dll import end*****************************************//
-
-			//-----
-			string strIP("192.168.0.187");
-
-			char* pIP =NULL;
-			pIP = (char*)(strIP.c_str());
-
-			char cFilePath[MAX_PATH]={0};
-			GetModuleFileNameA(NULL, cFilePath, MAX_PATH); 
-			(strrchr(cFilePath, '\\'))[1] = 0;
-			//cout<< cFilePath <<endl;
-
-			bool bConnected = dll_ConnectUT89(cFilePath, pIP );
-			if (!bConnected)
-			{	
-				g_logger.TraceError("CDAQControler::Initialize:can not connect to wireless IP");
-				ret = false;
-				//cout<<"!can not connect to IP."<<endl;
-			}
-			//else
-			//{
-			//	cout<<"-connect to IP:"<<strIP<<endl;
-			//}
-
-			//-----
-			int nEnableCh[8]={1,1,1,1,1,1,1,1};
-			int sCoupling[8]={0,0,0,0,0,0,0,0};
-			int pComInput[8]={0,0,0,0,0,0,0,0};
-			int pZoom[8]={0,0,0,0,0,0,0,0};
-			bool bSetPara = dll_SetPar(WirelessDAQFrq, nEnableCh, sCoupling, pComInput, pZoom);
-			if (!bSetPara)
-			{
-				ret = false;
-				g_logger.TraceError("CDAQControler::Initialize:failed to set para");
-				//cout<<"!failed to set para"<<endl;
-			}
-			//else
-			//{
-			//	cout<<"- set para success"<<endl;
-			//}
-
-			// If something wrong in this execution, print the error code on screen for tracking.
-			m_bDAQInitialSuccessfully = true;
-			if(!ret)
-			{
-				//u初始化错误，弹框或者返回错误信息----
-				//g_logger.TraceError("CDAQControler::Initialize:Initial DAQ failed. And the last error code is 0x%X.\n", ret);
-				//waitAnyKey();// wait any key to quit!
-				m_bDAQInitialSuccessfully = false;
-				//throw;
-			}
-			else
+			if(ret)
 			{
 				//-----
 				if (dll_Start == 0)
@@ -419,6 +400,7 @@ namespace DAQCONTROLER
 						g_logger.TraceInfo("CDAQControler::Initialize:_beginthreadex");
 
 						m_hDAQThread = (HANDLE)_beginthreadex(NULL, 0, DAQThreadFunc, (LPVOID)this, 0, NULL);  
+						m_bDAQInitialSuccessfully = true;
 					}
 					//cout<<"DllStart return:"<<ret<<endl;
 				}

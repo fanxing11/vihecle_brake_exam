@@ -16,6 +16,7 @@ const int COUNTBETWEENSEND = 500;
 		void PostAnalysisStateMsg(const int nState=1);
 
 	private:
+		void InitData();
 		HANDLE m_hAnalysisThread;
 		string m_strProjectPath;
 		string m_strConfigFile;
@@ -24,6 +25,11 @@ const int COUNTBETWEENSEND = 500;
 		double m_dCarInitXAngle;
 		double m_dCarInitYAngle;
 		double m_dMaxHandBrakeForce;
+		double m_dInitAccA;
+		double m_dInitAccB;
+		double m_dInitAccC;
+		double m_dInitFootBrakeForce;
+		double m_dInitHandBrakeForce;
 		bool ReadParaFromINI(string &strErrInfo);
 		bool ReadDataFromFile(string &strErrInfo);
 

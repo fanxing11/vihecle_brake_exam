@@ -1,5 +1,6 @@
 #include "main.h"
 #include "Analysis.h"
+#include "Filter.h"
 #include <sstream>
 
 #include <algorithm>
@@ -57,8 +58,36 @@ namespace ANALYSISSPACE
 		,m_dCarInitXAngle(0.0)
 		,m_dCarInitYAngle(0.0)
 		,m_dMaxHandBrakeForce(0.0)
+		,m_dInitAccA(0.0)
+		,m_dInitAccB(0.0)
+		,m_dInitAccC(0.0)
+		,m_dInitFootBrakeForce(0.0)
+		,m_dInitHandBrakeForce(0.0)
 	{
 		g_logger.TraceInfo("CAnalysis::CAnalysis");
+	}
+	void CAnalysis::InitData()
+	{
+		m_vAnalysisData.clear();
+		m_vAccelaration.clear();
+		m_vVelocity.clear();
+		m_vFootBrakeForce.clear();
+		m_vPedalDistance.clear();
+		m_stResult.MaxAccelaration = 0.0;
+		m_stResult.BrakeDistance = 0.0;
+		m_stResult.AverageVelocity = 0.0;
+		m_stResult.GradientX = 0.0;
+		m_stResult.GradientY = 0.0;
+		m_stResult.PedalDistance = 0.0;
+		m_stResult.MaxHandBrakeForce = 0.0;
+		m_stResult.MaxFootBrakeForce = 0.0;
+		m_dInitAccA = 0.0;
+		m_dInitAccA = 0.0;
+		m_dInitAccB = 0.0;
+		m_dInitAccC = 0.0;
+		m_dInitFootBrakeForce = 0.0;
+		m_dInitHandBrakeForce = 0.0;
+
 	}
 
 
@@ -158,6 +187,8 @@ namespace ANALYSISSPACE
 
 	bool CAnalysis::ReadParaFromINI(string &strErrInfo)
 	{
+		g_logger.TraceInfo("CAnalysis::ReadParaFromINI -in");
+
 		//---------read car angle from ini------
 		char stInitX[50]={0};  
 		char stInitY[50]={0};  
@@ -191,12 +222,47 @@ namespace ANALYSISSPACE
 		stream.clear();
 		stream<<stMaxHandBrakeForce;
 		stream>>m_dMaxHandBrakeForce;
-
+		//------read Init Value from ini---------
+		char stInitHandBrakeForce[50]={0};  
+		char stInitFootBrakeForce[50]={0};  
+		char stInitAccA[50]={0};  
+		char stInitAccB[50]={0};  
+		char stInitAccC[50]={0};  
+		DWORD dwRet4,dwRet5,dwRet6,dwRet7,dwRet8;
+		dwRet4 = GetPrivateProfileStringA(gc_strInitValue.c_str(), gc_strInitAccA.c_str(), "", stInitAccA, 50, m_strConfigFile.c_str());  
+		dwRet5 = GetPrivateProfileStringA(gc_strInitValue.c_str(), gc_strInitAccB.c_str(), "", stInitAccA, 50, m_strConfigFile.c_str());  
+		dwRet6 = GetPrivateProfileStringA(gc_strInitValue.c_str(), gc_strInitAccC.c_str(), "", stInitAccA, 50, m_strConfigFile.c_str());  
+		dwRet7 = GetPrivateProfileStringA(gc_strInitValue.c_str(), gc_strInitHandBrakeForce.c_str(), "", stInitAccA, 50, m_strConfigFile.c_str());  
+		dwRet8 = GetPrivateProfileStringA(gc_strInitValue.c_str(), gc_strInitFootBrakeForce.c_str(), "", stInitAccA, 50, m_strConfigFile.c_str());  
+		if ( dwRet4 <= 0 || dwRet5 <= 0 || dwRet6 <= 0 || dwRet7 <= 0 || dwRet8 <= 0)
+		{
+			strErrInfo = "Get InitValue in the INI file failed";
+			g_logger.TraceError("CAnalysis::ReadParaFromINI - %s",strErrInfo.c_str() );
+			return false;
+		}
+		stream.clear();
+		stream<<stInitAccA;
+		stream>>m_dInitAccA;
+		stream.clear();
+		stream<<stInitAccB;
+		stream>>m_dInitAccB;
+		stream.clear();
+		stream<<stInitAccC;
+		stream>>m_dInitAccC;
+		stream.clear();
+		stream<<stInitHandBrakeForce;
+		stream>>m_dInitHandBrakeForce;
+		stream.clear();
+		stream<<stInitFootBrakeForce;
+		stream>>m_dInitFootBrakeForce;
 		return true;
 	}
 
 	bool CAnalysis::ReadDataFromFile(string &strErrInfo)
 	{
+		try{
+
+		g_logger.TraceInfo("CAnalysis::ReadDataFromFile -n");
 		bool bRet = true;
 
 		string strDataFileName;
@@ -272,6 +338,12 @@ namespace ANALYSISSPACE
 		}
 
 		return bRet;
+		}
+		catch(exception* e)
+		{
+			g_logger.TraceError("CAnalysis::ReadDataFromFile:%s",e->what());
+		}
+
 	}
 
 	bool CAnalysis::GetDataFile(string& strFileName)
@@ -290,19 +362,18 @@ namespace ANALYSISSPACE
 
 	void CAnalysis::HandleData(const double* pData, const int channelCount, const DWORD dwDataSize/*Byte*/, const double deltat)
 	{
+		g_logger.TraceInfo("CAnalysis::HandleData -in");
 		this->PostAnalysisStateMsg();
 
-		m_vAnalysisData.clear();
-		m_vAccelaration.clear();
-		m_vVelocity.clear();
-		m_vFootBrakeForce.clear();
-		m_vPedalDistance.clear();
+		this->InitData();
 
 		DWORD doubleNum = dwDataSize / (sizeof(double)) / channelCount;//几组10通道double值
 		double dSumA = 0.0;
 		double dCompoundA = 0.0;
 
-		m_stResult.MaxAccelaration = sqrt((*(pData+7))*(*(pData+7))+(*(pData+8))*(*(pData+8))+(*(pData+9))*(*(pData+9)));
+		//v1.9 使用一个方向的加速度。不再进行合成。
+		//m_stResult.MaxAccelaration = sqrt((*(pData+7))*(*(pData+7))+(*(pData+8))*(*(pData+8))+(*(pData+9))*(*(pData+9)));
+		m_stResult.MaxAccelaration = *(pData+7);
 		double dSumVel=0.0;
 		double dCurrentVel=0.0;
 		double dCurrentDist=0.0;
@@ -315,7 +386,8 @@ namespace ANALYSISSPACE
 		ANALYSISRESULT stAnalysisInfo;
 		for (DWORD i=0;i<doubleNum;++i)
 		{
-			dCompoundA = sqrt((*(pData+(i*channelCount)+7))*(*(pData+(i*channelCount)+7))+(*(pData+(i*channelCount)+8))*(*(pData+(i*channelCount)+8))+(*(pData+(i*channelCount)+9))*(*(pData+(i*channelCount)+9)));
+			//dCompoundA = sqrt((*(pData+(i*channelCount)+7))*(*(pData+(i*channelCount)+7))+(*(pData+(i*channelCount)+8))*(*(pData+(i*channelCount)+8))+(*(pData+(i*channelCount)+9))*(*(pData+(i*channelCount)+9)));
+			dCompoundA = *(pData+(i*channelCount)+7);
 			dSumA += dCompoundA;
 			dCurrentVel = dSumA*deltat;
 			dSumVel += dCurrentVel;
@@ -403,107 +475,126 @@ namespace ANALYSISSPACE
 	}
 	void CAnalysis::HandleDataW(const double* pData, const int channelCount, const DWORD dwDataSize/*Byte*/, const double deltat)
 	{
-		this->PostAnalysisStateMsg();
+		g_logger.TraceInfo("CAnalysis::HandleDataW -in");
 
-		m_vAnalysisData.clear();
-		m_vAccelaration.clear();
-		m_vVelocity.clear();
-		m_vFootBrakeForce.clear();
-		m_vPedalDistance.clear();
+		this->PostAnalysisStateMsg();
+		int sectionLengthW = DAQCONTROLER::sectionLengthW;
+		this->InitData();
 
 		DWORD doubleNum = dwDataSize / (sizeof(double)) / channelCount;//几组8通道double值
+		g_logger.TraceInfo("CAnalysis::HandleDataW - doubleNum=%d",doubleNum);
 		double dSumA = 0.0;
 		double dCompoundA = 0.0;
 
-		m_stResult.MaxAccelaration = sqrt((*(pData)) * (*(pData)) + (*(pData+2*1024) * (*(pData+2*1024))) + (*(pData+3*1024)) * (*(pData+3*1024)) );
 		double dSumVel=0.0;
 		double dCurrentVel=0.0;
 		double dCurrentDist=0.0;
+		double minPedalDistance=*(pData+5*sectionLengthW);
+		double maxPedalDistance=*(pData+5*sectionLengthW);
 
-		m_stResult.MaxFootBrakeForce = *(pData+7*1024);
-		m_stResult.GradientX = *(pData+1*1024);
-		m_stResult.GradientY = *(pData+4*1024);
-		m_stResult.PedalDistance = *(pData+5*1024);
+		//m_stResult.MaxAccelaration = *(pData);
+		//m_stResult.MaxFootBrakeForce = *(pData+7*sectionLengthW);
+		//m_stResult.GradientX = *(pData+1*sectionLengthW);
+		//m_stResult.GradientY = *(pData+4*sectionLengthW);
+		//m_stResult.PedalDistance = *(pData+5*sectionLengthW);
 
+		Filter filterFootBrakeForceSingle(COUNTBETWEENSEND);
+		Filter filterFootBrakeForce(doubleNum);
 		ANALYSISRESULT stAnalysisInfo;
+		ANALYSISDATA stData = {0.0};
 		for (DWORD i=0;i<doubleNum;++i)
 		{
-			dCompoundA = sqrt((*(pData+i)) * (*(pData+i)) + (*(pData+2*1024+i) * (*(pData+2*1024+i))) + (*(pData+3*1024+i)) * (*(pData+3*1024+i)) );
+			dCompoundA = *(pData+i);
+			dCompoundA -= m_dInitAccA;
 			dSumA += dCompoundA;
 			dCurrentVel = dSumA*deltat;
 			dSumVel += dCurrentVel;
 			dCurrentDist = dSumVel*deltat;
 
-			stAnalysisInfo.MaxFootBrakeForce = *(pData+7*1024+i);
-			//stAnalysisInfo.MaxHandBrakeForce = *(pData+(i*channelCount)+4) - *(pData+(i*channelCount)+5);
-			stAnalysisInfo.GradientX = *(pData+1*1024+i);
-			stAnalysisInfo.GradientY = *(pData+4*1024+i);
-			stAnalysisInfo.PedalDistance = *(pData+5*1024+i);
+			stAnalysisInfo.MaxFootBrakeForce = *(pData+7*sectionLengthW+i);
+			stAnalysisInfo.GradientX = *(pData+1*sectionLengthW+i);
+			stAnalysisInfo.GradientY = *(pData+4*sectionLengthW+i);
+			stAnalysisInfo.PedalDistance = *(pData+5*sectionLengthW+i);
 
-			if (m_stResult.MaxFootBrakeForce < stAnalysisInfo.MaxFootBrakeForce)
-			{
-				m_stResult.MaxFootBrakeForce = stAnalysisInfo.MaxFootBrakeForce;
-			}
+			//if (m_stResult.MaxFootBrakeForce < stAnalysisInfo.MaxFootBrakeForce)
+			//{
+			//	m_stResult.MaxFootBrakeForce = stAnalysisInfo.MaxFootBrakeForce;
+			//}
+			filterFootBrakeForceSingle.AddData(stAnalysisInfo.MaxFootBrakeForce);
+			filterFootBrakeForce.AddData1(stAnalysisInfo.MaxFootBrakeForce);
 			//if (m_stResult.MaxHandBrakeForce< stStressInfo.MaxHandBrakeForce)
 			//{
 			//	m_stResult.MaxHandBrakeForce = stStressInfo.MaxHandBrakeForce;
 			//}
-			if (m_stResult.GradientX < stAnalysisInfo.GradientX)
+			if ( abs(m_stResult.GradientX) < abs(stAnalysisInfo.GradientX) )
 			{
 				m_stResult.GradientX = stAnalysisInfo.GradientX;
 			}
-			if (m_stResult.GradientY < stAnalysisInfo.GradientY)
+			if ( abs(m_stResult.GradientY) < abs(stAnalysisInfo.GradientY) )
 			{
 				m_stResult.GradientY = stAnalysisInfo.GradientY;
 			}
-			if (m_stResult.PedalDistance < stAnalysisInfo.PedalDistance)
+			if (maxPedalDistance < stAnalysisInfo.PedalDistance)
 			{
-				m_stResult.PedalDistance = stAnalysisInfo.PedalDistance;
+				maxPedalDistance = stAnalysisInfo.PedalDistance;
+			}
+			if (minPedalDistance > stAnalysisInfo.PedalDistance)
+			{
+				minPedalDistance = stAnalysisInfo.PedalDistance;
 			}
 
 			//save file data to vector for send to UI curve
-			static int nCountBetweenSend = 0;
+			static int nCountBetweenSend = 1;
 			++nCountBetweenSend;
-			if (nCountBetweenSend > COUNTBETWEENSEND)//每COUNTBETWEENSEND个数发送一个数
+			if (nCountBetweenSend > COUNTBETWEENSEND)//每COUNTBETWEENSEND个数向client发送一个数
 			{
+				g_logger.TraceInfo("CAnalysis::HandleDataW - COUNTBETWEENSEND-in");
+
 				nCountBetweenSend = 0;
-				ANALYSISDATA stData = {0.0};
 				stData.Accelaration = dCompoundA;
-				stData.Velocity = dCurrentVel;
-				stData.FootBrakeForce = stAnalysisInfo.MaxFootBrakeForce;
+				stData.Velocity += dCurrentVel;
+				stData.FootBrakeForce = filterFootBrakeForceSingle.GetMeanData();
+				g_logger.TraceInfo("CAnalysis::HandleDataW - COUNTBETWEENSEND-1");
+				g_logger.TraceInfo("CAnalysis::HandleDataW - COUNTBETWEENSEND-2");
 				stData.PedalDistance = m_stResult.PedalDistance;
 				m_vAnalysisData.push_back(stData);
 				m_vAccelaration.push_back(stData.Accelaration);
 				m_vFootBrakeForce.push_back(stData.FootBrakeForce);
 				m_vPedalDistance.push_back(stData.PedalDistance);
 				m_vVelocity.push_back(stData.Velocity);	
+				g_logger.TraceInfo("CAnalysis::HandleDataW - COUNTBETWEENSEND-out");
+
 			}
-
-
 		}
 		m_stResult.AverageVelocity = dSumVel / (doubleNum/channelCount);
 		m_stResult.BrakeDistance = dCurrentDist;
 		m_stResult.MaxAccelaration = dCompoundA;
 
+		//显示的曲线只是显示一个趋势，不需要实际值
 		NormalizData();
 		SendAnalysisData();
-
 
 		theApp->m_pDataController->TransformAcceleration(m_stResult.MaxAccelaration);
 		theApp->m_pDataController->TransformVelocity(m_stResult.AverageVelocity);
 
+		m_stResult.MaxFootBrakeForce = filterFootBrakeForce.GetMidValue();
+		m_stResult.MaxFootBrakeForce -= m_dInitFootBrakeForce;
 		theApp->m_pDataController->TransformFootBrakeForce(m_stResult.MaxFootBrakeForce);
+
 		//theApp->m_pDataController->TransformHandBrakeForce(m_stResult.MaxHandBrakeForce);
 		theApp->m_pDataController->TransformGradient(m_stResult.GradientX);
 		theApp->m_pDataController->TransformGradient(m_stResult.GradientY);
 		//需要减去检测时车辆参考面的相对倾角，得到地面实际倾角
 		m_stResult.GradientX -= m_dCarInitXAngle;
 		m_stResult.GradientY -= m_dCarInitYAngle;
-		theApp->m_pDataController->TransformPedalDistance(m_stResult.PedalDistance);
+
+		theApp->m_pDataController->TransformPedalDistance(maxPedalDistance);
+		theApp->m_pDataController->TransformPedalDistance(minPedalDistance);
+		m_stResult.PedalDistance = maxPedalDistance - minPedalDistance;
 
 		m_stResult.MaxHandBrakeForce = m_dMaxHandBrakeForce;//from ini，不再需要转换
 
-		g_logger.TraceWarning("CAnalysis::HandleData - Result=%2f_%2f_%2f_%2f_%2f_%2f_%2f_%2f",
+		g_logger.TraceWarning("CAnalysis::HandleDataW - Result=%2f_%2f_%2f_%2f_%2f_%2f_%2f_%2f",
 			m_stResult.MaxAccelaration,
 			m_stResult.BrakeDistance,
 			m_stResult.AverageVelocity,
@@ -512,7 +603,6 @@ namespace ANALYSISSPACE
 			m_stResult.PedalDistance,
 			m_stResult.MaxHandBrakeForce,
 			m_stResult.MaxFootBrakeForce);
-
 	}
 	
 	bool CAnalysis::AnalyseResult()
@@ -582,6 +672,12 @@ namespace ANALYSISSPACE
 		maxData = *max_;
 		auto min_ = std::min_element(std::begin(vData), std::end(vData));
 		minData = *min_;
+		g_logger.TraceInfo("CAnalysis::FindMaxMinRange-max=%.2f,min=%.2f",maxData,minData);
+		//滤波:原始数据小于10mv的都是噪声
+		if (10>(maxData - minData))
+		{
+			maxData = minData;
+		}
 	}
 
 	void CAnalysis::SendAnalysisData()

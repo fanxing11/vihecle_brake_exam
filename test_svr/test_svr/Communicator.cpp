@@ -116,6 +116,7 @@ namespace COMMUNICATOR
 		catch (exception &e)
 		{
 			g_logger.TraceError("CCommunicator::Initialize:(in catch)Initial Communicator failed.");
+			return false;
 		}
 	}
 
@@ -311,7 +312,9 @@ namespace COMMUNICATOR
 					int nMaxHandBrakeForce = (int)(100*( stStillDetectionInfo.MaxHandBrakeForce ));
 					int nGradientX = (int)(100*( stStillDetectionInfo.GradientX ));
 					int nGradientY = (int)(100*( stStillDetectionInfo.GradientY ));
-					
+					g_logger.TraceWarning("sendData2UI-HandBrakeForce = %f",
+						nMaxHandBrakeForce / 100.0);
+
 					memcpy(Ret+2, &nMaxHandBrakeForce, sizeof(int));//4bit
 					memcpy(Ret+6, &nGradientX, sizeof(int));//4bit
 					memcpy(Ret+10, &nGradientY, sizeof(int));//4bit
@@ -339,10 +342,11 @@ namespace COMMUNICATOR
 					int nLastVelocity = (int)(100*(stStressInfo.LastVelocity));
 					int nLastAccelaration = (int)(100*(stStressInfo.LastAccelaration));
 
-					g_logger.TraceWarning("sendData2UI-GradientX = %f,GradientY = %f,nPedalDist= %f",
+					g_logger.TraceWarning("sendData2UI-GradientX = %f,GradientY = %f,nPedalDist= %f,nLastVelocity=%f",
 						nGradientX/100.0,
 						nGradientY/100.0,
-						nPedalDist/100.0);
+						nPedalDist/100.0,
+						nLastVelocity/100.0);
 					//static int n=0;
 					//if (n<50)
 					//{
@@ -896,6 +900,7 @@ namespace COMMUNICATOR
 
 		theApp->m_pDAQController->InitGradientEnd();
 		theApp->m_pDataController->SetUpdateCarAngleFlag();
+		theApp->m_pDataController->SaveInitValue2INI();
 		return true;
 	}
 	bool CCommunicator::cmdStillDetectionBegin(const char* pData )

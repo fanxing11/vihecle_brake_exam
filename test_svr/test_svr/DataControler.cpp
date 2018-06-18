@@ -9,7 +9,7 @@
 
 #include <sstream>
 
-#include "AMeanFilter.h"
+#include "Filter.h"
 
 
 extern CtheApp* theApp;
@@ -48,6 +48,7 @@ namespace DATACONTROLER
 		,m_dInitAccA(0.0)
 		,m_dInitAccB(0.0)
 		,m_dInitAccC(0.0)
+		,m_dMaxHandBrakeForce(0.0)
 	{
 		g_logger.TraceInfo("CDataControler::CDataControler");
 		m_hEvtMoveDetectionInfo = CreateEvent(NULL,TRUE,FALSE,L"");
@@ -186,6 +187,35 @@ namespace DATACONTROLER
 		}
 		return true;
 	}
+	bool CDataControler::SaveInitValue2INI()
+	{
+		//需求增加：需要保存一下量初始值。这些值在实时检测、历史分析中都要用到。
+		char buf[40] = {0};
+		sprintf_s(buf,"%f",m_dInitAccA);
+		bool bSuccess = true;
+		if (NUM_ZERO == WritePrivateProfileStringA(gc_strInitValue.c_str(),gc_strInitAccA.c_str(),buf,m_strConfigFullName.c_str()))
+		{ bSuccess = false;}
+		if (NUM_ZERO == WritePrivateProfileStringA(gc_strInitValue.c_str(),gc_strInitAccB.c_str(),buf,m_strConfigFullName.c_str()))
+		{ bSuccess = false;}
+		if (NUM_ZERO == WritePrivateProfileStringA(gc_strInitValue.c_str(),gc_strInitAccC.c_str(),buf,m_strConfigFullName.c_str()))
+		{ bSuccess = false;}
+		if (NUM_ZERO == WritePrivateProfileStringA(gc_strInitValue.c_str(),gc_strInitFootBrakeForce.c_str(),buf,m_strConfigFullName.c_str()))
+		{ bSuccess = false;}
+		if (NUM_ZERO == WritePrivateProfileStringA(gc_strInitValue.c_str(),gc_strInitHandBrakeForce.c_str(),buf,m_strConfigFullName.c_str()))
+		{ bSuccess = false;}
+
+		if (!bSuccess)
+		{
+			g_logger.TraceError("CDataControler::SaveInitValue2INI: WritePrivateProfileStringA,GetLastError=%d",
+				GetLastError());
+		}
+		else
+		{
+			g_logger.TraceInfo("CDataControler::SaveInitValue2INI success");
+		}
+
+		return bSuccess;
+	}
 
 
 	void CDataControler::SetNewProjectPara(const char* pData)
@@ -263,6 +293,18 @@ namespace DATACONTROLER
 		strInfo = m_strProjectPath;
 
 		m_nCurrentProjectState = NUM_ONE;
+		//init state
+		m_stMoveDetectionInfo.GradientX = 0.0;
+		m_stMoveDetectionInfo.GradientY = 0.0;
+		m_stMoveDetectionInfo.LastAccelaration = 0.0;
+		m_stMoveDetectionInfo.LastVelocity=0.0;
+		m_stMoveDetectionInfo.MaxFootBrakeForce=0.0;
+		m_stMoveDetectionInfo.PedalDistance=0.0;
+		m_stStillDetectionInfo.GradientX = 0.0;
+		m_stStillDetectionInfo.GradientY = 0.0;
+		m_stStillDetectionInfo.MaxHandBrakeForce=0.0;
+		m_dMaxHandBrakeForce = 0.0;
+
 		return true;
 	}
 	bool CDataControler::TerminateCurrentProject()
@@ -415,6 +457,7 @@ namespace DATACONTROLER
 
 		char bufx[40] = {0};
 		sprintf_s(bufx,"%f",m_dInitCarXAngle);
+		g_logger.TraceInfo("CDataControler::SaveCarAngle m_dInitCarXAngle=%.2f",m_dInitCarXAngle);
 		if(!WritePrivateProfileStringA(gc_strInitialCarAngle.c_str(),gc_strInitXAngle.c_str(),bufx,m_strConfigFullName.c_str()) )
 		{
 			g_logger.TraceError("CDataControler::SaveCarAngleX - %d",GetLastError());
@@ -434,11 +477,11 @@ namespace DATACONTROLER
 	//以去掉重力加速度的及其他的影响
 	void CDataControler::GetInitValue(const double* pData, const int channelCount, const int sectionLength)
 	{
-		AMeanFilter FilterAccA;
-		AMeanFilter FilterAccB;
-		AMeanFilter FilterAccC;
-		AMeanFilter FilterHandForce;
-		AMeanFilter FilterFootForce;
+		Filter FilterAccA;
+		Filter FilterAccB;
+		Filter FilterAccC;
+		Filter FilterHandForce;
+		Filter FilterFootForce;
 
 		for (int i=0;i<sectionLength;++i)
 		{
@@ -456,25 +499,25 @@ namespace DATACONTROLER
 	}
 	void CDataControler::GetInitValueW(const double* pData, const int channelCount, const int sectionLength)
 	{
-		AMeanFilter FilterAccA;
-		AMeanFilter FilterAccB;
-		AMeanFilter FilterAccC;
-		AMeanFilter FilterHandForce;
-		AMeanFilter FilterFootForce;
+		Filter FilterAccA;
+		Filter FilterAccB;
+		Filter FilterAccC;
+		Filter FilterHandForce;
+		Filter FilterFootForce;
 
 		for (int i=0;i<sectionLength;++i)
 		{
 			FilterAccA.AddData(*(pData+i));
 			FilterAccA.AddData(*(pData+2*1024+i));
 			FilterAccA.AddData(*(pData+3*1024+i));
-			FilterHandForce.AddData(*(pData+6*1024+i));
-			FilterFootForce.AddData(*(pData+7*1024+i));
+			FilterHandForce.AddData1(*(pData+6*1024+i));
+			FilterFootForce.AddData1(*(pData+7*1024+i));
 		}
 		m_dInitAccA = FilterAccA.GetMeanData();
 		m_dInitAccB = FilterAccB.GetMeanData();
 		m_dInitAccC = FilterAccC.GetMeanData();
-		m_dInitHandForce = FilterHandForce.GetMeanData();
-		m_dInitFootForce = FilterFootForce.GetMeanData();
+		m_dInitHandForce = FilterHandForce.GetMidValue();
+		m_dInitFootForce = FilterFootForce.GetMidValue();
 	}
 
 	//最大手刹力、XY倾角
@@ -539,18 +582,20 @@ namespace DATACONTROLER
 		TransformGradient(m_stMoveDetectionInfo.GradientX);
 		TransformGradient(m_stMoveDetectionInfo.GradientY);
 		m_stMoveDetectionInfo.PedalDistance = *(pData+6);
-		AMeanFilter FilterFootBrakeForce;
-		AMeanFilter FilterGradientX ;
-		AMeanFilter FilterGradientY ;
-		AMeanFilter FilterPedalDistance ;
+		Filter FilterFootBrakeForce;
+		Filter FilterGradientX ;
+		Filter FilterGradientY ;
+		Filter FilterPedalDistance ;
 		MOVEDETECTIONINFO stMoveDetectionInfo;
 		for (int i=0;i<sectionLength;++i)
 		{
 			double dAccA = *(pData+(i*channelCount)+7) - m_dInitAccA;
-			double dAccB = *(pData+(i*channelCount)+8) - m_dInitAccB;
-			double dAccC = *(pData+(i*channelCount)+9) - m_dInitAccC;
+			//v1.9 使用一个方向的加速度。不再进行合成。
+			//double dAccB = *(pData+(i*channelCount)+8) - m_dInitAccB;
+			//double dAccC = *(pData+(i*channelCount)+9) - m_dInitAccC;
 
-			dCompoundA = sqrt((dAccA)*(dAccA)+(dAccB)*(dAccB)+(dAccC)*(dAccC));
+			//dCompoundA = sqrt((dAccA)*(dAccA)+(dAccB)*(dAccB)+(dAccC)*(dAccC));
+			dCompoundA = dAccA;
 			dSumA += dCompoundA;
 
 			stMoveDetectionInfo.GradientX = *(pData+((i*channelCount))+2);
@@ -579,12 +624,12 @@ namespace DATACONTROLER
 			//均值滤波
 			FilterGradientX.AddData(stMoveDetectionInfo.GradientX);
 			FilterGradientY.AddData(stMoveDetectionInfo.GradientY);
-			FilterFootBrakeForce.AddData(stMoveDetectionInfo.MaxFootBrakeForce);
+			FilterFootBrakeForce.AddData1(stMoveDetectionInfo.MaxFootBrakeForce);
 			FilterPedalDistance.AddData(stMoveDetectionInfo.PedalDistance);
 		}
 		m_stMoveDetectionInfo.GradientX = FilterGradientX.GetMeanData();
 		m_stMoveDetectionInfo.GradientY = FilterGradientY.GetMeanData();
-		m_stMoveDetectionInfo.MaxFootBrakeForce = FilterFootBrakeForce.GetMeanData();
+		m_stMoveDetectionInfo.MaxFootBrakeForce = FilterFootBrakeForce.GetMidValue();
 		m_stMoveDetectionInfo.PedalDistance = FilterPedalDistance.GetMeanData();
 
 		m_stMoveDetectionInfo.LastAccelaration = dCompoundA;
@@ -602,6 +647,7 @@ namespace DATACONTROLER
 
 		SetEvent(m_hEvtMoveDetectionInfo);
 	}
+
 
 	void CDataControler::HandleInitGradientData(const double* pData, const int channelCount, const int sectionLength)
 	{
@@ -644,32 +690,37 @@ namespace DATACONTROLER
 		double dSumA = 0.0;
 		double dCompoundA = 0.0;
 
-		m_stMoveDetectionInfo.MaxFootBrakeForce = *(pData+7*1024);
-		m_stMoveDetectionInfo.GradientX = *(pData+1*1024);
-		m_stMoveDetectionInfo.GradientY = *(pData+4*1024);
+		m_stMoveDetectionInfo.MaxFootBrakeForce = *(pData+7*sectionLength);
+		m_stMoveDetectionInfo.GradientX = *(pData+1*sectionLength);
+		m_stMoveDetectionInfo.GradientY = *(pData+4*sectionLength);
 		TransformGradient(m_stMoveDetectionInfo.GradientX);
 		TransformGradient(m_stMoveDetectionInfo.GradientY);
-		m_stMoveDetectionInfo.PedalDistance = *(pData+5*1024);
-		AMeanFilter FilterFootBrakeForce;
-		AMeanFilter FilterGradientX ;
-		AMeanFilter FilterGradientY ;
-		AMeanFilter FilterPedalDistance ;
+		m_stMoveDetectionInfo.PedalDistance = *(pData+5*sectionLength);
+		Filter FilterFootBrakeForce;
+		Filter FilterGradientX ;
+		Filter FilterGradientY ;
+		Filter FilterPedalDistance ;
 		MOVEDETECTIONINFO stMoveDetectionInfo;
 		for (int i=0;i<sectionLength;++i)
 		{
-			double dAccA = *(pData+i) - m_dInitAccA;
-			double dAccB = *(pData+2*1024+i) - m_dInitAccB;
-			double dAccC = *(pData+3*1024+i) - m_dInitAccC;
+			//int	i = 500;
 
-			dCompoundA = sqrt( dAccA*dAccA + dAccB*dAccB + dAccC*dAccC );
+			double dAccA = *(pData+i) - m_dInitAccA;
+			//v1.9 使用一个方向的加速度。不再进行合成。
+			//double dAccB = *(pData+2*1024+i) - m_dInitAccB;
+			//double dAccC = *(pData+3*1024+i) - m_dInitAccC;
+
+			//dCompoundA = sqrt( dAccA*dAccA + dAccB*dAccB + dAccC*dAccC );
+			dCompoundA = dAccA;
+			dCompoundA -= m_dInitAccA;
 			dSumA += dCompoundA;
 
-			stMoveDetectionInfo.GradientX = *(pData+1*1024+i);
-			stMoveDetectionInfo.GradientY = *(pData+4*1024+i);
+			stMoveDetectionInfo.GradientX = *(pData+1*sectionLength+i);
+			stMoveDetectionInfo.GradientY = *(pData+4*sectionLength+i);
 			TransformGradient(stMoveDetectionInfo.GradientX);
 			TransformGradient(stMoveDetectionInfo.GradientY);
-			stMoveDetectionInfo.PedalDistance = *(pData+5*1024+i);
-			stMoveDetectionInfo.MaxFootBrakeForce = *(pData+7*1024+i);
+			stMoveDetectionInfo.PedalDistance = *(pData+5*sectionLength+i);
+			stMoveDetectionInfo.MaxFootBrakeForce = *(pData+7*sectionLength+i);
 			////取一组数据中的max值代表这组数据
 			//if ( abs(m_stMoveDetectionInfo.GradientX) < abs(stMoveDetectionInfo.GradientX) )
 			//{
@@ -689,19 +740,20 @@ namespace DATACONTROLER
 			//{
 			//	m_stMoveDetectionInfo.PedalDistance = stMoveDetectionInfo.PedalDistance;
 			//}
+
 			//均值滤波
 			FilterGradientX.AddData(stMoveDetectionInfo.GradientX);
 			FilterGradientY.AddData(stMoveDetectionInfo.GradientY);
-			FilterFootBrakeForce.AddData(stMoveDetectionInfo.MaxFootBrakeForce);
+			FilterFootBrakeForce.AddData1(stMoveDetectionInfo.MaxFootBrakeForce);
 			FilterPedalDistance.AddData(stMoveDetectionInfo.PedalDistance);
 		}
 		m_stMoveDetectionInfo.GradientX = FilterGradientX.GetMeanData();
 		m_stMoveDetectionInfo.GradientY = FilterGradientY.GetMeanData();
-		m_stMoveDetectionInfo.MaxFootBrakeForce = FilterFootBrakeForce.GetMeanData();
+		m_stMoveDetectionInfo.MaxFootBrakeForce = FilterFootBrakeForce.GetMidValue();
 		m_stMoveDetectionInfo.PedalDistance = FilterPedalDistance.GetMeanData();
 
 		m_stMoveDetectionInfo.LastAccelaration = dCompoundA;
-		m_stMoveDetectionInfo.LastVelocity = dSumA * deltat * 1024;
+		m_stMoveDetectionInfo.LastVelocity += dSumA * deltat * sectionLength;
 		TransformAcceleration(m_stMoveDetectionInfo.LastAccelaration);
 		TransformVelocity(m_stMoveDetectionInfo.LastVelocity);
 
@@ -721,16 +773,16 @@ namespace DATACONTROLER
 		g_logger.TraceInfo("CDataControler::HandleInitGradientDataW");
 		
 		ResetEvent(m_hEvtInitGradientInfo);
-		double dMaxX = *(pData+1*1024);
-		double dMaxY = *(pData+4*1024);
+		double dMaxX = *(pData+1*sectionLength);
+		double dMaxY = *(pData+4*sectionLength);
 		TransformGradient(dMaxX);
 		TransformGradient(dMaxY);
 		double dX=0,dY=0;
 
 		for (int i=0;i<sectionLength;++i)
 		{
-			dX = *(pData+1*1024+i);
-			dY = *(pData+4*1024+i);
+			dX = *(pData+1*sectionLength+i);
+			dY = *(pData+4*sectionLength+i);
 			TransformGradient(dX);
 			TransformGradient(dY);//由于有abs，转换中有减法，可能改变正负号，所以需要变换后再比较
 			if (abs(dMaxX)<abs(dX))
@@ -749,31 +801,33 @@ namespace DATACONTROLER
 		SetEvent(m_hEvtInitGradientInfo);
 	}
 
-	//最大手刹力、XY倾角
+	//最大手刹力、XY倾角（XY的倾角已经没有做用，如果更改，需要在Move里面改）
 	void CDataControler::HandleStillDetectionDataW(const double* pData, const int channelCount, const int sectionLength)
 	{
 		g_logger.TraceInfo("CDataControler::HandleStillDetectionDataW");
 		//V = sum(ai*t) 
 
 		ResetEvent(m_hEvtStillDetectionInfo);
-		m_stStillDetectionInfo.MaxHandBrakeForce = *(pData+6*1024);
-		m_stStillDetectionInfo.GradientX = *(pData+1*1024);
-		m_stStillDetectionInfo.GradientY = *(pData+4*1024);
+		m_stStillDetectionInfo.MaxHandBrakeForce = *(pData+6*sectionLength);
+		m_stStillDetectionInfo.GradientX = *(pData+1*sectionLength);
+		m_stStillDetectionInfo.GradientY = *(pData+4*sectionLength);
 		TransformGradient(m_stStillDetectionInfo.GradientX);
 		TransformGradient(m_stStillDetectionInfo.GradientY);
 
+		Filter FilterHandBrakeForce;
 		STILLDETECTIONINFO stStillDetectionInfo;
 		for (int i=0;i<sectionLength;++i)
 		{
-			stStillDetectionInfo.MaxHandBrakeForce = *(pData+6*1024+i);
-			stStillDetectionInfo.GradientX = *(pData+1*1024+i);
-			stStillDetectionInfo.GradientY = *(pData+4*1024+i);
+			stStillDetectionInfo.MaxHandBrakeForce = *(pData+6*sectionLength+i);
+			stStillDetectionInfo.GradientX = *(pData+1*sectionLength+i);
+			stStillDetectionInfo.GradientY = *(pData+4*sectionLength+i);
 			TransformGradient(stStillDetectionInfo.GradientX);
 			TransformGradient(stStillDetectionInfo.GradientY);
-			if (m_stStillDetectionInfo.MaxHandBrakeForce < stStillDetectionInfo.MaxHandBrakeForce)
-			{
-				m_stStillDetectionInfo.MaxHandBrakeForce = stStillDetectionInfo.MaxHandBrakeForce;
-			}
+			//if (m_stStillDetectionInfo.MaxHandBrakeForce < stStillDetectionInfo.MaxHandBrakeForce)
+			//{
+			//	m_stStillDetectionInfo.MaxHandBrakeForce = stStillDetectionInfo.MaxHandBrakeForce;
+			//}
+			FilterHandBrakeForce.AddData1(stStillDetectionInfo.MaxHandBrakeForce);
 			if ( abs(m_stStillDetectionInfo.GradientX) < abs(stStillDetectionInfo.GradientX) )
 			{
 				m_stStillDetectionInfo.GradientX = stStillDetectionInfo.GradientX;
@@ -784,10 +838,12 @@ namespace DATACONTROLER
 			}
 
 		}
+		m_stStillDetectionInfo.MaxHandBrakeForce = FilterHandBrakeForce.GetMidValue();
 		m_stStillDetectionInfo.MaxHandBrakeForce -= m_dInitHandForce;
 		TransformHandBrakeForce(m_stStillDetectionInfo.MaxHandBrakeForce);
 
-		if( m_dMaxHandBrakeForce<m_stStillDetectionInfo.MaxHandBrakeForce)//保存下静止时的最大手刹力
+		//保存下静止时的最大手刹力:有正负，所以是绝对值比大小
+		if( abs(m_dMaxHandBrakeForce)<abs(m_stStillDetectionInfo.MaxHandBrakeForce) )
 		{
 			m_dMaxHandBrakeForce = m_stStillDetectionInfo.MaxHandBrakeForce;
 		}

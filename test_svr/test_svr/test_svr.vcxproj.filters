@@ -42,7 +42,7 @@
     <ClCompile Include="Analysis.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="AMeanFilter.cpp">
+    <ClCompile Include="Filter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -77,7 +77,7 @@
     <ClInclude Include="Analysis.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="AMeanFilter.h">
+    <ClInclude Include="Filter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
