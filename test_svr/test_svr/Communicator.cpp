@@ -484,8 +484,11 @@ namespace COMMUNICATOR
 		stResultInt.MaxAccelaration = (int)(100*stResult.MaxAccelaration);
 		stResultInt.BrakeDistance = (int)(100*stResult.BrakeDistance);
 		stResultInt.AverageVelocity = (int)(100*stResult.AverageVelocity);
-		stResultInt.GradientX = (int)(100*stResult.GradientX);
-		stResultInt.GradientY = (int)(100*stResult.GradientY);
+		//stResultInt.GradientX = (int)(100*stResult.GradientX);
+		//stResultInt.GradientY = (int)(100*stResult.GradientY);
+		int nTmp = stResult.GradientY;
+		stResultInt.GradientY = (int)(100*stResult.GradientX);
+		stResultInt.GradientX = (int)(100*nTmp);
 		stResultInt.PedalDistance = (int)(100*stResult.PedalDistance);
 		stResultInt.MaxHandBrakeForce = (int)(100*stResult.MaxHandBrakeForce);
 		stResultInt.MaxFootBrakeForce = (int)(100*stResult.MaxFootBrakeForce);
@@ -584,8 +587,8 @@ namespace COMMUNICATOR
 				cVel = (int)stGrop.Velocity;
 				cPedalLoc = (int)stGrop.PedalDistance;
 				cForce = (int)stGrop.FootBrakeForce;
-				g_logger.TraceInfo("CCommunicator::SendAnalysisData2UI - data to send:%d\t%d\t%d\t%d",
-					cAcc,cVel,cPedalLoc,cForce);
+				//g_logger.TraceInfo("CCommunicator::SendAnalysisData2UI - data to send:%d\t%d\t%d\t%d",
+				//	cAcc,cVel,cPedalLoc,cForce);
 
 				memcpy(pBuf+nLoc, &cAcc, 1);
 				nLoc++;

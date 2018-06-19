@@ -18,6 +18,8 @@ public:
 	//求中位数
 	void AddData1(double dData);
 	double GetMidValue();
+	double GetMaxValue();
+	void ResetMid();
 private:
 	UINT m_nBufSize;
 	void Initial();
@@ -26,6 +28,5 @@ private:
 	int m_nCount;
 
 	double* m_pArrayDouble;
-	double m_Array[100000];
 };
 
