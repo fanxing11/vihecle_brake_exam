@@ -4,6 +4,11 @@
 #include "DAQControler.h"
 using namespace DAQCONTROLER;
 
+#include <algorithm>
+#include <functional>
+
+using namespace std;
+
 class Filter
 {
 public:
@@ -11,22 +16,29 @@ public:
 	~Filter(void);
 
 public:
-	//求均值
+	//get mean data
 	void AddData(double dData);
 	double GetMeanData();
 
-	//求中位数
-	void AddData1(double dData);
+	//get mid data
+	void AddData1(const double dData);
 	double GetMidValue();
-	double GetMaxValue();
 	void ResetMid();
+	//get max data-sametime with mid data
+	double GetMaxValue();
+	void GetPartIndex(UINT &nBegin,UINT &nEnd);
+	double GetPartMeanValue(const UINT nBegin,const UINT bEnd);
+	//for mean drag acc and max velocity
+	void AddData2(double dAcc,double dVel);
+	//返回MFDD，最大速度（制动初速度），刹车距离
+	bool GetData2(const double deltat,double &dAcc,double &dVel,double &BrakeDist);
 private:
-	UINT m_nBufSize;
-	void Initial();
-	bool m_bInitialed;
+
 	double m_dSum;
 	int m_nCount;
 
-	double* m_pArrayDouble;
+	vector<double> m_vtData;
+	vector<double> m_vtData1;
+	vector< pair<double,int> >m_vtData2;
 };
 

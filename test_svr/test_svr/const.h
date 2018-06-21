@@ -15,6 +15,7 @@ extern CLogger g_logger;
 #include <process.h>//_beginthreadex_endthreadex
 #pragma comment(lib,"user32.lib")//GetMessage
 
+const double DOUBLE_ZERO = 0.0;
 const int NUM_ZERO = 0;
 const int NUM_NEGONE = -1;
 const int NUM_ONE = 1;
@@ -136,11 +137,11 @@ typedef struct StillDetectionInfo
 
 typedef struct AnalysisResult
 {
-	double MaxAccelaration;
-	double BrakeDistance;
-	double AverageVelocity;
-	double GradientX;//max value
-	double GradientY;//max value
+	double MeanDragAccelaration;//MFDD减速阶段的加速度均值，即踩下刹车后，速度从最高点往下减的过程中所有加速度的均值
+	double BrakeLength;//刹车制动距离
+	double InitBrakeVelocity;//制动初速度，开始减速时的速度
+	double GradientX;//max value  地面X方向坡度
+	double GradientY;//max value  地面Y方向坡度-暂时不用
 	double PedalDistance;//max -min
 	double MaxHandBrakeForce;
 	double MaxFootBrakeForce;
@@ -148,9 +149,9 @@ typedef struct AnalysisResult
 }ANALYSISRESULT;
 typedef struct AnalysisResult_Int
 {
-	int MaxAccelaration;
-	int BrakeDistance;
-	int AverageVelocity;
+	int MeanDragAccelaration;
+	int BrakeLength;
+	int InitBrakeVelocity;
 	int GradientX;//max value
 	int GradientY;//max value
 	int PedalDistance;//max value

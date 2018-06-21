@@ -9,6 +9,9 @@
 
 extern CtheApp* theApp;
 
+//如果需要发送模拟数据到client，打开此开关
+#define TESTDATA 0
+
 namespace COMMUNICATOR
 {
 
@@ -16,10 +19,7 @@ namespace COMMUNICATOR
 	{
 		g_logger.TraceInfo("UDPRevThreadFunc_funcin");
 
-		//STIN_COMTHREAD stTep;
-		//stTep = *( STIN_COMTHREAD* )lp;
 		CCommunicator* pCCommunicator=(CCommunicator*)lp;
-
 
 		while(1)
 		{
@@ -41,17 +41,17 @@ namespace COMMUNICATOR
 		:m_hRevThread(NULL)
 		,m_SockSrv(NULL)
 		,m_dwMainThreadId(0)
-		,bTest(false)
+		,nTimer(0)
 	{
 		g_logger.TraceInfo("CCommunicator::CCommunicator");
 	}
 
 	CCommunicator::~CCommunicator(void)
 	{
+		g_logger.TraceWarning("CCommunicator::~CCommunicator-in");
 		DWORD dw =WaitForSingleObject(m_hRevThread,1);
 		if( dw == WAIT_TIMEOUT )
 		{
-			//cout<<"wait for thread timeout"<<endl;
 			g_logger.TraceInfo("CCommunicator::~CCommunicator - wait for thread timeout");
 		}
 		if (m_SockSrv != NULL)
@@ -59,6 +59,7 @@ namespace COMMUNICATOR
 			closesocket(m_SockSrv);
 		}
 		WSACleanup();
+		g_logger.TraceWarning("CCommunicator::~CCommunicator-out");
 	}
 
 	SOCKET CCommunicator::GetSocket()
@@ -103,12 +104,8 @@ namespace COMMUNICATOR
 			}
 
 			m_dwMainThreadId = GetCurrentThreadId();
-			//STIN_COMTHREAD stTep;
-			//stTep.skSever = m_SockSrv;
-			//stTep.dwMainThreadID = m_dwMainThreadId;
 
 			m_hRevThread = (HANDLE)_beginthreadex(NULL, 0, UDPRevThreadFunc, (LPVOID)this, 0, NULL);  
-			//WaitForSingleObject(handle, INFINITE); 
 
 			return true;
 
@@ -233,7 +230,7 @@ namespace COMMUNICATOR
 		case msg_DAQ_DATAONE:
 			{
 				//test
-				if (bTest)
+				if (TESTDATA)
 				{
 					char Ret[27] = {cmd_HEADER,cmd_MOVE_DETECT,
 						0x00,0x00,0x00,0x00,
@@ -270,6 +267,8 @@ namespace COMMUNICATOR
 					}
 					//nLastAccelaration -= 100*n;
 					nLastAccelaration = 100*n;
+					nGradientY = abs(100*n);
+					nGradientX = 2000;
 
 					memcpy(Ret+2, &nFootBrakeForce, sizeof(int));//4bit
 					memcpy(Ret+6, &nPedalDist, sizeof(int));//4bit
@@ -347,16 +346,6 @@ namespace COMMUNICATOR
 						nGradientY/100.0,
 						nPedalDist/100.0,
 						nLastVelocity/100.0);
-					//static int n=0;
-					//if (n<50)
-					//{
-					//	n++;
-					//}
-					//else
-					//{
-					//	n--;
-					//}
-					//nLastAccelaration -= 100*n;
 
 					memcpy(Ret+2, &nFootBrakeForce, sizeof(int));//4bit
 					memcpy(Ret+6, &nPedalDist, sizeof(int));//4bit
@@ -481,20 +470,21 @@ namespace COMMUNICATOR
 		//memcpy(&stResult, strData2Send.c_str(), sizeof(ANALYSISRESULT));
 
 		ANALYSISRESULT_INT stResultInt;
-		stResultInt.MaxAccelaration = (int)(100*stResult.MaxAccelaration);
-		stResultInt.BrakeDistance = (int)(100*stResult.BrakeDistance);
-		stResultInt.AverageVelocity = (int)(100*stResult.AverageVelocity);
-		//stResultInt.GradientX = (int)(100*stResult.GradientX);
-		//stResultInt.GradientY = (int)(100*stResult.GradientY);
-		int nTmp = stResult.GradientY;
-		stResultInt.GradientY = (int)(100*stResult.GradientX);
-		stResultInt.GradientX = (int)(100*nTmp);
+		stResultInt.MeanDragAccelaration = (int)(100*stResult.MeanDragAccelaration);
+		stResultInt.BrakeLength = (int)(100*stResult.BrakeLength);
+		stResultInt.InitBrakeVelocity = (int)(100*stResult.InitBrakeVelocity);
+		stResultInt.GradientX = (int)(100*stResult.GradientX);
+		stResultInt.GradientY = (int)(100*stResult.GradientY);
+		//int nTmp = stResult.GradientY;
+		//stResultInt.GradientY = (int)(100*stResult.GradientX);
+		//stResultInt.GradientX = (int)(100*nTmp);
 		stResultInt.PedalDistance = (int)(100*stResult.PedalDistance);
 		stResultInt.MaxHandBrakeForce = (int)(100*stResult.MaxHandBrakeForce);
 		stResultInt.MaxFootBrakeForce = (int)(100*stResult.MaxFootBrakeForce);
-		memcpy( (Ret+2), &(stResultInt.MaxAccelaration), sizeof(int) );
-		memcpy( (Ret+6), &(stResultInt.BrakeDistance), sizeof(int) );
-		memcpy( (Ret+10), &(stResultInt.AverageVelocity), sizeof(int) );
+
+		memcpy( (Ret+2), &(stResultInt.MeanDragAccelaration), sizeof(int) );
+		memcpy( (Ret+6), &(stResultInt.BrakeLength), sizeof(int) );
+		memcpy( (Ret+10), &(stResultInt.InitBrakeVelocity), sizeof(int) );
 		memcpy( (Ret+14), &(stResultInt.GradientX), sizeof(int) );
 		memcpy( (Ret+18), &(stResultInt.GradientY), sizeof(int) );
 		memcpy( (Ret+22), &(stResultInt.PedalDistance), sizeof(int) );
@@ -661,7 +651,7 @@ namespace COMMUNICATOR
 		}
 		else
 		{
-			g_logger.TraceInfo("CCommunicator::ParseRevData - recvfrom %d length data",nLenRev);
+			//g_logger.TraceInfo("CCommunicator::ParseRevData - recvfrom %d length data",nLenRev);
 			if( !ParseData(pBuf) )
 			{
 				g_logger.TraceError("CCommunicator::ParseRevData - recv data parse error");
@@ -692,7 +682,7 @@ namespace COMMUNICATOR
 
 		++nLoc;
 		memcpy(&cb,pData+nLoc,1);//cmd
-		g_logger.TraceInfo("CCommunicator::ParseData:cmd=0x%x",cb);
+		//g_logger.TraceInfo("CCommunicator::ParseData:cmd=0x%x",cb);
 		switch (cb)
 		{
 		case cmd_ASD:
@@ -705,6 +695,8 @@ namespace COMMUNICATOR
 			this->cmdUserRegister(pData);
 			break;
 		case cmd_MODIFYPWD:
+			//MessageBeep(MB_OK);
+
 			this->cmdModifyPwd(pData);
 			break;
 		case cmd_USERDELETE:
@@ -930,24 +922,30 @@ namespace COMMUNICATOR
 		//MessageBox(NULL, L"", L"",MB_OK);
 		theApp->m_pCommunicator->SendDatatoUI(msg_DAQ_DATAONE);
 	}
-
+	//动态测试，需要时也担任发送模拟数据的作用。
 	bool CCommunicator::cmdMoveDetectionBegin(const char* pData )
 	{
 		g_logger.TraceInfo("CCommunicator::cmdMoveDetectionBegin");
 
-		theApp->m_pDataController->SetCurrentType(MOVEDETECTION);
-		theApp->m_pDAQController->MoveDetectionBegin();
+		if (TESTDATA)
+		{
+			//temp by fx for test20180314;for send simulate data to client
+			if (nTimer == 0)
+			{
+				nTimer = timeSetEvent( 100,0, TimerProc, 0, (UINT)TIME_PERIODIC);
+				if (nTimer == 0)
+				{
+					g_logger.TraceError("set timer failed");
+					return false;
+				}			
+			}
 
-		////temp by fx for test20180314
-		//bTest = true;
-		//nTimer = 0;
-		//nTimer = timeSetEvent( 100,0, TimerProc, 0, (UINT)TIME_PERIODIC);
-		//if (nTimer == 0)
-		//{
-		//	g_logger.TraceError("set timer failed");
-		//	return false;
-		//}
-		//return true;
+		}
+		else
+		{
+			theApp->m_pDataController->SetCurrentType(MOVEDETECTION);
+			theApp->m_pDAQController->MoveDetectionBegin();
+		}
 
 		return true;
 	}
@@ -956,13 +954,16 @@ namespace COMMUNICATOR
 	{
 		g_logger.TraceInfo("CCommunicator::cmdMoveDetectionEnd");
 
-
-		theApp->m_pDAQController->MoveDetectionEnd();
-
-		////temp by fx for test20180314
-		//bTest = false;
-		//timeKillEvent(nTimer);
-		//return true;
+		if (TESTDATA)
+		{
+			//temp by fx for test20180314
+			timeKillEvent(nTimer);
+			nTimer =0;	
+		}
+		else
+		{
+			theApp->m_pDAQController->MoveDetectionEnd();
+		}
 
 		return true;
 	}

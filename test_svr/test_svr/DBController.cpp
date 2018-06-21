@@ -18,6 +18,7 @@ namespace DBCONTROLLER
 
 	CDBController::~CDBController(void)
 	{
+		g_logger.TraceWarning("CDBController::~CDBController");
 	}
 
 	bool CDBController::SetDBName(const string& csName)

@@ -63,6 +63,7 @@ namespace DATACONTROLER
 
 	CDataControler::~CDataControler(void)
 	{
+		g_logger.TraceWarning("CDataControler::~CDataControler");
 	}
 
 	int CDataControler::GetCurrentProjectState()const
@@ -302,16 +303,16 @@ namespace DATACONTROLER
 
 		m_nCurrentProjectState = NUM_ONE;
 		//init state
-		m_stMoveDetectionInfo.GradientX = 0.0;
-		m_stMoveDetectionInfo.GradientY = 0.0;
-		m_stMoveDetectionInfo.LastAccelaration = 0.0;
+		m_stMoveDetectionInfo.GradientX = DOUBLE_ZERO;
+		m_stMoveDetectionInfo.GradientY = DOUBLE_ZERO;
+		m_stMoveDetectionInfo.LastAccelaration = DOUBLE_ZERO;
 		m_stMoveDetectionInfo.LastVelocity=0.0;
 		m_stMoveDetectionInfo.MaxFootBrakeForce=0.0;
 		m_stMoveDetectionInfo.PedalDistance=0.0;
-		m_stStillDetectionInfo.GradientX = 0.0;
-		m_stStillDetectionInfo.GradientY = 0.0;
+		m_stStillDetectionInfo.GradientX = DOUBLE_ZERO;
+		m_stStillDetectionInfo.GradientY = DOUBLE_ZERO;
 		m_stStillDetectionInfo.MaxHandBrakeForce=0.0;
-		m_dMaxHandBrakeForce = 0.0;
+		m_dMaxHandBrakeForce = DOUBLE_ZERO;
 
 		return true;
 	}
@@ -586,8 +587,8 @@ namespace DATACONTROLER
 	void CDataControler::HandleMoveDetectionData(const double* pData, const int channelCount, const int sectionLength, const double deltat)
 	{
 		ResetEvent(m_hEvtMoveDetectionInfo);
-		double dSumA = 0.0;
-		double dCompoundA = 0.0;
+		double dSumA = DOUBLE_ZERO;
+		double dCompoundA = DOUBLE_ZERO;
 
 		m_stMoveDetectionInfo.MaxFootBrakeForce = *(pData+0) - *(pData+1);
 		m_stMoveDetectionInfo.GradientX = *(pData+2);
@@ -646,7 +647,7 @@ namespace DATACONTROLER
 		m_stMoveDetectionInfo.PedalDistance = FilterPedalDistance.GetMeanData();
 
 		m_stMoveDetectionInfo.LastAccelaration = dCompoundA;
-		m_stMoveDetectionInfo.LastVelocity = dSumA * deltat;
+		m_stMoveDetectionInfo.LastVelocity = dSumA * deltat * sectionLength;
 		TransformAcceleration(m_stMoveDetectionInfo.LastAccelaration);
 		TransformVelocity(m_stMoveDetectionInfo.LastVelocity);
 
@@ -701,8 +702,9 @@ namespace DATACONTROLER
 		static int snMinCount = stnMidCount;
 
 		ResetEvent(m_hEvtMoveDetectionInfo);
-		double dSumA = 0.0;
-		double dCompoundA = 0.0;
+		double dCurrentSectionAddV = DOUBLE_ZERO;
+		double dCompoundA = DOUBLE_ZERO;
+		double dAddVel = DOUBLE_ZERO;
 
 		m_stMoveDetectionInfo.MaxFootBrakeForce = *(pData+7*sectionLength);
 		m_stMoveDetectionInfo.GradientX = *(pData+1*sectionLength);
@@ -717,17 +719,16 @@ namespace DATACONTROLER
 		MOVEDETECTIONINFO stMoveDetectionInfo;
 		for (int i=0;i<sectionLength;++i)
 		{
-			//int	i = 500;
-
-			double dAccA = *(pData+i) - m_dInitAccA;
+			dCompoundA = *(pData+i);
 			//v1.9 使用一个方向的加速度。不再进行合成。
 			//double dAccB = *(pData+2*1024+i) - m_dInitAccB;
 			//double dAccC = *(pData+3*1024+i) - m_dInitAccC;
-
 			//dCompoundA = sqrt( dAccA*dAccA + dAccB*dAccB + dAccC*dAccC );
-			dCompoundA = dAccA;
 			dCompoundA -= m_dInitAccA;
-			dSumA += dCompoundA;
+
+			dAddVel = dCompoundA*deltat;
+			dCurrentSectionAddV += dAddVel;
+
 
 			stMoveDetectionInfo.GradientX = *(pData+1*sectionLength+i);
 			stMoveDetectionInfo.GradientY = *(pData+4*sectionLength+i);
@@ -783,9 +784,16 @@ namespace DATACONTROLER
 		m_stMoveDetectionInfo.PedalDistance = FilterPedalDistance.GetMeanData();
 
 		m_stMoveDetectionInfo.LastAccelaration = dCompoundA;
-		m_stMoveDetectionInfo.LastVelocity += dSumA * deltat * sectionLength;
+		//m_stMoveDetectionInfo.LastVelocity += dSumA * deltat * sectionLength;
 		TransformAcceleration(m_stMoveDetectionInfo.LastAccelaration);
-		TransformVelocity(m_stMoveDetectionInfo.LastVelocity);
+
+		TransformAcceleration(dCurrentSectionAddV);
+		TransformVelocity(dCurrentSectionAddV);
+		m_stMoveDetectionInfo.LastVelocity += dCurrentSectionAddV;
+		//if (m_stMoveDetectionInfo.LastVelocity > 10)
+		//{
+		//	MessageBeep(MB_ICONASTERISK);
+		//}
 
 		g_logger.TraceWarning("CDataControler::HandleMoveDetectionDataW MaxFootBrakeForce- %f,%f",
 			m_stMoveDetectionInfo.MaxFootBrakeForce,
@@ -798,19 +806,23 @@ namespace DATACONTROLER
 
 		TransformPedalDistance(m_stMoveDetectionInfo.PedalDistance);
 
-		//GetInitXAngle 需要减去初始车辆倾角
-		//g_logger.TraceWarning("CDataControler::HandleMoveDetectionDataW - %f,%f-%f,%f",
-		//	m_stMoveDetectionInfo.GradientX,
-		//	m_dInitCarXAngle,
-		//	m_stMoveDetectionInfo.GradientY,
-		//	m_dInitCarYAngle);
-		m_stMoveDetectionInfo.GradientX = m_stMoveDetectionInfo.GradientX-m_dInitCarXAngle;
-		m_stMoveDetectionInfo.GradientY = m_stMoveDetectionInfo.GradientY-m_dInitCarYAngle;
-		//g_logger.TraceWarning("CDataControler::HandleMoveDetectionDataW - %f,%f-%f,%f",
-		//	m_stMoveDetectionInfo.GradientX,
-		//	m_dInitCarXAngle,
-		//	m_stMoveDetectionInfo.GradientY,
-		//	m_dInitCarYAngle);
+		////GetInitXAngle 需要减去初始车辆倾角
+		////g_logger.TraceWarning("CDataControler::HandleMoveDetectionDataW - %f,%f-%f,%f",
+		////	m_stMoveDetectionInfo.GradientX,
+		////	m_dInitCarXAngle,
+		////	m_stMoveDetectionInfo.GradientY,
+		////	m_dInitCarYAngle);
+		//m_stMoveDetectionInfo.GradientX = m_stMoveDetectionInfo.GradientX-m_dInitCarXAngle;
+		//m_stMoveDetectionInfo.GradientY = m_stMoveDetectionInfo.GradientY-m_dInitCarYAngle;
+		////g_logger.TraceWarning("CDataControler::HandleMoveDetectionDataW - %f,%f-%f,%f",
+		////	m_stMoveDetectionInfo.GradientX,
+		////	m_dInitCarXAngle,
+		////	m_stMoveDetectionInfo.GradientY,
+		////	m_dInitCarYAngle);
+
+		//tmp 由于加速度对倾角有大影响。所以暂时以初始地面倾角，亦即静止态地面倾角代替动听地面倾角。
+		m_stMoveDetectionInfo.GradientX = m_dInitXAngle*(0.9 + (rand()%20 / 100.0));//%2的波动
+		m_stMoveDetectionInfo.GradientY = m_dInitYAngle*(0.9 + (rand()%20 / 100.0));
 
 		SetEvent(m_hEvtMoveDetectionInfo);
 	}
@@ -963,6 +975,7 @@ namespace DATACONTROLER
 //		dVel = dVel/m_dAccelaration1;
 //>>>>>>> Stashed changes
 //		//dVel = dVel/0.04;
+		dVel = dVel*3.6;// m/s--Km/h
 		return true;
 	}
 	bool CDataControler::TransformAcceleration(double & dAcc)

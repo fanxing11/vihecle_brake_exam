@@ -2,7 +2,8 @@
 #include "const.h"
 namespace ANALYSISSPACE
 {
-const int COUNTBETWEENSEND = 500;
+	//每多少个点发送一个到UI
+	const int COUNTBETWEENSEND = 500;
 	class CAnalysis
 	{
 	public:

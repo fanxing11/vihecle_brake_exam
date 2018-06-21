@@ -477,7 +477,9 @@ namespace DAQCONTROLER
 
 	CDAQControler::~CDAQControler(void)
 	{
+		g_logger.TraceWarning("CDAQControler::~CDAQControler-in");
 		this->DisInitialize();
+		g_logger.TraceWarning("CDAQControler::~CDAQControler-out");
 	}
 	void CDAQControler::CloseEvtHandle()
 	{

@@ -18,8 +18,9 @@ CtheApp::~CtheApp(void)
 {
 	delete m_pCommunicator;
 	delete m_pDBC;
-	delete m_pDataController;
 	delete m_pDAQController;
+	delete m_pDataController;
+	delete m_pAnalysis;
 }
 
 CtheApp* theApp = NULL;
@@ -55,6 +56,7 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 		cout<<"get one msg"<<endl;
 		if (msg.message == msg_MAIN_QIUT)
 		{
+			g_logger.TraceWarning("WinMain:msg_MAIN_QIUT");
 			break;
 		}
 		switch (msg.message)
@@ -327,7 +329,7 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 			g_logger.TraceError("Main: some thing error.-%s",e->what());
 		}
 
-	cout<<"this is last line"<<endl;
+	//cout<<"this is last line"<<endl;
 
 	g_logger.TraceWarning("_fun_cout_main");
 	return 0;
