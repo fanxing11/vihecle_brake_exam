@@ -613,8 +613,10 @@ namespace ANALYSISSPACE
 
 		theApp->m_pDataController->TransformAcceleration(m_stResult.InitBrakeVelocity);
 		theApp->m_pDataController->TransformVelocity(m_stResult.InitBrakeVelocity);
+		m_stResult.InitBrakeVelocity /= 10;//tmp1.9.2.1
 
 		theApp->m_pDataController->TransformAcceleration(m_stResult.BrakeLength);
+		m_stResult.BrakeLength /= 100;//tmp1.9.2.1
 
 		g_logger.TraceWarning("CAnalysis::HandleDataW -filter2AccVelocity.GetData2-m_stResult.InitBrakeVelocity=%.3f,m_stResult.MeanDragAccelaration=%.3f",
 			m_stResult.InitBrakeVelocity,m_stResult.MeanDragAccelaration);

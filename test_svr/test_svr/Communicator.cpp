@@ -422,6 +422,7 @@ namespace COMMUNICATOR
 				case NUM_THREE://failed
 					{
 						int nInfoLen = strData2Send.length();
+						g_logger.TraceWarning("CCommunicator::SendDatatoUI - %s",strData2Send.c_str());
 						char cInfoLen = (char)nInfoLen;
 						int nCmdLen = nInfoLen+5;
 						char* pBuf= new char[nCmdLen];
@@ -470,17 +471,17 @@ namespace COMMUNICATOR
 		//memcpy(&stResult, strData2Send.c_str(), sizeof(ANALYSISRESULT));
 
 		ANALYSISRESULT_INT stResultInt;
-		stResultInt.MeanDragAccelaration = (int)(100*stResult.MeanDragAccelaration);
-		stResultInt.BrakeLength = (int)(100*stResult.BrakeLength);
-		stResultInt.InitBrakeVelocity = (int)(100*stResult.InitBrakeVelocity);
-		stResultInt.GradientX = (int)(100*stResult.GradientX);
-		stResultInt.GradientY = (int)(100*stResult.GradientY);
+		stResultInt.MeanDragAccelaration = abs( (int)(100*stResult.MeanDragAccelaration) );
+		stResultInt.BrakeLength = abs( (int)(100*stResult.BrakeLength) );
+		stResultInt.InitBrakeVelocity = abs( (int)(100*stResult.InitBrakeVelocity) );
+		stResultInt.GradientX = abs( (int)(100*stResult.GradientX) );
+		stResultInt.GradientY = abs( (int)(100*stResult.GradientY) );
 		//int nTmp = stResult.GradientY;
 		//stResultInt.GradientY = (int)(100*stResult.GradientX);
 		//stResultInt.GradientX = (int)(100*nTmp);
-		stResultInt.PedalDistance = (int)(100*stResult.PedalDistance);
-		stResultInt.MaxHandBrakeForce = (int)(100*stResult.MaxHandBrakeForce);
-		stResultInt.MaxFootBrakeForce = (int)(100*stResult.MaxFootBrakeForce);
+		stResultInt.PedalDistance = abs( (int)(100*stResult.PedalDistance) );
+		stResultInt.MaxHandBrakeForce = abs( (int)(100*stResult.MaxHandBrakeForce) );
+		stResultInt.MaxFootBrakeForce = abs( (int)(100*stResult.MaxFootBrakeForce) );
 
 		memcpy( (Ret+2), &(stResultInt.MeanDragAccelaration), sizeof(int) );
 		memcpy( (Ret+6), &(stResultInt.BrakeLength), sizeof(int) );
