@@ -511,11 +511,14 @@ namespace ANALYSISSPACE
 		m_stResult.PedalDistance = *(pData+5*sectionLengthW);
 		double minPedalDistance=*(pData+5*sectionLengthW);
 		double maxPedalDistance=*(pData+5*sectionLengthW);
+		Filter filterPedalDist;
+		vector <double> vPedalDistance ;
 
 		Filter filterFootBrakeForceSingle(COUNTBETWEENSEND);
 		Filter filterFootBrakeForce(nGroupNum*sectionLengthW/COUNTBETWEENSEND);
 		Filter filter2AccVelocity;
 		Filter filterAcceleration;
+
 		ANALYSISRESULT stAnalysisInfo;
 		ANALYSISDATA stData = {0.0};
 
@@ -551,14 +554,15 @@ namespace ANALYSISSPACE
 				{
 					m_stResult.GradientY = stAnalysisInfo.GradientY;
 				}
-				if (maxPedalDistance < stAnalysisInfo.PedalDistance)
-				{
-					maxPedalDistance = stAnalysisInfo.PedalDistance;
-				}
-				if (minPedalDistance > stAnalysisInfo.PedalDistance)
-				{
-					minPedalDistance = stAnalysisInfo.PedalDistance;
-				}
+				//if (maxPedalDistance < stAnalysisInfo.PedalDistance)
+				//{
+				//	maxPedalDistance = stAnalysisInfo.PedalDistance;
+				//}
+				//if (minPedalDistance > stAnalysisInfo.PedalDistance)
+				//{
+				//	minPedalDistance = stAnalysisInfo.PedalDistance;
+				//}
+				filterPedalDist.AddData(stAnalysisInfo.PedalDistance);
 
 				//save file data to vector for send to UI curve
 				if (--nCountBetweenSend == 0)//每COUNTBETWEENSEND个数向client发送一个数
@@ -587,7 +591,7 @@ namespace ANALYSISSPACE
 				}
 
 			}
-
+			vPedalDistance.push_back( filterPedalDist.GetMeanData() );
 		}
 		//if (!bBrake)
 		//{
@@ -640,6 +644,8 @@ namespace ANALYSISSPACE
 		m_stResult.GradientX -= m_dCarInitXAngle;
 		m_stResult.GradientY -= m_dCarInitYAngle;
 
+		FindMaxMinRange(vPedalDistance,minPedalDistance,maxPedalDistance);
+		vPedalDistance.clear();
 		theApp->m_pDataController->TransformPedalDistance(maxPedalDistance);
 		theApp->m_pDataController->TransformPedalDistance(minPedalDistance);
 		m_stResult.PedalDistance = minPedalDistance - maxPedalDistance;//因为上面的转换是负相关的

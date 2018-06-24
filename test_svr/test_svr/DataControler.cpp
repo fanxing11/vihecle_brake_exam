@@ -789,10 +789,11 @@ namespace DATACONTROLER
 
 		TransformAcceleration(dCurrentSectionAddV);
 		TransformVelocity(dCurrentSectionAddV);
+		dCurrentSectionAddV /= 10; //tmp1.9.2.1
 		m_stMoveDetectionInfo.LastVelocity += dCurrentSectionAddV;
 		//if (m_stMoveDetectionInfo.LastVelocity > 10)
 		//{
-		//	MessageBeep(MB_ICONASTERISK);
+		//	MessageBeep(MB_OK);
 		//}
 
 		g_logger.TraceWarning("CDataControler::HandleMoveDetectionDataW MaxFootBrakeForce- %f,%f",
@@ -820,9 +821,11 @@ namespace DATACONTROLER
 		////	m_stMoveDetectionInfo.GradientY,
 		////	m_dInitCarYAngle);
 
-		//tmp 由于加速度对倾角有大影响。所以暂时以初始地面倾角，亦即静止态地面倾角代替动听地面倾角。
-		m_stMoveDetectionInfo.GradientX = m_dInitXAngle*(0.9 + (rand()%20 / 100.0));//%2的波动
-		m_stMoveDetectionInfo.GradientY = m_dInitYAngle*(0.9 + (rand()%20 / 100.0));
+		////tmp 由于加速度对倾角有大影响。所以暂时以初始地面倾角，亦即静止态地面倾角代替动听地面倾角。
+		//double dXangle = m_dInitXAngle;
+		//double dYangle = m_dInitYAngle;
+		//m_stMoveDetectionInfo.GradientX = dXangle*(0.9 + (rand()%20 / 100.0));//%2的波动
+		//m_stMoveDetectionInfo.GradientY = dYangle*(0.9 + (rand()%20 / 100.0));
 
 		SetEvent(m_hEvtMoveDetectionInfo);
 	}
