@@ -592,6 +592,7 @@ namespace ANALYSISSPACE
 
 			}
 			vPedalDistance.push_back( filterPedalDist.GetMeanData() );
+			filterPedalDist.ResetMean();
 		}
 		//if (!bBrake)
 		//{

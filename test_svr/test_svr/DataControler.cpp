@@ -813,8 +813,8 @@ namespace DATACONTROLER
 		////	m_dInitCarXAngle,
 		////	m_stMoveDetectionInfo.GradientY,
 		////	m_dInitCarYAngle);
-		//m_stMoveDetectionInfo.GradientX = m_stMoveDetectionInfo.GradientX-m_dInitCarXAngle;
-		//m_stMoveDetectionInfo.GradientY = m_stMoveDetectionInfo.GradientY-m_dInitCarYAngle;
+		m_stMoveDetectionInfo.GradientX = m_stMoveDetectionInfo.GradientX-m_dInitCarXAngle;
+		m_stMoveDetectionInfo.GradientY = m_stMoveDetectionInfo.GradientY-m_dInitCarYAngle;
 		////g_logger.TraceWarning("CDataControler::HandleMoveDetectionDataW - %f,%f-%f,%f",
 		////	m_stMoveDetectionInfo.GradientX,
 		////	m_dInitCarXAngle,
@@ -878,6 +878,8 @@ namespace DATACONTROLER
 		TransformGradient(m_stStillDetectionInfo.GradientY);
 
 		Filter FilterHandBrakeForce;
+		//Filter FilterGradientX ;
+		//Filter FilterGradientY ;
 		STILLDETECTIONINFO stStillDetectionInfo;
 		for (int i=0;i<sectionLength;++i)
 		{
@@ -903,7 +905,8 @@ namespace DATACONTROLER
 			{
 				m_stStillDetectionInfo.GradientY = stStillDetectionInfo.GradientY;
 			}
-
+			//FilterGradientX.AddData(stStillDetectionInfo.GradientX);
+			//FilterGradientY.AddData(stStillDetectionInfo.GradientY); 
 		}
 		if (nMidCount == stnMidCount)
 		{
@@ -911,6 +914,12 @@ namespace DATACONTROLER
 		}
 		m_stStillDetectionInfo.MaxHandBrakeForce -= m_dInitHandForce;
 		TransformHandBrakeForce(m_stStillDetectionInfo.MaxHandBrakeForce);
+
+		//m_stStillDetectionInfo.GradientX = FilterGradientX.GetMeanData();
+		//m_stStillDetectionInfo.GradientY = FilterGradientY.GetMeanData();
+		//GetInitXAngle 需要减去初始车辆倾角
+		m_stStillDetectionInfo.GradientX = m_stStillDetectionInfo.GradientX-m_dInitCarXAngle;
+		m_stStillDetectionInfo.GradientY = m_stStillDetectionInfo.GradientY-m_dInitCarYAngle;
 
 		//保存下静止时的最大手刹力:有正负，所以是绝对值比大小
 		if( abs(m_dMaxHandBrakeForce)<abs(m_stStillDetectionInfo.MaxHandBrakeForce) )

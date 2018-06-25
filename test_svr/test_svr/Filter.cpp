@@ -61,6 +61,13 @@ double Filter::GetMeanData()
 	}
 }
 
+void Filter::ResetMean()
+{
+	m_nCount = 0;
+	m_dSum = 0;
+}
+
+
 void Filter::AddData1(const double dData)
 {
 	m_vtData.push_back(dData);

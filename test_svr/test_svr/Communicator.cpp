@@ -714,9 +714,11 @@ namespace COMMUNICATOR
 			break;
 		case cmd_INITGRADIENT_BEGIN:
 			this->cmdInitGradientBegin(pData);
+			this->cmdStillDetectionBegin(pData);
 			break;
 		case cmd_INITGRADIENT_END:
 			this->cmdInitGradientEnd(pData);
+			this->cmdStillDetectionEnd(pData);
 			break;
 		//case cmd_STILL_DETECT_BEGIN:
 		//	this->cmdStillDetectionBegin(pData);
@@ -731,11 +733,9 @@ namespace COMMUNICATOR
 		//	this->cmdMoveDetectionEnd(pData);
 		//	break;
 		case cmd_BEGIN_DETECT:
-			this->cmdStillDetectionBegin(pData);
 			this->cmdMoveDetectionBegin(pData);
 			break;
 		case cmd_END_DETECT:
-			this->cmdStillDetectionEnd(pData);
 			this->cmdMoveDetectionEnd(pData);
 			break;
 		case cmd_REPORTPATH:

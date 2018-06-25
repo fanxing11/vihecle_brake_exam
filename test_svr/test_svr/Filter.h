@@ -19,6 +19,7 @@ public:
 	//get mean data
 	void AddData(double dData);
 	double GetMeanData();
+	void ResetMean();
 
 	//get mid data
 	void AddData1(const double dData);
