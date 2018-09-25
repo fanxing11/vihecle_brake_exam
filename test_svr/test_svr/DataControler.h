@@ -57,6 +57,7 @@ namespace DATACONTROLER
 			const string ParaName,
 			double & dPara);
 		double m_dIsWireless;//Initial sensor para
+		double m_dValidFootBrakeForce;
 		double m_dFootBrakePara1;//Initial sensor para
 		double m_dFootBrakePara2;
 		double m_dHandBrakePara1;
@@ -73,6 +74,7 @@ namespace DATACONTROLER
 	public:
 		//wired / wireless
 		bool DAQIsWirelessType();
+		double GetValidFootBrakeForce() const;
 		//called in main
 		int GetCurrentProjectState()const;
 		bool GetProjectPath(string& strPath) const;

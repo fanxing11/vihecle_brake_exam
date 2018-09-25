@@ -99,3 +99,15 @@ void GetAllFiles( string path, vector<string>& files, string format )
 	}   
 
 }   
+
+BOOL IsDiskExist(CHAR cDiskName) 
+{  
+	DWORD dwDrivers;  
+	int i = cDiskName - 'A';    //dwDrivers的每一个二进制位表示对应的驱动器是否存在。  
+	dwDrivers = GetLogicalDrives();  //判断当前位是否有驱动器  
+	if ((dwDrivers & (1<<(i)))!=0)  
+	{   
+		return TRUE;  
+	}  
+	return FALSE;
+}

@@ -29,17 +29,23 @@ public:
 	double GetMaxValue();
 	void GetPartIndex(UINT &nBegin,UINT &nEnd);
 	double GetPartMeanValue(const UINT nBegin,const UINT bEnd);
-	//for mean drag acc and max velocity
+	//for mean drag acc and max velocity1
 	void AddData2(double dAcc,double dVel);
-	//返回MFDD，最大速度（制动初速度），刹车距离
+	//返回MFDD，最大速度（制动初速度），刹车距离;把最大速度点作为开始制动点
 	bool GetData2(const double deltat,double &dAcc,double &dVel,double &BrakeDist);
+	//for mean drag acc and max velocity
+	void AddData3(double dAcc,double dVel,double dOriginFootBrakeForce);
+	//返回MFDD，最大速度（制动初速度），刹车距离;取行车制动力大于某个值的点作为开始制动点
+	bool GetData3(const double deltat,double &dAcc,double &dVel,double &BrakeDist);
+
 private:
 
 	double m_dSum;
 	int m_nCount;
 
-	vector<double> m_vtData;
-	vector<double> m_vtData1;
-	vector< pair<double,int> >m_vtData2;
+	vector<double> m_vtData;//acc
+	vector<double> m_vtData1;//vel
+	vector< pair<double,int> >m_vtData2;//vel and its count
+	vector< pair<double,double> >m_vtData3;//vel and footbrakeforce
 };
 

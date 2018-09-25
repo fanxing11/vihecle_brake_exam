@@ -533,8 +533,6 @@ namespace ANALYSISSPACE
 				dAddVel = dCompoundA*deltat;
 				dCurrentVel += dAddVel;
 
-				filter2AccVelocity.AddData2(dCompoundA,dCurrentVel);
-
 				//dCurrentDist = dCurrentDist + dCurrentVel*deltat + 0.5*dCompoundA*deltat*deltat;
 
 				stAnalysisInfo.MaxFootBrakeForce = *(pData+nStepj+7*sectionLengthW+i);
@@ -545,6 +543,8 @@ namespace ANALYSISSPACE
 				stAnalysisInfo.PedalDistance = *(pData+nStepj+5*sectionLengthW+i);
 
 				filterFootBrakeForceSingle.AddData1(stAnalysisInfo.MaxFootBrakeForce);
+
+				filter2AccVelocity.AddData3(dCompoundA,dCurrentVel,stAnalysisInfo.MaxFootBrakeForce);
 
 				if ( abs(m_stResult.GradientX) < abs(stAnalysisInfo.GradientX) )
 				{
@@ -605,7 +605,7 @@ namespace ANALYSISSPACE
 		//g_logger.TraceWarning("CAnalysis::HandleDataW - m_stResult.InitBrakeVelocity=%.3f m/s, filterVelocity.GetMaxValue()=%.3f m/s",
 		//	m_stResult.InitBrakeVelocity , filter2AccVelocity.GetMaxValue());
 		double dAcc=0,dVel=0,dDist=0;
-		if(!filter2AccVelocity.GetData2(deltat,dAcc,dVel,dDist))
+		if(!filter2AccVelocity.GetData3(deltat,dAcc,dVel,dDist))
 		{
 			g_logger.TraceError("CAnalysis::HandleDataW -filter2AccVelocity.GetData2 failed! ");
 		}

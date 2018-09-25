@@ -31,6 +31,7 @@ namespace DATACONTROLER
 		,m_nCurrentType(NONTYPE)
 		,m_bUpdateCarAngleFlag(false)
 		,m_dIsWireless(-1)
+		,m_dValidFootBrakeForce(-1)
 		,m_dFootBrakePara1(0.0)
 		,m_dFootBrakePara2(0.0)
 		,m_dHandBrakePara1(0.0)
@@ -89,9 +90,30 @@ namespace DATACONTROLER
 		}
 		return ret;
 	}
+	double CDataControler::GetValidFootBrakeForce() const
+	{
+		g_logger.TraceInfo("CDataControler::GetValidFootBrakeForce- %.1f",m_dValidFootBrakeForce);
+
+		//dForce = (dForce + m_dFootBrakePara1)*m_dFootBrakePara2;
+		double dForce = 0.0;
+		if (m_dFootBrakePara2>0.0001)
+		{
+			dForce = m_dValidFootBrakeForce/m_dFootBrakePara2-m_dFootBrakePara1;
+		}
+		else
+		{
+			g_logger.TraceError("CDataControler::GetValidFootBrakeForce- invalid parameter-ValidFootBrakeForce");
+		}
+
+		return dForce;
+	}
+
 	bool CDataControler::ReadSensorConfigFromINI()
 	{
 		ReadOneParaFromConfigINI(gc_strDAQType,gc_strIsWireless,m_dIsWireless);
+		//v1.9.6
+		ReadOneParaFromConfigINI(gc_strANALYSIS,gc_strValidFootBrakeForce,m_dValidFootBrakeForce);
+
 		if (DAQIsWirelessType())
 		{
 			ReadOneParaFromConfigINI(gc_strParaFootBrakeForceW,gc_strPara1,m_dFootBrakePara1);
@@ -447,14 +469,29 @@ namespace DATACONTROLER
 		t = time(NULL);
 		local = localtime(&t);
 		char stFilePath[MAX_PATH] = {0};
-		sprintf_s(stFilePath,"C:\\CJZD_Data\\%04d%02d%02d_%02d%02d%02d\\",
-			local->tm_year+1900,
-			local->tm_mon+1,
-			local->tm_mday,
-			local->tm_hour,
-			local->tm_min,
-			local->tm_sec
-			);
+		if (IsDiskExist('D'))//v1.9.6
+		{
+			sprintf_s(stFilePath,"D:\\CJZD_Data\\%04d%02d%02d_%02d%02d%02d\\",
+				local->tm_year+1900,
+				local->tm_mon+1,
+				local->tm_mday,
+				local->tm_hour,
+				local->tm_min,
+				local->tm_sec
+				);
+		}
+		else
+		{
+			sprintf_s(stFilePath,"C:\\CJZD_Data\\%04d%02d%02d_%02d%02d%02d\\",
+				local->tm_year+1900,
+				local->tm_mon+1,
+				local->tm_mday,
+				local->tm_hour,
+				local->tm_min,
+				local->tm_sec
+				);
+		}
+
 		MakeSureDirectoryPathExists(stFilePath);
 		strPath = stFilePath;
 	}
@@ -796,10 +833,10 @@ namespace DATACONTROLER
 		//	MessageBeep(MB_OK);
 		//}
 
-		g_logger.TraceWarning("CDataControler::HandleMoveDetectionDataW MaxFootBrakeForce- %f,%f",
-			m_stMoveDetectionInfo.MaxFootBrakeForce,
-			m_dInitFootForce);
-		m_stMoveDetectionInfo.MaxFootBrakeForce -= m_dInitFootForce;
+		//g_logger.TraceWarning("CDataControler::HandleMoveDetectionDataW MaxFootBrakeForce- %f,%f",
+		//	m_stMoveDetectionInfo.MaxFootBrakeForce,
+		//	m_dInitFootForce);
+		//m_stMoveDetectionInfo.MaxFootBrakeForce -= m_dInitFootForce;
 		TransformFootBrakeForce(m_stMoveDetectionInfo.MaxFootBrakeForce);
 		g_logger.TraceWarning("CDataControler::HandleMoveDetectionDataW MaxFootBrakeForce- %f,%f",
 			m_stMoveDetectionInfo.MaxFootBrakeForce,

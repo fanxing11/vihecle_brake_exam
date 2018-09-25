@@ -193,6 +193,10 @@ const string gc_strInitHandBrakeForce("InitHandBrakeForce");
 const string gc_strSensorConfig_FileName(".\\config.ini");
 const string gc_strDAQType("DAQTYPE");
 const string gc_strIsWireless("Wireless");
+//v1.9.6
+const string gc_strValidFootBrakeForce("ValidFootBrakeForce");
+const string gc_strANALYSIS("ANALYSIS");
+
 
 const string gc_strParaFootBrakeForce("FootBrakeForce_Wired");
 const string gc_strParaHandBrakeForce("HandBrakeForce_Wired");
