@@ -15,6 +15,7 @@ extern CLogger g_logger;
 #include <process.h>//_beginthreadex_endthreadex
 #pragma comment(lib,"user32.lib")//GetMessage
 
+const double DOUBLE_ZERO = 0.0;
 const int NUM_ZERO = 0;
 const int NUM_NEGONE = -1;
 const int NUM_ONE = 1;
@@ -28,6 +29,7 @@ const int NUM_EIGHT = 8;
 const int NUM_NINE = 9;
 const int NUM_TEN = 10;
 const int NUM_ELENEN = 11;
+const double NUM_PI = 3.141592654;
 
 
 //----- UDP_rev_thread to main thread msg  
@@ -115,7 +117,7 @@ const UINT msg_DAQ_VELOCITY = WM_USER+301;
 const UINT msg_DAQ_STRESS = WM_USER+302;
 const UINT msg_DAQ_DATAONE = WM_USER+303;
 
-
+const int stnMidCount = 500;
 
 typedef struct MoveDetectionInfo
 {
@@ -135,21 +137,21 @@ typedef struct StillDetectionInfo
 
 typedef struct AnalysisResult
 {
-	double MaxAccelaration;
-	double BrakeDistance;
-	double AverageVelocity;
-	double GradientX;//max value
-	double GradientY;//max value
-	double PedalDistance;//max value
+	double MeanDragAccelaration;//MFDD减速阶段的加速度均值，即踩下刹车后，速度从最高点往下减的过程中所有加速度的均值
+	double BrakeLength;//刹车制动距离
+	double InitBrakeVelocity;//制动初速度，开始减速时的速度
+	double GradientX;//max value  地面X方向坡度
+	double GradientY;//max value  地面Y方向坡度-暂时不用
+	double PedalDistance;//max -min
 	double MaxHandBrakeForce;
 	double MaxFootBrakeForce;
 
 }ANALYSISRESULT;
 typedef struct AnalysisResult_Int
 {
-	int MaxAccelaration;
-	int BrakeDistance;
-	int AverageVelocity;
+	int MeanDragAccelaration;
+	int BrakeLength;
+	int InitBrakeVelocity;
 	int GradientX;//max value
 	int GradientY;//max value
 	int PedalDistance;//max value
@@ -180,6 +182,38 @@ const string gc_strInitYAngle("InitialY");
 
 const string gc_strResult("Result");
 const string gc_strMaxHandBrakeForce("MaxHandBrakeForce");
+const string gc_strInitValue("InitValue");
+const string gc_strInitAccA("InitAccA");//初始加速度值
+const string gc_strInitAccB("InitAccB");
+const string gc_strInitAccC("InitAccC");
+const string gc_strInitFootBrakeForce("InitFootBrakeForce");
+const string gc_strInitHandBrakeForce("InitHandBrakeForce");
+
+//-----------------------------for sensor config paramaters
+const string gc_strSensorConfig_FileName(".\\config.ini");
+const string gc_strDAQType("DAQTYPE");
+const string gc_strIsWireless("Wireless");
+//v1.9.6
+const string gc_strValidFootBrakeForce("ValidFootBrakeForce");
+const string gc_strANALYSIS("ANALYSIS");
+
+
+const string gc_strParaFootBrakeForce("FootBrakeForce_Wired");
+const string gc_strParaHandBrakeForce("HandBrakeForce_Wired");
+const string gc_strParaXYAngle("XYAngle_Wired");
+const string gc_strParaPedalDistance("PedalDistance_Wired");
+const string gc_strParaAccelaration("Accelaration_Wired");
+const string gc_strParaFootBrakeForceW("FootBrakeForce_Wireless");
+const string gc_strParaHandBrakeForceW("HandBrakeForce_Wireless");
+const string gc_strParaXYAngleW("XYAngle_Wireless");
+const string gc_strParaPedalDistanceW("PedalDistance_Wireless");
+const string gc_strParaAccelarationW("Accelaration_Wireless");
+
+const string gc_strPara1("Para1");
+const string gc_strPara2("Para2");
+const string gc_strPara3("Para3");
+const string gc_strPara4("Para4");
+const string gc_strPara5("Para5");
 
 enum enDETECTION_TYPE
 {

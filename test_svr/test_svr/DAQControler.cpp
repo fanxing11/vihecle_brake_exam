@@ -30,6 +30,171 @@ namespace DAQCONTROLER
 
 	}
 
+	inline void waitAnyKey()
+	{
+		do{SLEEP(1);} while(!kbhit());
+	} 
+
+	// This function is used to deal with 'DataReady' Event. 
+	//---------------------------------------------- for wired DAQ type----------------------------------------------begin
+	void BDAQCALL OnDataReadyEvent(void * sender, BfdAiEventArgs * args, void *userParam)
+	{
+		//static int i = 1;
+		//if (i>1)
+		//{
+		//	return;
+		//}
+		//1. get data
+		WaveformAiCtrl * waveformAiCtrl = NULL;
+		waveformAiCtrl = (WaveformAiCtrl *)sender;
+		int32 getDataCount = min(USER_BUFFER_SIZE, args->Count);
+		//cout<<USER_BUFFER_SIZE<<"  "<<args->Count<<"  "<<getDataCount<<endl;
+		waveformAiCtrl->GetData(getDataCount, Data);
+
+		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtSample,0))//是否在采集
+		{
+			return;
+		}
+		//printTime();
+		//2. data process
+		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtInitGradient,0))
+		{
+			theApp->m_pDataController->HandleInitGradientData(Data, channelCount,sectionLength);
+			theApp->m_pDataController->GetInitValue(Data, channelCount,sectionLength);
+		}
+		/*else*/ if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtStillDetection,0))
+		{
+			theApp->m_pDataController->HandleStillDetectionData(Data, channelCount,sectionLength);
+		}
+		/*else*/ if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtMoveDetection,0))
+		{
+			theApp->m_pDataController->HandleMoveDetectionData(Data, channelCount,sectionLength,deltat);
+		}
+		//printTime();
+		//3. data save
+		if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtSaveFile,0))
+		{
+			//printf("Ready to save the data...%d\n\n",getDataCount);
+			memcpy(buffer, Data, SingleSavingFileSize);
+
+			if (WriteFile(hFile, buffer, SingleSavingFileSize, &WrittenBytes, NULL))
+			{
+				//printf("Saving has been executed!\n\n");
+				RealFileSize += WrittenBytes; 
+				//printf("The real-time size of file is %d byte\n\n", RealFileSize);
+				//printf("Executed %d time.\n\n", i++);
+			} 
+			else
+			{
+				g_logger.TraceError("OnDataReadyEvent:error!");
+			}	
+		}
+		//memcpy(DateOne, buffer, 10*sizeof(double));
+
+		//4. send data to UI
+		PostThreadMessage(theApp->m_dwMainThreadID, msg_DAQ_DATAONE, NULL, NULL);
+
+	}
+	//The function is used to deal with 'OverRun' Event.
+	void BDAQCALL OnOverRunEvent(void * sender, BfdAiEventArgs * args, void *userParam)
+	{
+		printf("Streaming AI Overrun: offset = %d, count = %d\n", args->Offset, args->Count);
+	}
+	//The function is used to deal with 'CacheOverflow' Event.
+	void BDAQCALL OnCacheOverflowEvent(void * sender, BfdAiEventArgs * args, void *userParam)
+	{
+		printf(" Streaming AI Cache Overflow: offset = %d, count = %d\n", args->Offset, args->Count);
+	}
+	//The function is used to deal with 'Stopped' Event.
+	void BDAQCALL OnStoppedEvent(void * sender, BfdAiEventArgs * args, void *userParam)
+	{
+		printf("Streaming AI stopped: offset = %d, count = %d\n", args->Offset, args->Count);
+	}
+	void CDAQControler::InitializeWiredDAQ()
+	{
+		g_logger.TraceInfo("CDAQControler::InitializeWiredDAQ:-in.");
+		try
+		{
+
+			ErrorCode        ret = Success;
+
+			// Step 1: Create a 'WaveformAiCtrl' for buffered AI function.
+			m_wfAiCtrl = WaveformAiCtrl::Create();
+
+			////Step 2: Open file
+			//openFile();
+
+			// Step 3: Set the notification event Handler by which we can known the state of operation effectively.
+			m_wfAiCtrl->addDataReadyHandler(OnDataReadyEvent, NULL);
+			m_wfAiCtrl->addOverrunHandler(OnOverRunEvent, NULL);
+			m_wfAiCtrl->addCacheOverflowHandler(OnCacheOverflowEvent, NULL);
+			m_wfAiCtrl->addStoppedHandler(OnStoppedEvent, NULL);
+			do
+			{
+				// Step 4: Select a device by device number or device description and specify the access mode.
+				// in this example we use ModeWrite mode so that we can fully control the device, including configuring, sampling, etc.
+				DeviceInformation devInfo(deviceDescription);
+				ret = m_wfAiCtrl->setSelectedDevice(devInfo);
+				CHK_RESULT(ret);
+				ret = m_wfAiCtrl->LoadProfile(profilePath);//Loads a profile to initialize the device.
+				CHK_RESULT(ret);
+
+				// Step 5: Set necessary parameters.
+				Conversion * conversion = m_wfAiCtrl->getConversion();
+				ret = conversion->setChannelStart(startChannel);
+				CHK_RESULT(ret);
+				ret = conversion->setChannelCount(channelCount);
+				CHK_RESULT(ret);
+				Record * record = m_wfAiCtrl->getRecord();
+				ret = record->setSectionCount(sectionCount);//The 0 means setting 'streaming' mode.
+				CHK_RESULT(ret);
+				ret = record->setSectionLength(sectionLength);
+				CHK_RESULT(ret);
+
+				// Step 6: The operation has been started.
+				// We can get samples via event handlers.
+				ret = m_wfAiCtrl->Prepare();
+				CHK_RESULT(ret);
+				ret = m_wfAiCtrl->Start();
+				CHK_RESULT(ret);
+
+				//// Step 7: The device is acquiring data.
+				//printf("Streaming AI is in progress.\nplease wait...  any key to quit!\n\n");
+				//do
+				//{
+				//	SLEEP(1);
+				//}	while((RealFileSize < RequirementFileSize) ? true : false);
+				//printf("Saving completely!\n");
+
+				//// step 8: Stop the operation if it is running.
+				//ret = m_wfAiCtrl->Stop(); 
+				//CHK_RESULT(ret);
+			}while(false);
+
+			//// Step 9: Close device, release any allocated resource.
+			//m_wfAiCtrl->Dispose();
+			//VirtualFree(buffer, SingleSavingFileSize, MEM_RELEASE);
+			//CloseHandle(hFile);
+
+			// If something wrong in this execution, print the error code on screen for tracking.
+			m_bDAQInitialSuccessfully = true;
+			if(BioFailed(ret))
+			{
+				//u初始化错误，弹框或者返回错误信息----
+				g_logger.TraceError("CDAQControler::Initialize:Initial DAQ failed. And the last error code is 0x%X.\n", ret);
+				//waitAnyKey();// wait any key to quit!
+				m_bDAQInitialSuccessfully = false;
+			}
+		}
+		catch (exception &e)
+		{
+			g_logger.TraceError("CDAQControler::Initialize:(in catch)Initial DAQ failed.");
+		}
+	}
+	//---------------------------------------------- for wired DAQ type----------------------------------------------end
+
+	//---------------------------------------------- for wireless DAQ type--------------------------------------------begin
+
 	unsigned int WINAPI DAQThreadFunc(LPVOID lp)
 	{
 		g_logger.TraceInfo("DAQThreadFunc_funcin");
@@ -47,7 +212,7 @@ namespace DAQCONTROLER
 			if (fMultiple > 1)
 			{
 				//cout<< "- begin sample"<<endl;
-				pCDAQControler->GetData();
+				//pCDAQControler->GetData();
 
 				//-----
 				LONGLONG nPoints = 0;
@@ -87,14 +252,15 @@ namespace DAQCONTROLER
 				if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtInitGradient,0))
 				{
 					theApp->m_pDataController->HandleInitGradientDataW(dYAm, channelCountW,sectionLengthW);
-				}
-				if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtMoveDetection,0))
-				{
-					theApp->m_pDataController->HandleMoveDetectionDataW(dYAm, channelCountW,sectionLengthW,deltatW);
+					theApp->m_pDataController->GetInitValueW(dYAm, channelCountW, sectionLengthW);
 				}
 				if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtStillDetection,0))
 				{
 					theApp->m_pDataController->HandleStillDetectionDataW(dYAm, channelCountW,sectionLengthW);
+				}
+				if (WAIT_OBJECT_0 == WaitForSingleObject(m_gEvtMoveDetection,0))
+				{
+					theApp->m_pDataController->HandleMoveDetectionDataW(dYAm, channelCountW,sectionLengthW,deltatW);
 				}
 				//printTime();
 				//3. data save
@@ -136,10 +302,117 @@ namespace DAQCONTROLER
 		return 0;
 	}
 
-	inline void waitAnyKey()
+
+	void CDAQControler::InitializeWirelessDAQ()
 	{
-		do{SLEEP(1);} while(!kbhit());
-	} 
+		g_logger.TraceInfo("CDAQControler::InitializeWirelessDAQ:-in.");
+		try
+		{
+
+			bool ret = true;
+
+			HMODULE hInst = NULL;
+			//cout<<"LoadLibrary start"<<endl;
+			hInst = LoadLibrary(L"UsbAD.dll"); //UsbAD.dll
+
+			DWORD dw = GetLastError();
+
+			if (hInst == NULL)
+			{
+				//cout<<"hInst = NULL"<<endl;
+				g_logger.TraceError("CDAQControler::Initialize:hInst = NULL");
+				ret = false;
+				//return false;
+			}
+			else
+			{
+				cout<<"LoadLibrary ok"<<endl;
+
+				//*********************************Dll import start*****************************************//
+				//-----Lab_ConnectUT89
+				dll_ConnectUT89 = *(Dll_ConnectUT89)GetProcAddress(hInst, "Lab_ConnectUT89");
+				//-----Lab_SetPar
+				dll_SetPar = *(Dll_SetPar)GetProcAddress(hInst, "Lab_SetPar");
+				//-----Lab_SetPar
+				dll_Start = *(Dll_OnStart)GetProcAddress(hInst, "Lab_OnStart");
+				//-----Lab_GetDataLen n_DateSize
+				dll_GetDataLen = *(Dll_GetDataLen)GetProcAddress(hInst, "Lab_GetDataLen");
+				//-----Lab_ReadBuf
+				dll_ReadBuf = *(Dll_ReadBuf)GetProcAddress(hInst, "Lab_ReadBuf");
+				//-----Lab_OutLabDate
+				dll_OutLabDate = *(Dll_OutLabDate)GetProcAddress(hInst, "Lab_OutLabDate");
+				//-----Lab_Get2Wave
+				dll_Get2Wave = *(Dll_Get2Wave)GetProcAddress(hInst, "Lab_Get2Wave");
+				//*********************************Dll import end*****************************************//
+
+				//-----
+				string strIP("192.168.0.187");
+
+				char* pIP =NULL;
+				pIP = (char*)(strIP.c_str());
+
+				char cFilePath[MAX_PATH]={0};
+				GetModuleFileNameA(NULL, cFilePath, MAX_PATH); 
+				(strrchr(cFilePath, '\\'))[1] = 0;
+				//cout<< cFilePath <<endl;
+
+				bool bConnected = dll_ConnectUT89(cFilePath, pIP );
+				if (!bConnected)
+				{	
+					g_logger.TraceError("CDAQControler::Initialize:can not connect to wireless IP");
+					ret = false;
+					//cout<<"!can not connect to IP."<<endl;
+				}
+
+				//-----
+				int nEnableCh[8]={1,1,1,1,1,1,1,1};
+				int sCoupling[8]={0,0,0,0,0,0,0,0};
+				int pComInput[8]={0,0,0,0,0,0,0,0};
+				int pZoom[8]={0,0,0,0,0,0,0,0};
+				bool bSetPara = dll_SetPar(WirelessDAQFrq, nEnableCh, sCoupling, pComInput, pZoom);
+				if (!bSetPara)
+				{
+					ret = false;
+					g_logger.TraceError("CDAQControler::Initialize:failed to set para");
+					//cout<<"!failed to set para"<<endl;
+				}
+			}
+
+			if(ret)
+			{
+				//-----
+				if (dll_Start == 0)
+				{
+					g_logger.TraceError("CDAQControler::Initialize:dll_Start == 0");
+					//cout<<"GetProcAddress dll_Start failed"<<endl;
+				}
+				else
+				{
+					int ret = dll_Start();
+					if (!ret)
+					{
+						//cout<<"!failed to start"<<endl;s
+						g_logger.TraceError("CDAQControler::Initialize:failed to start");
+					}
+					else
+					{
+						//cout<<"- start"<<endl;
+						g_logger.TraceInfo("CDAQControler::Initialize:_beginthreadex");
+
+						m_hDAQThread = (HANDLE)_beginthreadex(NULL, 0, DAQThreadFunc, (LPVOID)this, 0, NULL);  
+						m_bDAQInitialSuccessfully = true;
+					}
+					//cout<<"DllStart return:"<<ret<<endl;
+				}
+
+			}
+		}
+		catch (exception &e)
+		{
+			g_logger.TraceError("CDAQControler::Initialize:(in catch)Initial DAQ failed.");
+		}
+	}
+	//---------------------------------------------- for wireless DAQ type--------------------------------------------end
 
 	inline void openFile()
 	{
@@ -176,7 +449,15 @@ namespace DAQCONTROLER
 			g_logger.TraceError("openFile:Cannot open file (error %d)\n", GetLastError());
 		}
 
-		buffer = (double*)VirtualAlloc(NULL, SingleSavingFileSizeW, MEM_COMMIT, PAGE_READWRITE);
+		if (theApp->m_pDataController->DAQIsWirelessType())
+		{
+			buffer = (double*)VirtualAlloc(NULL, SingleSavingFileSizeW, MEM_COMMIT, PAGE_READWRITE);
+		}
+		else
+		{
+			buffer = (double*)VirtualAlloc(NULL, SingleSavingFileSize, MEM_COMMIT, PAGE_READWRITE);
+		}
+
 		if (!buffer)
 		{
 			g_logger.TraceError("openFile:Allocate buffer fail(error %d)\n",GetLastError());
@@ -192,16 +473,13 @@ namespace DAQCONTROLER
 		g_logger.TraceInfo("CDAQControler::CDAQControler");
 		CreateSyncEvent();
 
-		this->Initialize();
 	}
 
 	CDAQControler::~CDAQControler(void)
 	{
+		g_logger.TraceWarning("CDAQControler::~CDAQControler-in");
 		this->DisInitialize();
-	}
-	void CDAQControler::GetData()
-	{
-		
+		g_logger.TraceWarning("CDAQControler::~CDAQControler-out");
 	}
 	void CDAQControler::CloseEvtHandle()
 	{
@@ -251,135 +529,44 @@ namespace DAQCONTROLER
 
 	void CDAQControler::DisInitialize()
 	{
+		if (!theApp->m_pDataController->DAQIsWirelessType())
+		{
+			ErrorCode        ret = Success;
+
+			do 
+			{
+				// step 8: Stop the operation if it is running.
+				ret = m_wfAiCtrl->Stop(); 
+				CHK_RESULT(ret);
+			} while (false);
+
+			// Step 9: Close device, release any allocated resource.
+			m_wfAiCtrl->Dispose();
+
+			// If something wrong in this execution, print the error code on screen for tracking.
+			if(BioFailed(ret))
+			{
+				g_logger.TraceWarning("CDAQControler::DisInitialize:Some error occurred. And the last error code is 0x%X.\n", ret);
+				//waitAnyKey();// wait any key to quit!
+			}
+		}
+
 		this->CloseEvtHandle();
 	}
 
 	void CDAQControler::Initialize()
 	{
 		g_logger.TraceInfo("CDAQControler::Initialize:-in.");
-		try
+		if (theApp->m_pDataController->DAQIsWirelessType())
 		{
-
-			bool ret = true;
-
-			HMODULE hInst = NULL;
-			//cout<<"LoadLibrary start"<<endl;
-			hInst = LoadLibrary(L"UsbAD.dll"); //UsbAD.dll
-
-			DWORD dw = GetLastError();
-
-			if (hInst == NULL)
-			{
-				//cout<<"hInst = NULL"<<endl;
-				g_logger.TraceError("CDAQControler::Initialize:hInst = NULL");
-				ret = false;
-				//return false;
-			}
-			else
-			{
-				cout<<"LoadLibrary ok"<<endl;
-			}
-
-			//*********************************Dll import start*****************************************//
-			//-----Lab_ConnectUT89
-			dll_ConnectUT89 = *(Dll_ConnectUT89)GetProcAddress(hInst, "Lab_ConnectUT89");
-			//-----Lab_SetPar
-			dll_SetPar = *(Dll_SetPar)GetProcAddress(hInst, "Lab_SetPar");
-			//-----Lab_SetPar
-			dll_Start = *(Dll_OnStart)GetProcAddress(hInst, "Lab_OnStart");
-			//-----Lab_GetDataLen n_DateSize
-			dll_GetDataLen = *(Dll_GetDataLen)GetProcAddress(hInst, "Lab_GetDataLen");
-			//-----Lab_ReadBuf
-			dll_ReadBuf = *(Dll_ReadBuf)GetProcAddress(hInst, "Lab_ReadBuf");
-			//-----Lab_OutLabDate
-			dll_OutLabDate = *(Dll_OutLabDate)GetProcAddress(hInst, "Lab_OutLabDate");
-			//-----Lab_Get2Wave
-			dll_Get2Wave = *(Dll_Get2Wave)GetProcAddress(hInst, "Lab_Get2Wave");
-			//*********************************Dll import end*****************************************//
-
-			//-----
-			string strIP("192.168.0.187");
-
-			char* pIP =NULL;
-			pIP = (char*)(strIP.c_str());
-
-			char cFilePath[MAX_PATH]={0};
-			GetModuleFileNameA(NULL, cFilePath, MAX_PATH); 
-			(strrchr(cFilePath, '\\'))[1] = 0;
-			//cout<< cFilePath <<endl;
-
-			bool bConnected = dll_ConnectUT89(cFilePath, pIP );
-			if (!bConnected)
-			{	
-				g_logger.TraceError("CDAQControler::Initialize:can not connect to wireless IP");
-				ret = false;
-				//cout<<"!can not connect to IP."<<endl;
-			}
-			//else
-			//{
-			//	cout<<"-connect to IP:"<<strIP<<endl;
-			//}
-
-			//-----
-			int nEnableCh[8]={1,1,1,1,1,1,1,1};
-			int sCoupling[8]={0,0,0,0,0,0,0,0};
-			int pComInput[8]={0,0,0,0,0,0,0,0};
-			int pZoom[8]={0,0,0,0,0,0,0,0};
-			bool bSetPara = dll_SetPar(WirelessDAQFrq, nEnableCh, sCoupling, pComInput, pZoom);
-			if (!bSetPara)
-			{
-				ret = false;
-				g_logger.TraceError("CDAQControler::Initialize:failed to set para");
-				//cout<<"!failed to set para"<<endl;
-			}
-			//else
-			//{
-			//	cout<<"- set para success"<<endl;
-			//}
-
-			// If something wrong in this execution, print the error code on screen for tracking.
-			m_bDAQInitialSuccessfully = true;
-			if(!ret)
-			{
-				//u初始化错误，弹框或者返回错误信息----
-				//g_logger.TraceError("CDAQControler::Initialize:Initial DAQ failed. And the last error code is 0x%X.\n", ret);
-				//waitAnyKey();// wait any key to quit!
-				m_bDAQInitialSuccessfully = false;
-				//throw;
-			}
-			else
-			{
-				//-----
-				if (dll_Start == 0)
-				{
-					g_logger.TraceError("CDAQControler::Initialize:dll_Start == 0");
-					//cout<<"GetProcAddress dll_Start failed"<<endl;
-				}
-				else
-				{
-					int ret = dll_Start();
-					if (!ret)
-					{
-						//cout<<"!failed to start"<<endl;s
-						g_logger.TraceError("CDAQControler::Initialize:failed to start");
-					}
-					else
-					{
-						//cout<<"- start"<<endl;
-						g_logger.TraceInfo("CDAQControler::Initialize:_beginthreadex");
-
-						m_hDAQThread = (HANDLE)_beginthreadex(NULL, 0, DAQThreadFunc, (LPVOID)this, 0, NULL);  
-					}
-					//cout<<"DllStart return:"<<ret<<endl;
-				}
-
-			}
+			this->InitializeWirelessDAQ();
 		}
-		catch (exception &e)
+		else
 		{
-			g_logger.TraceError("CDAQControler::Initialize:(in catch)Initial DAQ failed.");
+			this->InitializeWiredDAQ();
 		}
 	}
+
 	void CDAQControler::InitGradientBegin()
 	{
 		if (!CheckDAQStarted())
@@ -496,7 +683,14 @@ namespace DAQCONTROLER
 
 		ResetEvent(m_gEvtSaveFile);
 
-		VirtualFree(buffer, SingleSavingFileSizeW, MEM_RELEASE);
+		if (theApp->m_pDataController->DAQIsWirelessType())
+		{
+			VirtualFree(buffer, SingleSavingFileSizeW, MEM_RELEASE);
+		}
+		else
+		{
+			VirtualFree(buffer, SingleSavingFileSize, MEM_RELEASE);
+		}
 		CloseHandle(hFile);
 	}
 	//void CDAQControler::SetInitAngleFlag()

@@ -2,6 +2,8 @@
 
 CLogger g_logger(LOGGER::LogLevel_Info,CLogger::GetAppPathA().append("log\\"));
 
+using namespace DAQCONTROLER;
+
 CtheApp::CtheApp(void)
 {
 	m_pCommunicator = new CCommunicator;
@@ -16,8 +18,9 @@ CtheApp::~CtheApp(void)
 {
 	delete m_pCommunicator;
 	delete m_pDBC;
-	delete m_pDataController;
 	delete m_pDAQController;
+	delete m_pDataController;
+	delete m_pAnalysis;
 }
 
 CtheApp* theApp = NULL;
@@ -26,6 +29,8 @@ CtheApp* theApp = NULL;
 int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance, __in_opt LPSTR lpCmdLine, __in int nShowCmd )
 {
 	g_logger.TraceWarning("_func_in_main");
+	try{
+
 
 	theApp = new CtheApp;
 	if (!theApp->m_pCommunicator->Initialize())
@@ -33,6 +38,8 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 		MessageBox(NULL,TEXT("server startup failed."),NULL,MB_OK);
 		return 0;
 	}
+	theApp->m_pDAQController->Initialize();
+
 
 	theApp->m_dwMainThreadID = GetCurrentThreadId();
 
@@ -49,6 +56,7 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 		cout<<"get one msg"<<endl;
 		if (msg.message == msg_MAIN_QIUT)
 		{
+			g_logger.TraceWarning("WinMain:msg_MAIN_QIUT");
 			break;
 		}
 		switch (msg.message)
@@ -315,7 +323,13 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 	delete theApp;
 	theApp = NULL;
 
-	cout<<"this is last line"<<endl;
+		}//try...catch
+		catch(exception* e)
+		{
+			g_logger.TraceError("Main: some thing error.-%s",e->what());
+		}
+
+	//cout<<"this is last line"<<endl;
 
 	g_logger.TraceWarning("_fun_cout_main");
 	return 0;

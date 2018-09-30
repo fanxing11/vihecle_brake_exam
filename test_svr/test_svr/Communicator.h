@@ -57,7 +57,6 @@ namespace COMMUNICATOR
 		bool cmdQuit();
 
 		UINT_PTR nTimer;//temp
-		bool bTest;
 	};
 
 }

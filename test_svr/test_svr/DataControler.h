@@ -52,8 +52,29 @@ namespace DATACONTROLER
 		void CreateDefaultProjectPath(string &strPath);
 		bool SaveProjectInfo2INIFile();
 
+		bool ReadSensorConfigFromINI();
+		bool ReadOneParaFromConfigINI(const string SectionName, 
+			const string ParaName,
+			double & dPara);
+		double m_dIsWireless;//Initial sensor para
+		double m_dValidFootBrakeForce;
+		double m_dFootBrakePara1;//Initial sensor para
+		double m_dFootBrakePara2;
+		double m_dHandBrakePara1;
+		double m_dHandBrakePara2;
+		double m_dAnglePara1;
+		double m_dAnglePara2;
+		double m_dPedalDistance1;
+		double m_dPedalDistance2;
+		double m_dPedalDistance3;
+		double m_dPedalDistance4;
+		double m_dPedalDistance5;
+		double m_dAccelaration1;
 
 	public:
+		//wired / wireless
+		bool DAQIsWirelessType();
+		double GetValidFootBrakeForce() const;
 		//called in main
 		int GetCurrentProjectState()const;
 		bool GetProjectPath(string& strPath) const;
@@ -84,11 +105,12 @@ namespace DATACONTROLER
 		void HandleStillDetectionData(const double* pData, const int channelCount, const int sectionLength);
 		void HandleMoveDetectionData(const double* pData, const int channelCount, const int sectionLength, const double deltat);
 		void HandleInitGradientData(const double* pData, const int channelCount, const int sectionLength);
-
+		void GetInitValue(const double* pData, const int channelCount, const int sectionLength);
 		// called by DAQ- wireless
 		void HandleStillDetectionDataW(const double* pData, const int channelCount, const int sectionLength);
 		void HandleMoveDetectionDataW(const double* pData, const int channelCount, const int sectionLength, const double deltat);
 		void HandleInitGradientDataW(const double* pData, const int channelCount, const int sectionLength);
+		void GetInitValueW(const double* pData, const int channelCount, const int sectionLength);
 
 		// called by send2UI(main)
 		void GetInitGradientInfo(double& dX, double& dY);
@@ -96,6 +118,7 @@ namespace DATACONTROLER
 		void GetStillDetectionInfo(STILLDETECTIONINFO& stStillDetectionInfo);
 		void SetUpdateCarAngleFlag();
 		bool SaveMaxHandBrakeForce2INI();
+		bool SaveInitValue2INI();
 
 	private:
 		MOVEDETECTIONINFO m_stMoveDetectionInfo;
@@ -112,6 +135,12 @@ namespace DATACONTROLER
 		bool m_bUpdateCarAngleFlag;
 		void SaveCarAngle();
 		double m_dMaxHandBrakeForce;
+
+		double m_dInitHandForce;
+		double m_dInitFootForce;
+		double m_dInitAccA;
+		double m_dInitAccB;
+		double m_dInitAccC;
 
 	public:
 		bool TransformBrakeDistance(double & dVel);
