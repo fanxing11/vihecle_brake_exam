@@ -29,7 +29,7 @@ namespace DATACONTROLER
 		,m_dInitCarYAngle(0.0)
 		,m_strConfigFullName("")
 		,m_nCurrentType(NONTYPE)
-		,m_bUpdateCarAngleFlag(false)
+		,m_bInitHandForceFlag(false)
 		,m_dIsWireless(-1)
 		,m_dValidFootBrakeForce(-1)
 		,m_dFootBrakePara1(0.0)
@@ -191,10 +191,10 @@ namespace DATACONTROLER
 		m_nCurrentType = dt;
 	}
 
-	void CDataControler::SetUpdateCarAngleFlag()
+	void CDataControler::SetInitHandForceFlag()
 	{
-		g_logger.TraceInfo("CDataControler::SetUpdateCarAngleFlag");
-		m_bUpdateCarAngleFlag = true;
+		g_logger.TraceInfo("CDataControler::SetInitHandForceFlag");
+		m_bInitHandForceFlag = false;
 	}
 	bool CDataControler::SaveMaxHandBrakeForce2INI()
 	{
@@ -234,6 +234,8 @@ namespace DATACONTROLER
 		sprintf_s(buf,"%.6f",m_dInitHandForce);
 		if (NUM_ZERO == WritePrivateProfileStringA(gc_strInitValue.c_str(),gc_strInitHandBrakeForce.c_str(),buf,m_strConfigFullName.c_str()))
 		{ bSuccess = false;}
+
+		SaveCarAngle();
 
 		if (!bSuccess)
 		{
@@ -551,7 +553,8 @@ namespace DATACONTROLER
 		Filter FilterHandForce;
 		Filter FilterFootForce;
 
-		static int nMid = stnMidCount;
+
+		static int nMid = stnMidCountInit;
 		for (int i=0;i<sectionLength;++i)
 		{
 			FilterAccA.AddData(*(pData+i));
@@ -559,7 +562,7 @@ namespace DATACONTROLER
 			FilterAccC.AddData(*(pData+3*sectionLength+i));
 			if (--nMid == 0)
 			{
-				nMid = stnMidCount;
+				nMid = stnMidCountInit;
 				FilterHandForce.AddData1(*(pData+6*sectionLength+i));
 				FilterFootForce.AddData1(*(pData+7*sectionLength+i));
 			}
@@ -567,7 +570,11 @@ namespace DATACONTROLER
 		m_dInitAccA = FilterAccA.GetMeanData();
 		m_dInitAccB = FilterAccB.GetMeanData();
 		m_dInitAccC = FilterAccC.GetMeanData();
-		m_dInitHandForce = FilterHandForce.GetMidValue();
+		if (!m_bInitHandForceFlag)
+		{
+			m_dInitHandForce = FilterHandForce.GetMidValue();
+			m_bInitHandForceFlag = true;
+		}
 		m_dInitFootForce = FilterFootForce.GetMidValue();
 	}
 
@@ -612,11 +619,11 @@ namespace DATACONTROLER
 			m_dMaxHandBrakeForce = m_stStillDetectionInfo.MaxHandBrakeForce;
 		}
 
-		if(m_bUpdateCarAngleFlag)
-		{
-			SaveCarAngle();
-			m_bUpdateCarAngleFlag = false;
-		}
+		//if(m_bUpdateCarAngleFlag)
+		//{
+		//	SaveCarAngle();
+		//	m_bUpdateCarAngleFlag = false;
+		//}
 		SetEvent(m_hEvtStillDetectionInfo);
 	}
 	//最大脚刹力、脚刹位置、XY倾角、加速度近似取最后一个，速度取本组数据最后点处的速度
@@ -736,7 +743,7 @@ namespace DATACONTROLER
 	void CDataControler::HandleMoveDetectionDataW(const double* pData, const int channelCount, const int sectionLength, const double deltat)
 	{
 		g_logger.TraceInfo("CDataControler::HandleMoveDetectionDataW");
-		static int snMinCount = stnMidCount;
+		//static int snMinCount = stnMidCount;
 
 		ResetEvent(m_hEvtMoveDetectionInfo);
 		double dCurrentSectionAddV = DOUBLE_ZERO;
@@ -804,16 +811,18 @@ namespace DATACONTROLER
 			{
 				m_stMoveDetectionInfo.GradientY = stMoveDetectionInfo.GradientY;
 			}
-			if (--snMinCount == 0)
+			//if (--snMinCount == 0)
+			//{
+			//	snMinCount = stnMidCount;
+			if(i<300)//取前M个数，而不再隔N个数取一个，希望连续的能减少误差
 			{
-				snMinCount = stnMidCount;
 				FilterFootBrakeForce.AddData1(stMoveDetectionInfo.MaxFootBrakeForce);//显示时不再使用中值滤波，而是取均值
 			}
 			FilterPedalDistance.AddData(stMoveDetectionInfo.PedalDistance);
 		}
 		//m_stMoveDetectionInfo.GradientX = FilterGradientX.GetMeanData();
 		//m_stMoveDetectionInfo.GradientY = FilterGradientY.GetMeanData();
-		if (snMinCount == stnMidCount)
+		//if (snMinCount == stnMidCount)
 		{
 			m_stMoveDetectionInfo.MaxFootBrakeForce = FilterFootBrakeForce.GetMidValue();
 			FilterFootBrakeForce.ResetMid();
@@ -945,11 +954,12 @@ namespace DATACONTROLER
 			//FilterGradientX.AddData(stStillDetectionInfo.GradientX);
 			//FilterGradientY.AddData(stStillDetectionInfo.GradientY); 
 		}
-		if (nMidCount == stnMidCount)
+		//if (nMidCount == stnMidCount)
 		{
 			m_stStillDetectionInfo.MaxHandBrakeForce = FilterHandBrakeForce.GetMidValue();
 		}
 		//m_stStillDetectionInfo.MaxHandBrakeForce -= m_dInitHandForce;//180928 现在不再使用初始手刹力
+		m_stStillDetectionInfo.MaxHandBrakeForce -= m_dInitHandForce;//181006 再次使用初始手刹力
 		TransformHandBrakeForce(m_stStillDetectionInfo.MaxHandBrakeForce);
 
 		//m_stStillDetectionInfo.GradientX = FilterGradientX.GetMeanData();
@@ -964,11 +974,11 @@ namespace DATACONTROLER
 			m_dMaxHandBrakeForce = m_stStillDetectionInfo.MaxHandBrakeForce;
 		}
 
-		if(m_bUpdateCarAngleFlag)
-		{
-			SaveCarAngle();
-			m_bUpdateCarAngleFlag = false;
-		}
+		//if(m_bUpdateCarAngleFlag)
+		//{
+		//	SaveCarAngle();
+		//	m_bUpdateCarAngleFlag = false;
+		//}
 		SetEvent(m_hEvtStillDetectionInfo);
 	}
 

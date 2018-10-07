@@ -201,7 +201,6 @@ bool Filter::GetData3(const double deltat, const double dOriginFootBrakeForce, d
 	try
 	{
 		LogTime();
-		double m_dOriginFootBrakeForce =0.0;
 		
 		double dDist0= DOUBLE_ZERO;//总行程
 		double dDist1= DOUBLE_ZERO;//非减速行程
@@ -213,9 +212,27 @@ bool Filter::GetData3(const double deltat, const double dOriginFootBrakeForce, d
 		{
 			dDist0 += m_vtData1[i]*deltat;
 			double dFootForce = m_vtData3[i].second;
-			if (dFootForce > m_dOriginFootBrakeForce)
+			if (!bStartBrake && dFootForce > dOriginFootBrakeForce)
 			{
-				bStartBrake = true;
+				bool bRealMax = true;
+				for (int ii=0;ii<300;ii++)
+				{
+					if ((i+ii) > (m_vtData3.size()-1))
+					{
+						g_logger.TraceError("Filter::GetData3:i=%d,ii=%d,overflowed and can not find valid footbrake force.",i,ii);
+						return false;
+					}
+					double dFootForceii = m_vtData3[i+ii].second;
+					if (dFootForceii <= dOriginFootBrakeForce)
+					{
+						bRealMax = false;
+					}
+				}
+				if (bRealMax)
+				{
+					bStartBrake = true;
+					g_logger.TraceWarning("Filter::GetData3:i=%d.",i);
+				}
 			}
 			if (bStartBrake)
 			{

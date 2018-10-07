@@ -263,7 +263,7 @@ namespace ANALYSISSPACE
 		stream<<stInitFootBrakeForce;
 		stream>>m_dInitFootBrakeForce;
 		stream.clear();
-		g_logger.TraceWarning("CAnalysis::ReadParaFromINI - m_dInitAccA=%f,m_dInitHandBrakeForce=%f,m_dInitFootBrakeForce%f",
+		g_logger.TraceWarning("CAnalysis::ReadParaFromINI - m_dInitAccA=%f,m_dInitHandBrakeForce=%f,m_dInitFootBrakeForce=%f",
 			m_dInitAccA,m_dInitHandBrakeForce,m_dInitFootBrakeForce);
 		return true;
 	}
@@ -567,14 +567,15 @@ namespace ANALYSISSPACE
 				//save file data to vector for send to UI curve
 				if (--nCountBetweenSend == 0)//每COUNTBETWEENSEND个数向client发送一个数
 				{
-					//g_logger.TraceInfo("CAnalysis::HandleDataW - COUNTBETWEENSEND-in");
+					g_logger.TraceInfo("CAnalysis::HandleDataW - COUNTBETWEENSEND-in");
 
 					nCountBetweenSend = COUNTBETWEENSEND;
 
 					stData.Accelaration = dCompoundA;
 					stData.Velocity = dCurrentVel;
 					stData.FootBrakeForce = filterFootBrakeForceSingle.GetMidValue();
-					double dtmpMax = filterFootBrakeForceSingle.GetMaxValue();
+					double dtmpMax = filterFootBrakeForceSingle.GetMidValue();//0.5ms - 2.7ms noise
+					//double dtmpMax = filterFootBrakeForceSingle.GetMaxValue();
 					filterFootBrakeForceSingle.ResetMid();
 					//filterFootBrakeForce.AddData1(stData.FootBrakeForce);
 					//g_logger.TraceWarning("CAnalysis::HandleDataW - this time max foot brake=%f",dtmpMax);
@@ -608,7 +609,7 @@ namespace ANALYSISSPACE
 		double dOriginFootBrakeForce = theApp->m_pDataController->GetValidFootBrakeForce();
 		if(!filter2AccVelocity.GetData3(deltat,dOriginFootBrakeForce,dAcc,dVel,dDist))
 		{
-			g_logger.TraceError("CAnalysis::HandleDataW -filter2AccVelocity.GetData2 failed! ");
+			g_logger.TraceError("CAnalysis::HandleDataW -filter2AccVelocity.GetData3 failed! ");
 		}
 		m_stResult.MeanDragAccelaration = dAcc;
 		m_stResult.InitBrakeVelocity = dVel;

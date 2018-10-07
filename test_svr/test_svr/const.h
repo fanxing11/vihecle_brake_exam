@@ -117,7 +117,8 @@ const UINT msg_DAQ_VELOCITY = WM_USER+301;
 const UINT msg_DAQ_STRESS = WM_USER+302;
 const UINT msg_DAQ_DATAONE = WM_USER+303;
 
-const int stnMidCount = 500;
+const int stnMidCount = 100;
+const int stnMidCountInit = 20;
 
 typedef struct MoveDetectionInfo
 {

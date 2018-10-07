@@ -3,7 +3,7 @@
 namespace ANALYSISSPACE
 {
 	//每多少个点发送一个到UI
-	const int COUNTBETWEENSEND = 500;
+	const int COUNTBETWEENSEND = 5120;
 	class CAnalysis
 	{
 	public:

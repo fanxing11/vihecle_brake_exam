@@ -918,9 +918,10 @@ namespace COMMUNICATOR
 	{
 		g_logger.TraceInfo("CCommunicator::cmdInitGradientEnd");
 
+		//Sleep(5);//为了防止init angle第一次运行不能存文件
 		theApp->m_pDAQController->InitGradientEnd();
-		theApp->m_pDataController->SetUpdateCarAngleFlag();
 		theApp->m_pDataController->SaveInitValue2INI();
+		theApp->m_pDataController->SetInitHandForceFlag();
 		return true;
 	}
 	bool CCommunicator::cmdStillDetectionBegin(const char* pData )
