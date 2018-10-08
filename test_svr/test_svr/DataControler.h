@@ -117,6 +117,7 @@ namespace DATACONTROLER
 		void GetMoveDetectionInfo(MOVEDETECTIONINFO& stStressInfo);
 		void GetStillDetectionInfo(STILLDETECTIONINFO& stStillDetectionInfo);
 		void SetInitHandForceFlag();
+		void SetInitAngleFlag();
 		bool SaveMaxHandBrakeForce2INI();
 		bool SaveInitValue2INI();
 
@@ -132,6 +133,7 @@ namespace DATACONTROLER
 		double m_dInitYAngle;
 		double m_dInitCarXAngle;//³µÁ¾Çã½Ç
 		double m_dInitCarYAngle;
+		bool m_bInitAngleFlag;
 		bool m_bInitHandForceFlag;
 		void SaveCarAngle();
 		double m_dMaxHandBrakeForce;

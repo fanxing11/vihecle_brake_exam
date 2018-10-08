@@ -922,6 +922,7 @@ namespace COMMUNICATOR
 		theApp->m_pDAQController->InitGradientEnd();
 		theApp->m_pDataController->SaveInitValue2INI();
 		theApp->m_pDataController->SetInitHandForceFlag();
+		theApp->m_pDataController->SetInitAngleFlag();
 		return true;
 	}
 	bool CCommunicator::cmdStillDetectionBegin(const char* pData )

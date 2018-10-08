@@ -554,6 +554,7 @@ namespace ANALYSISSPACE
 				{
 					m_stResult.GradientY = stAnalysisInfo.GradientY;
 				}
+
 				//if (maxPedalDistance < stAnalysisInfo.PedalDistance)
 				//{
 				//	maxPedalDistance = stAnalysisInfo.PedalDistance;
@@ -644,8 +645,10 @@ namespace ANALYSISSPACE
 			m_dCarInitXAngle,
 			m_stResult.GradientY,
 			m_dCarInitYAngle);
-		m_stResult.GradientX -= m_dCarInitXAngle;
-		m_stResult.GradientY -= m_dCarInitYAngle;
+		//m_stResult.GradientX -= m_dCarInitXAngle;
+		//m_stResult.GradientY -= m_dCarInitYAngle;
+		m_stResult.GradientX = m_dCarInitXAngle;//v1.9.6.3
+		m_stResult.GradientY = m_dCarInitYAngle;
 
 		FindMaxMinRange(vPedalDistance,minPedalDistance,maxPedalDistance);
 		vPedalDistance.clear();

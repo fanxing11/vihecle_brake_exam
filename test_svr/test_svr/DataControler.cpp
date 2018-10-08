@@ -29,6 +29,7 @@ namespace DATACONTROLER
 		,m_dInitCarYAngle(0.0)
 		,m_strConfigFullName("")
 		,m_nCurrentType(NONTYPE)
+		,m_bInitAngleFlag(false)
 		,m_bInitHandForceFlag(false)
 		,m_dIsWireless(-1)
 		,m_dValidFootBrakeForce(-1)
@@ -194,7 +195,12 @@ namespace DATACONTROLER
 	void CDataControler::SetInitHandForceFlag()
 	{
 		g_logger.TraceInfo("CDataControler::SetInitHandForceFlag");
-		m_bInitHandForceFlag = false;
+		m_bInitHandForceFlag = false;//恢复状态，以便下次测试
+	}
+	void CDataControler::SetInitAngleFlag()
+	{
+		g_logger.TraceInfo("CDataControler::SetInitAngleFlag");
+		m_bInitAngleFlag = false;//恢复状态，以便下次测试
 	}
 	bool CDataControler::SaveMaxHandBrakeForce2INI()
 	{
@@ -499,9 +505,16 @@ namespace DATACONTROLER
 	}
 	void CDataControler::SaveCarAngle()
 	{
-		//第一次静止检测时，把倾角减去地面倾角作为车辆的倾角，并保存到ini中
-		m_dInitCarXAngle = m_stStillDetectionInfo.GradientX - m_dInitXAngle;
-		m_dInitCarYAngle = m_stStillDetectionInfo.GradientY - m_dInitYAngle;
+
+		if (!m_bInitAngleFlag)//v1.9.6.3
+		{
+			m_dInitCarXAngle = m_stStillDetectionInfo.GradientX ;
+			m_dInitCarYAngle = m_stStillDetectionInfo.GradientY ;
+			m_bInitAngleFlag = true;
+		}
+		////第一次静止检测时，把倾角减去地面倾角作为车辆的倾角，并保存到ini中
+		//m_dInitCarXAngle = m_stStillDetectionInfo.GradientX - m_dInitXAngle;
+		//m_dInitCarYAngle = m_stStillDetectionInfo.GradientY - m_dInitYAngle;
 
 		char bufx[40] = {0};
 		sprintf_s(bufx,"%f",m_dInitCarXAngle);
@@ -909,7 +922,7 @@ namespace DATACONTROLER
 		SetEvent(m_hEvtInitGradientInfo);
 	}
 
-	//最大手刹力、XY倾角（XY的倾角已经没有做用，如果更改，需要在Move里面改）
+	//最大手刹力、XY倾角
 	void CDataControler::HandleStillDetectionDataW(const double* pData, const int channelCount, const int sectionLength)
 	{
 		g_logger.TraceInfo("CDataControler::HandleStillDetectionDataW");
@@ -965,8 +978,8 @@ namespace DATACONTROLER
 		//m_stStillDetectionInfo.GradientX = FilterGradientX.GetMeanData();
 		//m_stStillDetectionInfo.GradientY = FilterGradientY.GetMeanData();
 		//GetInitXAngle 需要减去初始车辆倾角
-		m_stStillDetectionInfo.GradientX = m_stStillDetectionInfo.GradientX-m_dInitCarXAngle;
-		m_stStillDetectionInfo.GradientY = m_stStillDetectionInfo.GradientY-m_dInitCarYAngle;
+		//m_stStillDetectionInfo.GradientX = m_stStillDetectionInfo.GradientX-m_dInitCarXAngle;//v1.9.6.3
+		//m_stStillDetectionInfo.GradientY = m_stStillDetectionInfo.GradientY-m_dInitCarYAngle;
 
 		//保存下静止时的最大手刹力:有正负，所以是绝对值比大小
 		if( abs(m_dMaxHandBrakeForce)<abs(m_stStillDetectionInfo.MaxHandBrakeForce) )
