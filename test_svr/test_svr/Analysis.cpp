@@ -608,6 +608,7 @@ namespace ANALYSISSPACE
 		//	m_stResult.InitBrakeVelocity , filter2AccVelocity.GetMaxValue());
 		double dAcc=0,dVel=0,dDist=0;
 		double dOriginFootBrakeForce = theApp->m_pDataController->GetValidFootBrakeForce();
+		dOriginFootBrakeForce += m_dInitFootBrakeForce;//减去初始脚刹力才可以使用
 		if(!filter2AccVelocity.GetData3(deltat,dOriginFootBrakeForce,dAcc,dVel,dDist))
 		{
 			g_logger.TraceError("CAnalysis::HandleDataW -filter2AccVelocity.GetData3 failed! ");

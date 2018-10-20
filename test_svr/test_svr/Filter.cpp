@@ -231,7 +231,7 @@ bool Filter::GetData3(const double deltat, const double dOriginFootBrakeForce, d
 				if (bRealMax)
 				{
 					bStartBrake = true;
-					g_logger.TraceWarning("Filter::GetData3:i=%d.",i);
+					g_logger.TraceWarning("Filter::GetData3:i=%d;datasize=%d",i,m_vtData.size());
 				}
 			}
 			if (bStartBrake)
