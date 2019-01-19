@@ -123,7 +123,6 @@ const int stnMidCountInit = 20;
 typedef struct MoveDetectionInfo
 {
 	double MaxFootBrakeForce;
-	double PedalDistance;
 	double GradientX;
 	double GradientY;
 	double LastAccelaration;
@@ -134,6 +133,7 @@ typedef struct StillDetectionInfo
 	double MaxHandBrakeForce;
 	double GradientX;
 	double GradientY;
+	double PedalDistance;
 }STILLDETECTIONINFO;
 
 typedef struct AnalysisResult
@@ -189,6 +189,7 @@ const string gc_strInitAccB("InitAccB");
 const string gc_strInitAccC("InitAccC");
 const string gc_strInitFootBrakeForce("InitFootBrakeForce");
 const string gc_strInitHandBrakeForce("InitHandBrakeForce");
+const string gc_strInitPedalDistance("InitPedalDistance");
 
 //-----------------------------for sensor config paramaters
 const string gc_strSensorConfig_FileName(".\\config.ini");

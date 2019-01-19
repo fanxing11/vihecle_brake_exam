@@ -14,6 +14,8 @@ namespace DATACONTROLER
 		//2 - 已经完成
 		short m_nCurrentProjectState;
 		enDETECTION_TYPE m_nCurrentType;
+		//是否需要存储0.5s内的初始踏板距离
+		bool m_bGetInitPedalDist;
 
 		char m_cStartChannel;
 		char m_cEndChannel;
@@ -65,10 +67,10 @@ namespace DATACONTROLER
 		double m_dAnglePara1;
 		double m_dAnglePara2;
 		double m_dPedalDistance1;
-		double m_dPedalDistance2;
-		double m_dPedalDistance3;
-		double m_dPedalDistance4;
-		double m_dPedalDistance5;
+		//double m_dPedalDistance2;
+		//double m_dPedalDistance3;
+		//double m_dPedalDistance4;
+		//double m_dPedalDistance5;
 		double m_dAccelaration1;
 
 	public:
@@ -121,6 +123,8 @@ namespace DATACONTROLER
 		bool SaveMaxHandBrakeForce2INI();
 		bool SaveInitValue2INI();
 
+		void SetGetInitPedalDist(bool bInit);
+
 	private:
 		MOVEDETECTIONINFO m_stMoveDetectionInfo;
 		STILLDETECTIONINFO m_stStillDetectionInfo;
@@ -143,6 +147,9 @@ namespace DATACONTROLER
 		double m_dInitAccA;
 		double m_dInitAccB;
 		double m_dInitAccC;
+
+		//初始脚踏板力
+		double m_dInitPedalDist;
 
 	public:
 		bool TransformBrakeDistance(double & dVel);

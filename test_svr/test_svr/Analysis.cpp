@@ -64,6 +64,7 @@ namespace ANALYSISSPACE
 		,m_dInitAccC(0.0)
 		,m_dInitFootBrakeForce(0.0)
 		,m_dInitHandBrakeForce(0.0)
+		,m_dInitPedalDistance(0.0)
 	{
 		g_logger.TraceInfo("CAnalysis::CAnalysis");
 	}
@@ -88,6 +89,7 @@ namespace ANALYSISSPACE
 		m_dInitAccC = DOUBLE_ZERO;
 		m_dInitFootBrakeForce = DOUBLE_ZERO;
 		m_dInitHandBrakeForce = DOUBLE_ZERO;
+		m_dInitPedalDistance = DOUBLE_ZERO;
 
 	}
 
@@ -231,16 +233,18 @@ namespace ANALYSISSPACE
 		//------read Init Value from ini---------
 		char stInitHandBrakeForce[100]={0};  
 		char stInitFootBrakeForce[100]={0};  
+		char stInitPedalDistance[100]={0};  
 		char stInitAccA[100]={0};  
 		char stInitAccB[100]={0};  
 		char stInitAccC[100]={0};  
-		DWORD dwRet4,dwRet5,dwRet6,dwRet7,dwRet8;
+		DWORD dwRet4,dwRet5,dwRet6,dwRet7,dwRet8,dwRet9;
 		dwRet4 = GetPrivateProfileStringA(gc_strInitValue.c_str(), gc_strInitAccA.c_str(), "", stInitAccA, 100, m_strConfigFile.c_str());  
 		dwRet5 = GetPrivateProfileStringA(gc_strInitValue.c_str(), gc_strInitAccB.c_str(), "", stInitAccB, 100, m_strConfigFile.c_str());  
 		dwRet6 = GetPrivateProfileStringA(gc_strInitValue.c_str(), gc_strInitAccC.c_str(), "", stInitAccC, 100, m_strConfigFile.c_str());  
 		dwRet7 = GetPrivateProfileStringA(gc_strInitValue.c_str(), gc_strInitHandBrakeForce.c_str(), "", stInitHandBrakeForce, 100, m_strConfigFile.c_str());  
 		dwRet8 = GetPrivateProfileStringA(gc_strInitValue.c_str(), gc_strInitFootBrakeForce.c_str(), "", stInitFootBrakeForce, 100, m_strConfigFile.c_str());  
-		if ( dwRet4 <= 0 || dwRet5 <= 0 || dwRet6 <= 0 || dwRet7 <= 0 || dwRet8 <= 0)
+		dwRet9 = GetPrivateProfileStringA(gc_strInitValue.c_str(), gc_strInitPedalDistance.c_str(), "", stInitPedalDistance, 100, m_strConfigFile.c_str());  
+		if ( dwRet4 <= 0 || dwRet5 <= 0 || dwRet6 <= 0 || dwRet7 <= 0 || dwRet8 <= 0 || dwRet9 <= 0)
 		{
 			strErrInfo = "Get InitValue in the INI file failed";
 			g_logger.TraceError("CAnalysis::ReadParaFromINI - %s",strErrInfo.c_str() );
@@ -263,8 +267,11 @@ namespace ANALYSISSPACE
 		stream<<stInitFootBrakeForce;
 		stream>>m_dInitFootBrakeForce;
 		stream.clear();
-		g_logger.TraceWarning("CAnalysis::ReadParaFromINI - m_dInitAccA=%f,m_dInitHandBrakeForce=%f,m_dInitFootBrakeForce=%f",
-			m_dInitAccA,m_dInitHandBrakeForce,m_dInitFootBrakeForce);
+		stream<<stInitPedalDistance;
+		stream>>m_dInitPedalDistance;
+		stream.clear();
+		g_logger.TraceWarning("CAnalysis::ReadParaFromINI - m_dInitAccA=%f,m_dInitHandBrakeForce=%f,m_dInitFootBrakeForce=%f,m_dInitPedalDistance=%f",
+			m_dInitAccA,m_dInitHandBrakeForce,m_dInitFootBrakeForce,m_dInitPedalDistance);
 		return true;
 	}
 
@@ -543,6 +550,9 @@ namespace ANALYSISSPACE
 				stAnalysisInfo.PedalDistance = *(pData+nStepj+5*sectionLengthW+i);
 
 				filterFootBrakeForceSingle.AddData1(stAnalysisInfo.MaxFootBrakeForce);
+#ifdef _MY_VERSION_2_0_3_
+				filterFootBrakeForce.AddData1_1(stAnalysisInfo.MaxFootBrakeForce);
+#endif
 
 				filter2AccVelocity.AddData3(dCompoundA,dCurrentVel,stAnalysisInfo.MaxFootBrakeForce);
 
@@ -580,7 +590,9 @@ namespace ANALYSISSPACE
 					filterFootBrakeForceSingle.ResetMid();
 					//filterFootBrakeForce.AddData1(stData.FootBrakeForce);
 					//g_logger.TraceWarning("CAnalysis::HandleDataW - this time max foot brake=%f",dtmpMax);
+#ifndef _MY_VERSION_2_0_3_
 					filterFootBrakeForce.AddData1(dtmpMax);
+#endif
 					//g_logger.TraceInfo("CAnalysis::HandleDataW - COUNTBETWEENSEND-1");
 					stData.PedalDistance = stAnalysisInfo.PedalDistance;
 					m_vAnalysisData.push_back(stData);
@@ -630,10 +642,14 @@ namespace ANALYSISSPACE
 		g_logger.TraceWarning("CAnalysis::HandleDataW -filter2AccVelocity.GetData2-m_stResult.InitBrakeVelocity=%.3f,m_stResult.MeanDragAccelaration=%.3f",
 			m_stResult.InitBrakeVelocity,m_stResult.MeanDragAccelaration);
 
+#ifdef _MY_VERSION_2_0_3_
+		m_stResult.MaxFootBrakeForce = filterFootBrakeForce.GetMaxValue_1();
+#else
 		m_stResult.MaxFootBrakeForce = filterFootBrakeForce.GetMaxValue();
 		double ddd = filterFootBrakeForce.GetMidValue();
-		filterFootBrakeForce.ResetMid();
 		g_logger.TraceWarning("CAnalysis::HandleDataW - MaxFootBrakeForce=%f,m_dInitFootBrakeForce=%f,mid=%f",m_stResult.MaxFootBrakeForce,m_dInitFootBrakeForce,ddd );
+#endif
+		filterFootBrakeForce.ResetMid();
 		m_stResult.MaxFootBrakeForce -= m_dInitFootBrakeForce;
 		theApp->m_pDataController->TransformFootBrakeForce(m_stResult.MaxFootBrakeForce);
 		g_logger.TraceWarning("CAnalysis::HandleDataW - MaxFootBrakeForce=%f,m_dInitFootBrakeForce=%f",m_stResult.MaxFootBrakeForce,m_dInitFootBrakeForce );
@@ -652,6 +668,8 @@ namespace ANALYSISSPACE
 		m_stResult.GradientY = m_dCarInitYAngle;
 
 		FindMaxMinRange(vPedalDistance,minPedalDistance,maxPedalDistance);
+		maxPedalDistance -= m_dInitPedalDistance;
+		minPedalDistance -= m_dInitPedalDistance;
 		vPedalDistance.clear();
 		theApp->m_pDataController->TransformPedalDistance(maxPedalDistance);
 		theApp->m_pDataController->TransformPedalDistance(minPedalDistance);

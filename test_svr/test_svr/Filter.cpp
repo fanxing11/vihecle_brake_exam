@@ -26,6 +26,12 @@ void LogTime()
 
 }
 
+///----for data 2:vel and acc
+double myCompair(pair<double, int>p1,pair<double,int>p2 )
+{
+	return p1.first < p2.first;
+}
+
 Filter::Filter(UINT nSize)
 	:m_dSum(0.0)
 	,m_nCount(0)
@@ -72,6 +78,14 @@ void Filter::AddData1(const double dData)
 {
 	m_vtData.push_back(dData);
 }
+//v2.0.3
+void Filter::AddData1_1(const double dData)
+{
+	pair<double,int>pp=make_pair(dData,m_nCount);
+	m_vtData2.push_back(pp);
+	m_nCount++;
+}
+
 
 void Filter::ResetMid()
 {
@@ -118,6 +132,34 @@ double Filter::GetMaxValue()
 	}
 	
 }
+double Filter::GetMaxValue_1()
+{
+	vector< pair<double,int> >vtData2_1 = m_vtData2;
+	double dBrakeForce = 0.0;
+	LogTime();
+	sort(vtData2_1.begin(),vtData2_1.end(),myCompair);
+	LogTime();
+	dBrakeForce = vtData2_1.back().first;
+
+	int nIndex = vtData2_1.back().second;
+	int nCOUNT = 2000;
+	double dSum=0;
+
+	//如果最大脚刹力之后没有200个力了,不再去均值,而是直接返回此最大值.
+	if ((nIndex+nCOUNT) > (m_vtData2.size()-1))
+	{
+		g_logger.TraceError("Filter::GetMaxValue_1:overflowed,total num=%d,target=%d",(m_vtData2.size()),(nIndex+nCOUNT));
+		return dBrakeForce;
+	}
+
+	for(int nbeg=0;nbeg<nCOUNT;nbeg++)
+	{
+
+		double dForce = m_vtData2.at(nbeg+nIndex).first;
+		dSum += dForce;
+	}
+	return dSum/nCOUNT;
+}
 
 void Filter::GetPartIndex(UINT &nBegin,UINT &nEnd)
 {
@@ -131,12 +173,6 @@ void Filter::GetPartIndex(UINT &nBegin,UINT &nEnd)
 double Filter::GetPartMeanValue(const UINT nBegin,const UINT bEnd)
 {
 	return 0;;
-}
-
-///----for data 2:vel and acc
-double myCompair(pair<double, int>p1,pair<double,int>p2 )
-{
-	return p1.first < p2.first;
 }
 
 void Filter::AddData2(double dAcc,double dVel)

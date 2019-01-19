@@ -322,10 +322,11 @@ namespace COMMUNICATOR
 				}
 				if (WAIT_OBJECT_0 == WaitForSingleObject(DAQCONTROLER::m_gEvtStillDetection,0))
 				{
-					char Ret[15] = {cmd_HEADER,cmd_STILL_DETECT,
+					char Ret[19] = {cmd_HEADER,cmd_STILL_DETECT,
 						0x00,0x00,0x00,0x00,//handbrakeforce
 						0x00,0x00,0x00,0x00,//X
 						0x00,0x00,0x00,0x00,//Y
+						0x00,0x00,0x00,0x00,
 						cmd_TAIL};	
 
 					STILLDETECTIONINFO stStillDetectionInfo;
@@ -334,20 +335,22 @@ namespace COMMUNICATOR
 					int nMaxHandBrakeForce = (int)(100*( stStillDetectionInfo.MaxHandBrakeForce ));
 					int nGradientX = (int)(100*( stStillDetectionInfo.GradientX ));
 					int nGradientY = (int)(100*( stStillDetectionInfo.GradientY ));
+					int nPedalDist = (int)(100*( stStillDetectionInfo.PedalDistance ));
 
-					g_logger.TraceWarning("sendData2UI-HandBrakeForce = %f",
-						nMaxHandBrakeForce / 100.0);
+					g_logger.TraceWarning("sendData2UI-HandBrakeForce = %f,nPedalDist= %f",
+						nMaxHandBrakeForce / 100.0,
+						nPedalDist / 100.0);
 
 					memcpy(Ret+2, &nMaxHandBrakeForce, sizeof(int));//4bit
 					memcpy(Ret+6, &nGradientX, sizeof(int));//4bit
 					memcpy(Ret+10, &nGradientY, sizeof(int));//4bit
+					memcpy(Ret+14, &nPedalDist, sizeof(int));//4bit
 
-					sendto(m_SockSrv, Ret, 15, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+					sendto(m_SockSrv, Ret, 19, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
 				}
 				if (WAIT_OBJECT_0 == WaitForSingleObject(DAQCONTROLER::m_gEvtMoveDetection,0))
 				{
-					char Ret[27] = {cmd_HEADER,cmd_MOVE_DETECT,
-						0x00,0x00,0x00,0x00,
+					char Ret[23] = {cmd_HEADER,cmd_MOVE_DETECT,
 						0x00,0x00,0x00,0x00,
 						0x00,0x00,0x00,0x00,
 						0x00,0x00,0x00,0x00,
@@ -358,27 +361,24 @@ namespace COMMUNICATOR
 					MOVEDETECTIONINFO stStressInfo;
 					theApp->m_pDataController->GetMoveDetectionInfo(stStressInfo);
 
-					int nPedalDist = (int)(100*( stStressInfo.PedalDistance ));
 					int nGradientX = (int)(100*( stStressInfo.GradientX ));
 					int nGradientY = (int)(100*( stStressInfo.GradientY ));
 					int nFootBrakeForce = (int)(100*(stStressInfo.MaxFootBrakeForce));
 					int nLastVelocity = (int)(100*(stStressInfo.LastVelocity));
 					int nLastAccelaration = (int)(100*(stStressInfo.LastAccelaration));
 
-					g_logger.TraceWarning("sendData2UI-GradientX = %f,GradientY = %f,nPedalDist= %f,nLastVelocity=%f",
+					g_logger.TraceWarning("sendData2UI-GradientX = %f,GradientY = %f,nLastVelocity=%f",
 						nGradientX/100.0,
 						nGradientY/100.0,
-						nPedalDist/100.0,
 						nLastVelocity/100.0);
 
 					memcpy(Ret+2, &nFootBrakeForce, sizeof(int));//4bit
-					memcpy(Ret+6, &nPedalDist, sizeof(int));//4bit
-					memcpy(Ret+10, &nGradientX, sizeof(int));//4bit
-					memcpy(Ret+14, &nGradientY, sizeof(int));//4bit
-					memcpy(Ret+18, &nLastVelocity, sizeof(int));//4bit
-					memcpy(Ret+22, &nLastAccelaration, sizeof(int));//4bit
+					memcpy(Ret+6, &nGradientX, sizeof(int));//4bit
+					memcpy(Ret+10, &nGradientY, sizeof(int));//4bit
+					memcpy(Ret+14, &nLastVelocity, sizeof(int));//4bit
+					memcpy(Ret+18, &nLastAccelaration, sizeof(int));//4bit
 			
-					sendto(m_SockSrv, Ret, 27, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+					sendto(m_SockSrv, Ret, 23, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
 				}
 
 				break;
@@ -931,6 +931,7 @@ namespace COMMUNICATOR
 
 		theApp->m_pDataController->SetCurrentType(STILLDETECTION);
 		theApp->m_pDAQController->StillDetectionBegin();
+		theApp->m_pDataController->SetGetInitPedalDist(true);
 		return true;
 	}
 	bool CCommunicator::cmdStillDetectionEnd(const char* pData )

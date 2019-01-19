@@ -1,5 +1,11 @@
 #pragma once
 #include "const.h"
+
+
+#define _MY_VERSION_2_0_3_ 1
+
+
+
 namespace ANALYSISSPACE
 {
 	//每多少个点发送一个到UI
@@ -31,6 +37,7 @@ namespace ANALYSISSPACE
 		double m_dInitAccC;
 		double m_dInitFootBrakeForce;
 		double m_dInitHandBrakeForce;
+		double m_dInitPedalDistance;
 		bool ReadParaFromINI(string &strErrInfo);
 		bool ReadDataFromFile(string &strErrInfo);
 
