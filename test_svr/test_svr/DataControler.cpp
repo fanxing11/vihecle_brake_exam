@@ -51,6 +51,7 @@ namespace DATACONTROLER
 		,m_dInitAccB(0.0)
 		,m_dInitAccC(0.0)
 		,m_dMaxHandBrakeForce(0.0)
+		,m_dMaxPedalDistance(0.0)
 		,m_bGetInitPedalDist(false)
 		,m_dInitPedalDist(0.0)
 		,m_bGetInitFootBrakeForce(false)
@@ -204,7 +205,6 @@ namespace DATACONTROLER
 	{
 		m_nCurrentType = dt;
 	}
-
 	void CDataControler::SetInitHandForceFlag()
 	{
 		g_logger.TraceInfo("CDataControler::SetInitHandForceFlag");
@@ -223,7 +223,21 @@ namespace DATACONTROLER
 		sprintf_s(buf,"%f",m_dMaxHandBrakeForce);
 		if (NUM_ZERO == WritePrivateProfileStringA(gc_strResult.c_str(),gc_strMaxHandBrakeForce.c_str(),buf,m_strConfigFullName.c_str()))
 		{
-			g_logger.TraceError("CDataControler::SaveProjectInfo2INIFile: WritePrivateProfileStringA,GetLastError=%d",
+			g_logger.TraceError("CDataControler::SaveMaxHandBrakeForce2INI: WritePrivateProfileStringA,GetLastError=%d",
+				GetLastError());
+			return false;
+		}
+		return true;
+	}
+	bool CDataControler::SaveMaxPedalDistance2INI()
+	{
+		//这里只保存了最大手刹力，所以结果分析中除此之外的参数都是运动中得到的
+		//包括地面倾角,亦即,静止检测中的地面倾角被没有作用，只在测量时展示了一下
+		char buf[40] = {0};
+		sprintf_s(buf,"%f",m_dMaxPedalDistance);
+		if (NUM_ZERO == WritePrivateProfileStringA(gc_strResult.c_str(),gc_strMaxPedalDistance.c_str(),buf,m_strConfigFullName.c_str()))
+		{
+			g_logger.TraceError("CDataControler::SaveMaxPedalDistance2INI: WritePrivateProfileStringA,GetLastError=%d",
 				GetLastError());
 			return false;
 		}
@@ -253,7 +267,7 @@ namespace DATACONTROLER
 		sprintf_s(buf,"%.6f",m_dInitHandForce);
 		if (NUM_ZERO == WritePrivateProfileStringA(gc_strInitValue.c_str(),gc_strInitHandBrakeForce.c_str(),buf,m_strConfigFullName.c_str()))
 		{ bSuccess = false;}
-		memset(buf,0,40);
+		memset(buf,0,40);//这个已经不需要存了.
 		sprintf_s(buf,"%.6f",m_dInitPedalDist);
 		if (NUM_ZERO == WritePrivateProfileStringA(gc_strInitValue.c_str(),gc_strInitPedalDistance.c_str(),buf,m_strConfigFullName.c_str()))
 		{ bSuccess = false;}
@@ -360,6 +374,7 @@ namespace DATACONTROLER
 		m_stStillDetectionInfo.GradientY = DOUBLE_ZERO;
 		m_stStillDetectionInfo.MaxHandBrakeForce=0.0;
 		m_dMaxHandBrakeForce = DOUBLE_ZERO;
+		m_dMaxPedalDistance = DOUBLE_ZERO;
 
 		return true;
 	}
@@ -998,6 +1013,7 @@ namespace DATACONTROLER
 		//m_stStillDetectionInfo.MaxHandBrakeForce -= m_dInitHandForce;//180928 现在不再使用初始手刹力
 		m_stStillDetectionInfo.MaxHandBrakeForce -= m_dInitHandForce;//181006 再次使用初始手刹力
 		TransformPedalDistance(m_stStillDetectionInfo.PedalDistance);
+
 		TransformHandBrakeForce(m_stStillDetectionInfo.MaxHandBrakeForce);
 
 		//m_stStillDetectionInfo.GradientX = FilterGradientX.GetMeanData();
@@ -1010,6 +1026,10 @@ namespace DATACONTROLER
 		if( abs(m_dMaxHandBrakeForce)<abs(m_stStillDetectionInfo.MaxHandBrakeForce) )
 		{
 			m_dMaxHandBrakeForce = m_stStillDetectionInfo.MaxHandBrakeForce;
+		}
+		if( abs(m_dMaxPedalDistance)<abs(m_stStillDetectionInfo.PedalDistance) )
+		{
+			m_dMaxPedalDistance = m_stStillDetectionInfo.PedalDistance;
 		}
 
 		//if(m_bUpdateCarAngleFlag)

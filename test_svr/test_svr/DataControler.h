@@ -122,6 +122,7 @@ namespace DATACONTROLER
 		void SetInitHandForceFlag();
 		void SetInitAngleFlag();
 		bool SaveMaxHandBrakeForce2INI();
+		bool SaveMaxPedalDistance2INI();
 		bool SaveInitValue2INI();
 
 		void SetGetInitPedalDist();
@@ -143,6 +144,7 @@ namespace DATACONTROLER
 		bool m_bInitHandForceFlag;
 		void SaveCarAngle();
 		double m_dMaxHandBrakeForce;
+		double m_dMaxPedalDistance;
 
 		double m_dInitHandForce;
 		double m_dInitFootForce;

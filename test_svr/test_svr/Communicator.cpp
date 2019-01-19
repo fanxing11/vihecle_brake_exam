@@ -992,6 +992,7 @@ namespace COMMUNICATOR
 		else
 		{
 			theApp->m_pDAQController->MoveDetectionEnd();
+			theApp->m_pDataController->SaveMaxPedalDistance2INI();//结束检测时保存到INI
 		}
 
 		return true;

@@ -2,7 +2,7 @@
 #include "const.h"
 
 
-//#define _MY_VERSION_2_0_3_ 1
+#define _MY_VERSION_2_0_3_ 1
 
 
 
@@ -37,7 +37,7 @@ namespace ANALYSISSPACE
 		double m_dInitAccC;
 		double m_dInitFootBrakeForce;
 		double m_dInitHandBrakeForce;
-		double m_dInitPedalDistance;
+		double m_dMaxPedalDistance;
 		bool ReadParaFromINI(string &strErrInfo);
 		bool ReadDataFromFile(string &strErrInfo);
 
@@ -57,7 +57,7 @@ namespace ANALYSISSPACE
 		vector <double> m_vAccelaration;
 		vector <double> m_vVelocity;
 		vector <double> m_vFootBrakeForce;
-		vector <double> m_vPedalDistance ;
+		//vector <double> m_vPedalDistance ;
 
 
 		HANDLE m_hFileReader;;

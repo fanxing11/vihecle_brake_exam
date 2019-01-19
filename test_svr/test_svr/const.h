@@ -183,6 +183,7 @@ const string gc_strInitYAngle("InitialY");
 
 const string gc_strResult("Result");
 const string gc_strMaxHandBrakeForce("MaxHandBrakeForce");
+const string gc_strMaxPedalDistance("MaxPedalDistance");
 const string gc_strInitValue("InitValue");
 const string gc_strInitAccA("InitAccA");//初始加速度值
 const string gc_strInitAccB("InitAccB");
