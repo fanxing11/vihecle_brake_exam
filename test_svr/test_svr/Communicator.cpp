@@ -931,7 +931,7 @@ namespace COMMUNICATOR
 
 		theApp->m_pDataController->SetCurrentType(STILLDETECTION);
 		theApp->m_pDAQController->StillDetectionBegin();
-		theApp->m_pDataController->SetGetInitPedalDist(true);
+		theApp->m_pDataController->SetGetInitPedalDist();
 		return true;
 	}
 	bool CCommunicator::cmdStillDetectionEnd(const char* pData )
@@ -972,6 +972,7 @@ namespace COMMUNICATOR
 		else
 		{
 			theApp->m_pDataController->SetCurrentType(MOVEDETECTION);
+			theApp->m_pDataController->SetGetInitFootBrakeForce();
 			theApp->m_pDAQController->MoveDetectionBegin();
 		}
 

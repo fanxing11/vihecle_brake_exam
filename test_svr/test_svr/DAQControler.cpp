@@ -623,6 +623,9 @@ namespace DAQCONTROLER
 		}
 		SetEvent(m_gEvtMoveDetection);
 		SampleBegin();
+		//v2.0.4
+		SetEvent(m_gEvtSaveFile);
+
 	}
 
 	void CDAQControler::MoveDetectionEnd()
@@ -638,6 +641,8 @@ namespace DAQCONTROLER
 		{
 			SampleEnd();
 		}
+		//v2.0.4
+		ResetEvent(m_gEvtSaveFile);
 	}
 
 	void CDAQControler::SampleBegin(){
@@ -661,11 +666,11 @@ namespace DAQCONTROLER
 		if (0x02 == cMode)//完整检测
 		{
 			openFile();
-			SetEvent(m_gEvtSaveFile);
+			//SetEvent(m_gEvtSaveFile);
 		}
 		else if(0x01 == cMode)//测试模式
 		{
-			ResetEvent(m_gEvtSaveFile);
+			//ResetEvent(m_gEvtSaveFile);
 		}
 		return true;
 

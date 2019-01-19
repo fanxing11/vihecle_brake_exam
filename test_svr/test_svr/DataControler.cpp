@@ -53,6 +53,7 @@ namespace DATACONTROLER
 		,m_dMaxHandBrakeForce(0.0)
 		,m_bGetInitPedalDist(false)
 		,m_dInitPedalDist(0.0)
+		,m_bGetInitFootBrakeForce(false)
 	{
 		g_logger.TraceInfo("CDataControler::CDataControler");
 		m_hEvtMoveDetectionInfo = CreateEvent(NULL,TRUE,FALSE,L"");
@@ -70,9 +71,14 @@ namespace DATACONTROLER
 		g_logger.TraceWarning("CDataControler::~CDataControler");
 	}
 
-	void CDataControler::SetGetInitPedalDist(bool bInit)
+	void CDataControler::SetGetInitPedalDist()
 	{
-		m_bGetInitPedalDist = bInit;
+		m_bGetInitPedalDist = true;
+	}
+
+	void CDataControler::SetGetInitFootBrakeForce()
+	{
+		m_bGetInitFootBrakeForce = true;
 	}
 
 	int CDataControler::GetCurrentProjectState()const
@@ -553,7 +559,7 @@ namespace DATACONTROLER
 		Filter FilterAccB;
 		Filter FilterAccC;
 		Filter FilterHandForce;
-		Filter FilterFootForce;
+		//Filter FilterFootForce;
 
 		for (int i=0;i<sectionLength;++i)
 		{
@@ -561,13 +567,13 @@ namespace DATACONTROLER
 			FilterAccA.AddData(*(pData+(i*channelCount)+8));
 			FilterAccA.AddData(*(pData+(i*channelCount)+9));
 			FilterHandForce.AddData(*(pData+(i*channelCount)+4) - *(pData+(i*channelCount)+5));
-			FilterFootForce.AddData(*(pData+(i*channelCount)) - *(pData+(i*channelCount)+1));
+			//FilterFootForce.AddData(*(pData+(i*channelCount)) - *(pData+(i*channelCount)+1));
 		}
 		m_dInitAccA = FilterAccA.GetMeanData();
 		m_dInitAccB = FilterAccB.GetMeanData();
 		m_dInitAccC = FilterAccC.GetMeanData();
 		m_dInitHandForce = FilterHandForce.GetMeanData();
-		m_dInitFootForce = FilterFootForce.GetMeanData();
+		//m_dInitFootForce = FilterFootForce.GetMeanData();
 	}
 	//处理其他初始值
 	void CDataControler::GetInitValueW(const double* pData, const int channelCount, const int sectionLength)
@@ -576,7 +582,6 @@ namespace DATACONTROLER
 		Filter FilterAccB;
 		Filter FilterAccC;
 		Filter FilterHandForce;
-		Filter FilterFootForce;
 
 
 		static int nMid = stnMidCountInit;
@@ -589,7 +594,6 @@ namespace DATACONTROLER
 			{
 				nMid = stnMidCountInit;
 				FilterHandForce.AddData1(*(pData+6*sectionLength+i));
-				FilterFootForce.AddData1(*(pData+7*sectionLength+i));
 			}
 		}
 		m_dInitAccA = FilterAccA.GetMeanData();
@@ -600,7 +604,6 @@ namespace DATACONTROLER
 			m_dInitHandForce = FilterHandForce.GetMidValue();
 			m_bInitHandForceFlag = true;
 		}
-		m_dInitFootForce = FilterFootForce.GetMidValue();
 	}
 
 	//最大手刹力、XY倾角
@@ -846,6 +849,11 @@ namespace DATACONTROLER
 		//if (snMinCount == stnMidCount)
 		{
 			m_stMoveDetectionInfo.MaxFootBrakeForce = FilterFootBrakeForce.GetMidValue();
+			if (m_bGetInitFootBrakeForce)
+			{
+				m_dInitFootForce = m_stMoveDetectionInfo.MaxFootBrakeForce;
+				m_bGetInitFootBrakeForce = false;
+			}
 			FilterFootBrakeForce.ResetMid();
 		}
 

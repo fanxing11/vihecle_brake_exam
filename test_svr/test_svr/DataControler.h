@@ -16,6 +16,7 @@ namespace DATACONTROLER
 		enDETECTION_TYPE m_nCurrentType;
 		//是否需要存储0.5s内的初始踏板距离
 		bool m_bGetInitPedalDist;
+		bool m_bGetInitFootBrakeForce;
 
 		char m_cStartChannel;
 		char m_cEndChannel;
@@ -123,7 +124,8 @@ namespace DATACONTROLER
 		bool SaveMaxHandBrakeForce2INI();
 		bool SaveInitValue2INI();
 
-		void SetGetInitPedalDist(bool bInit);
+		void SetGetInitPedalDist();
+		void SetGetInitFootBrakeForce();
 
 	private:
 		MOVEDETECTIONINFO m_stMoveDetectionInfo;
