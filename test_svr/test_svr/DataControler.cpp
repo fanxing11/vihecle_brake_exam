@@ -11,6 +11,11 @@
 
 #include "Filter.h"
 
+#include <string>
+#include <fstream>
+using namespace std;
+
+
 
 extern CtheApp* theApp;
 
@@ -55,11 +60,16 @@ namespace DATACONTROLER
 		,m_bGetInitPedalDist(false)
 		,m_dInitPedalDist(0.0)
 		,m_bGetInitFootBrakeForce(false)
+		,m_strGradientFileName("")
+		,m_dGradient(0.0)
+		,m_nGradientSamplingCount(0)
+		,m_dRelativeGradient(0)
 	{
 		g_logger.TraceInfo("CDataControler::CDataControler");
 		m_hEvtMoveDetectionInfo = CreateEvent(NULL,TRUE,FALSE,L"");
 		m_hEvtStillDetectionInfo = CreateEvent(NULL,TRUE,FALSE,L"");
 		m_hEvtInitGradientInfo = CreateEvent(NULL,TRUE,FALSE,L"");
+		m_hEvtGradientInfo = CreateEvent(NULL, TRUE, FALSE, L"");
 
 		if(!ReadSensorConfigFromINI())
 		{
@@ -1040,6 +1050,31 @@ namespace DATACONTROLER
 		SetEvent(m_hEvtStillDetectionInfo);
 	}
 
+	void CDataControler::HandleGradientData(const double* pData, const int channelCount, const int sectionLength)
+	{
+		ResetEvent(m_hEvtGradientInfo);
+		g_logger.TraceInfo("CDataControler::HandleGradientData");
+
+		for (int i=0;i<sectionLength;++i)
+		{
+			m_dGradient = *(pData+1*sectionLength+i);
+			TransformGradient(m_dGradient);
+		}
+		SetEvent(m_hEvtGradientInfo);
+	}
+
+	void CDataControler::GetGradientInfo(double& dX)
+	{
+		DWORD dwRet = WaitForSingleObject(m_hEvtGradientInfo,1);
+		if (WAIT_OBJECT_0 == dwRet)
+		{
+			dX = m_dGradient;
+		}
+		else
+		{
+			g_logger.TraceError("CDataControler::GetGradientInfo - %d",dwRet);
+		}
+	}
 
 	void CDataControler::GetInitGradientInfo(double& dX, double& dY)
 	{
@@ -1162,6 +1197,194 @@ namespace DATACONTROLER
 //>>>>>>> Stashed changes
 //		//dDist = 1 / (dDist-0.44) * 0.1026856240126 + 1/30;
 		return true;
+	}
+
+	//新建Gradient path file
+	void CDataControler::SetGradientPath(const string strPath)
+	{
+
+		MakeSureDirectoryPathExists(strPath.c_str());
+		//make a file path
+		struct tm *local;
+		time_t t;
+		t = time(NULL);
+		local = localtime(&t);
+		char stFilePath[MAX_PATH] = {0};
+		sprintf_s(stFilePath,"%s\\%04d%02d%02d_%02d%02d%02d.podu",
+			strPath.c_str(),
+			local->tm_year+1900,
+			local->tm_mon+1,
+			local->tm_mday,
+			local->tm_hour,
+			local->tm_min,
+			local->tm_sec);
+
+		m_strGradientFileName = stFilePath;
+
+		vector<double> vData;
+		vData.push_back(1);
+		theApp->m_pCommunicator->SendGradient2UI(msg_GRADIENT_PATH, vData);
+	}
+
+	void CDataControler::GradientInitialize()
+	{
+		int nGradientInitCount = m_vtGradientInitData.size();
+		if (nGradientInitCount >=5)
+		{
+			//failed
+			g_logger.TraceError("CDataControler::GradientInitialize error1");
+			return;
+		}
+		double dGradient=0.0;
+		this->GetGradientInfo(dGradient);
+
+		//send to UI
+		m_vtGradientInitData.push_back(dGradient);
+		if( !theApp->m_pCommunicator->SendGradient2UI(msg_GRADIENT_INITIALIZE, m_vtGradientInitData) )
+		{
+			g_logger.TraceError("CDataControler::GradientInitialize send to UI failed.");
+		}
+
+		//save data
+		if (m_vtGradientInitData.size() == 5)
+		{
+
+			ofstream f;
+			f.open(m_strGradientFileName,ios::app);
+			if (!f.is_open())
+			{
+				g_logger.TraceError("CDataControler::GradientInitialize error2");
+				return;
+			}
+			double dSum = 0;
+			dSum = m_vtGradientInitData[0]+m_vtGradientInitData[1]+m_vtGradientInitData[2]+m_vtGradientInitData[3];
+			double dAve = dSum/4;
+			m_dRelativeGradient = m_vtGradientInitData[4] - dAve;
+			f<<m_vtGradientInitData[0]<<endl;//前4个是初始化地面坡度
+			f<<m_vtGradientInitData[1]<<endl;
+			f<<m_vtGradientInitData[2]<<endl;
+			f<<m_vtGradientInitData[3]<<endl;
+			f<< m_dRelativeGradient <<endl;//相对坡度
+			f<< dAve <<endl;//第一个采样值
+
+			f.close();
+			//send to UI the first sampling value
+			m_nGradientSamplingCount = 1;
+			vector<double> vtData;
+			vtData.push_back((double)m_nGradientSamplingCount);
+			vtData.push_back(dAve);
+			if( !theApp->m_pCommunicator->SendGradient2UI(msg_GRADIENT_SMAPLING,vtData) )
+			{
+				g_logger.TraceError("CDataControler::GradientInitialize error3.");
+			}
+		}
+	}
+
+	void CDataControler::GradientSampling()
+	{
+		if (m_nGradientSamplingCount >=255)
+		{
+			//failed
+			g_logger.TraceError("CDataControler::GradientSampling error1");
+			return;
+		}
+		double dGradient=0.0;
+		this->GetGradientInfo(dGradient);
+		m_nGradientSamplingCount += 1;
+
+		double dCurrentSamplingValue = dGradient-m_dRelativeGradient;
+
+		//save data
+		ofstream f;
+		f.open(m_strGradientFileName,ios::app);
+		if (!f.is_open())
+		{
+			g_logger.TraceError("CDataControler::GradientSampling error2");
+			return;
+		}
+		f<<dCurrentSamplingValue <<endl;
+		f.close();
+
+		//send to UI
+		vector<double> vtData;
+		vtData.push_back((double)m_nGradientSamplingCount);
+		vtData.push_back(dGradient);
+		if( !theApp->m_pCommunicator->SendGradient2UI(msg_GRADIENT_SMAPLING,vtData) )
+		{
+			g_logger.TraceError("CDataControler::GradientSampling send to UI failed.");
+		}
+	}
+
+	void CDataControler::GetGradientCurrentResult()
+	{
+		ifstream f;
+		f.open(m_strGradientFileName);
+		if (!f.is_open())
+		{
+			g_logger.TraceError("CDataControler::GetGradientCurrentResult");
+		}
+		char buffer[100] = {0};
+		vector<double> vData;
+		double dData=0;
+		std::stringstream stream;
+		int nJump = 5;
+		while(!f.eof())
+		{
+			memset(buffer,0,100);
+			f.getline(buffer,100);
+			if (nJump>0)
+			{
+				nJump--;
+				continue;
+			}
+			stream.clear();
+			stream<<buffer;
+			stream>>dData;
+			vData.push_back(dData);
+		}
+		f.close();
+		if( !theApp->m_pCommunicator->SendGradient2UI(msg_GRADIENT_GetCurrentResult,vData) )
+		{
+			g_logger.TraceError("CDataControler::GetGradientCurrentResult send to UI failed.");
+		}
+		//clear current gradient info
+		m_vtGradientInitData.clear();
+		m_dRelativeGradient = 0;
+		m_nGradientSamplingCount = 0;
+	}
+
+	void CDataControler::GetGradientFromFile(const string strPath)
+	{
+		ifstream f;
+		f.open(strPath);
+		if (!f.is_open())
+		{
+			g_logger.TraceError("CDataControler::GetGradientCurrentResult");
+		}
+		char buffer[256] = {0};
+		vector<double> vData;
+		double dData=0;
+		std::stringstream stream;
+		int nJump = 5;
+		while(!f.eof())
+		{
+			memset(buffer,0,100);
+			f.getline(buffer,100);
+			if (nJump>0)
+			{
+				nJump--;
+				continue;
+			}
+			stream.clear();
+			stream<<buffer;
+			stream>>dData;
+			vData.push_back(dData);
+		}
+		f.close();
+		if( !theApp->m_pCommunicator->SendGradient2UI(msg_GRADIENT_GetHistory,vData) )
+		{
+			g_logger.TraceError("CDataControler::GetGradientFromFile send to UI failed.");
+		}
 	}
 
 }

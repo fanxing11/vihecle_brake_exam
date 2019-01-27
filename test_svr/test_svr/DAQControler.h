@@ -39,6 +39,8 @@ namespace DAQCONTROLER
 	HANDLE m_gEvtStillDetection;
 	HANDLE m_gEvtSaveFile;
 
+	HANDLE m_gEvtGradient;
+
 	class CDAQControler
 	{
 	public:
@@ -52,6 +54,9 @@ namespace DAQCONTROLER
 		void StillDetectionEnd();
 		void MoveDetectionBegin();
 		void MoveDetectionEnd();
+		//½øÐÐÆÂ¶È¼ì²â
+		bool GetGradientBegin();
+		bool GetGradientEnd();
 
 		bool NewProject(char cMode);
 		void TerminateProject();

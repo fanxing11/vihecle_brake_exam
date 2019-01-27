@@ -33,6 +33,7 @@ namespace COMMUNICATOR
 		bool SendDatatoUI(const UINT Cmd, const int nParam=0,/*o->good*/ const string strData2Send = "");
 		bool SendAnalysisResult2UI(const int nResult, const ANALYSISRESULT& stResult);
 		bool SendAnalysisData2UI( vector<ANALYSISDATA>& stData );
+		bool SendGradient2UI(const UINT Cmd, vector<double> vData);
 
 	private:
 		bool cmdASD(const char* pData	);
@@ -55,6 +56,17 @@ namespace COMMUNICATOR
 		bool cmdAnalysisBegin(const char* pData );
 		bool cmdHeartBeatSignal(const char* pData);
 		bool cmdQuit();
+
+		//开始坡度检测
+		bool cmdGradientTest(const char* pData);
+		//初始化,得到车与地面相对角度
+		bool cmdGradientInitialize(const char* pData);
+		//移动车的位置,采样
+		bool cmdGradientSampling(const char* pData);
+		//结束坡度检测,返回当前检测的结果
+		bool cmdGradientGetCurrentResult(const char* pData);
+		//查询之前采集的坡度结果
+		bool cmdGradientGetHistory(const char* pData);
 
 		UINT_PTR nTimer;//temp
 	};

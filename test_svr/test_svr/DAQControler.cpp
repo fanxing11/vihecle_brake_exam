@@ -284,7 +284,15 @@ namespace DAQCONTROLER
 				//memcpy(DateOne, buffer, 10*sizeof(double));
 
 				//4. send data to UI
-				PostThreadMessage(theApp->m_dwMainThreadID, msg_DAQ_DATAONE, NULL, NULL);
+				if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtGradient,0))
+				{
+					PostThreadMessage(theApp->m_dwMainThreadID, msg_DAQ_DATAONE, NULL, NULL);
+				}
+				else
+				{
+					theApp->m_pDataController->HandleGradientData(dYAm, channelCountW,sectionLengthW);
+					PostThreadMessage(theApp->m_dwMainThreadID, msg_DAQ_GRADIENTDATAONE, NULL, NULL);
+				}
 
 			}
 			else
@@ -525,6 +533,8 @@ namespace DAQCONTROLER
 
 		m_gEvtSaveFile = CreateEvent(NULL,TRUE,FALSE,L"");
 
+		m_gEvtGradient = CreateEvent(NULL, TRUE, FALSE, L"");
+
 	}
 
 	void CDAQControler::DisInitialize()
@@ -614,6 +624,37 @@ namespace DAQCONTROLER
 			SampleEnd();
 		}
 	}
+	bool CDAQControler::GetGradientBegin()
+	{
+		if (!CheckDAQStarted())
+		{
+			return false;
+		}
+		if (WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtInitGradient,0)
+			&& WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtMoveDetection,0)
+			&& WAIT_OBJECT_0 != WaitForSingleObject(m_gEvtStillDetection,0)
+			)
+		{
+			SetEvent(m_gEvtGradient);
+			SampleBegin();
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	bool CDAQControler::GetGradientEnd()
+	{
+		if (!CheckDAQStarted())
+		{
+			return false;
+		}
+		ResetEvent(m_gEvtGradient);
+		SampleEnd();
+		return true;
+	}
+
 
 	void CDAQControler::MoveDetectionBegin()
 	{

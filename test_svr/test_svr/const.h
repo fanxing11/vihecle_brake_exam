@@ -57,6 +57,11 @@ const UINT msg_MAIN_QIUT = WM_USER+444;
 
 const UINT msg_DAQ_ASD = WM_USER+500;//system detect
 
+const UINT msg_GRADIENT_PATH = WM_USER+600;
+const UINT msg_GRADIENT_INITIALIZE = WM_USER+601;
+const UINT msg_GRADIENT_SMAPLING = WM_USER+602;
+const UINT msg_GRADIENT_GetCurrentResult = WM_USER+603;
+const UINT msg_GRADIENT_GetHistory = WM_USER+604;
 
 
 //----- UDP cmd from/to UI
@@ -111,11 +116,26 @@ const BYTE cmd_HEARTBEAT=0x51;//in out
 
 const BYTE cmd_QUIT=0x61;//in
 
+//201901 - version2.1 -BEGIN
+const BYTE cmd_NEW_GRADIENT_TEST=0x70;//in out
+const BYTE cmd_NEW_GRADIENT_TEST_RET=0x70;//in out
+const BYTE cmd_NEW_GRADIENT_INITIAL=0x71;//in out
+const BYTE cmd_NEW_GRADIENT_INITIAL_RET=0x71;//in out
+const BYTE cmd_NEW_GRADIENT_SAMPLING=0x72;//in out
+const BYTE cmd_NEW_GRADIENT_SAMPLING_RET=0x72;//in out
+const BYTE cmd_NEW_GRADIENT_RESULT=0x73;//in out
+const BYTE cmd_NEW_GRADIENT_RESULT_RET=0x73;//in out
+const BYTE cmd_NEW_GRADIENT_HISTORY=0x74;//in out
+const BYTE cmd_NEW_GRADIENT_HISTORY_RET=0x74;//in out
+const BYTE cmd_NEW_GRADIENT_HISTORY_DATA=0x75;//in out
+//201901 - version2.1 -END
+
 
 //DAQ controler Msg to main thread msg  
 const UINT msg_DAQ_VELOCITY = WM_USER+301;
 const UINT msg_DAQ_STRESS = WM_USER+302;
 const UINT msg_DAQ_DATAONE = WM_USER+303;
+const UINT msg_DAQ_GRADIENTDATAONE = WM_USER+304;
 
 const int stnMidCount = 100;
 const int stnMidCountInit = 20;

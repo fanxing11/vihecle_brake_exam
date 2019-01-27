@@ -317,6 +317,39 @@ int APIENTRY WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance
 				//theApp->m_pCommunicator->SendAnalysisData2UI((int)msg.wParam, stData);
 				break;
 			}
+		case msg_GRADIENT_PATH:
+			{
+				char* pPath = (char*)msg.wParam;
+				string strPath(pPath);
+				theApp->m_pDataController->SetGradientPath(strPath);
+				delete[] pPath;
+				pPath = NULL;
+				break;
+			}
+		case msg_GRADIENT_INITIALIZE:
+			{
+				theApp->m_pDataController->GradientInitialize();
+				break;
+			}
+		case msg_GRADIENT_SMAPLING:
+			{
+				theApp->m_pDataController->GradientSampling();
+				break;
+			}
+		case msg_GRADIENT_GetCurrentResult:
+			{
+				theApp->m_pDataController->GetGradientCurrentResult();
+				break;
+			}
+		case msg_GRADIENT_GetHistory:
+			{
+				char* pPath = (char*)msg.wParam;
+				string strPath(pPath);
+				theApp->m_pDataController->GetGradientFromFile(strPath);
+				delete[] pPath;
+				pPath = NULL;
+				break;
+			}
 		}
 
 	}

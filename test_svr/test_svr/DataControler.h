@@ -109,13 +109,16 @@ namespace DATACONTROLER
 		void HandleMoveDetectionData(const double* pData, const int channelCount, const int sectionLength, const double deltat);
 		void HandleInitGradientData(const double* pData, const int channelCount, const int sectionLength);
 		void GetInitValue(const double* pData, const int channelCount, const int sectionLength);
+		
 		// called by DAQ- wireless
 		void HandleStillDetectionDataW(const double* pData, const int channelCount, const int sectionLength);
 		void HandleMoveDetectionDataW(const double* pData, const int channelCount, const int sectionLength, const double deltat);
 		void HandleInitGradientDataW(const double* pData, const int channelCount, const int sectionLength);
 		void GetInitValueW(const double* pData, const int channelCount, const int sectionLength);
+		void HandleGradientData(const double* pData, const int channelCount, const int sectionLength);
 
 		// called by send2UI(main)
+		void GetGradientInfo(double& dX);
 		void GetInitGradientInfo(double& dX, double& dY);
 		void GetMoveDetectionInfo(MOVEDETECTIONINFO& stStressInfo);
 		void GetStillDetectionInfo(STILLDETECTIONINFO& stStillDetectionInfo);
@@ -128,12 +131,26 @@ namespace DATACONTROLER
 		void SetGetInitPedalDist();
 		void SetGetInitFootBrakeForce();
 
+		//set the gradient file path.
+		void SetGradientPath(const string strPath);
+		//initialize gradient, call 5 times per test.
+		void GradientInitialize();
+		//sampling, call many times(<256)
+		void GradientSampling();
+		//get current sampling result.
+		void GetGradientCurrentResult();
+		//get history sampling result.
+		void GetGradientFromFile(const string strPath);
+
+
 	private:
 		MOVEDETECTIONINFO m_stMoveDetectionInfo;
 		STILLDETECTIONINFO m_stStillDetectionInfo;
+		double m_dGradient;
 		HANDLE m_hEvtMoveDetectionInfo;
 		HANDLE m_hEvtStillDetectionInfo;
 		HANDLE m_hEvtInitGradientInfo;
+		HANDLE m_hEvtGradientInfo;
 		string m_strConfigFullName;
 
 		double m_dInitXAngle;//初始地面倾角
@@ -154,6 +171,13 @@ namespace DATACONTROLER
 
 		//初始脚踏板力
 		double m_dInitPedalDist;
+
+		string m_strGradientFileName;
+		int m_nGradientSamplingCount;
+		vector<double> m_vtGradientInitData;
+		//地面与车之间的相对倾角
+		double m_dRelativeGradient;
+
 
 	public:
 		bool TransformBrakeDistance(double & dVel);

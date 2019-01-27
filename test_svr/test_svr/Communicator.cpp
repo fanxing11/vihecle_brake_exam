@@ -116,6 +116,132 @@ namespace COMMUNICATOR
 			return false;
 		}
 	}
+	bool CCommunicator::SendGradient2UI(const UINT Cmd, vector<double> vData)
+	{
+		if (m_SockSrv == NULL)
+		{
+			g_logger.TraceError("CCommunicator::SendGradient2UI- m_SockSrv is NULL");
+			return false;
+		}
+		switch(Cmd)
+		{
+		case msg_GRADIENT_PATH:
+			{
+				int nParam = vData[0];
+
+				char Ret[4] = {cmd_HEADER,cmd_NEW_GRADIENT_TEST_RET,0x00,cmd_TAIL};
+				switch (nParam)
+				{
+				case NUM_ZERO://failed
+					Ret[2] = 0x00;
+					break;
+				case NUM_ONE://success
+					Ret[2] = 0x01;
+					break;
+				}
+				sendto(m_SockSrv, Ret, 4, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+
+				break;
+			}
+		case msg_GRADIENT_INITIALIZE:
+			{
+				int nCount = vData.size();
+				double dData = vData[vData.size()-1];
+
+				char Ret[4] = {cmd_HEADER,cmd_NEW_GRADIENT_INITIAL_RET,0x00,cmd_TAIL};
+				switch (nCount)
+				{
+				case NUM_ONE:
+					Ret[2] = 0x01;
+					break;
+				case NUM_TWO:
+					Ret[2] = 0x02;
+					break;
+				case NUM_THREE:
+					Ret[2] = 0x03;
+					break;
+				case NUM_FOUR:
+					Ret[2] = 0x04;
+					break;
+				}
+				sendto(m_SockSrv, Ret, 4, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+
+				break;
+			}
+		case msg_GRADIENT_SMAPLING:
+			{
+				int nCount = (int)(vData[0]);
+				if (nCount>255)
+				{
+					g_logger.TraceError("CCommunicator::SendGradient2UI - too much sampling point.");
+					break;
+				}
+				double dData = vData[1];
+
+				char Ret[8] = {cmd_HEADER,cmd_NEW_GRADIENT_SAMPLING_RET,0x00,
+					0x00, 0x00, 0x00, 0x00,
+					cmd_TAIL};
+				Ret[2] = nCount;
+				int nData = (int)(100*dData);
+				memcpy(Ret+3, &nData, sizeof(int));
+
+				sendto(m_SockSrv, Ret, 8, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+
+				break;
+			}
+		case msg_GRADIENT_GetCurrentResult:
+			{
+				int nSize = vData.size();
+				int nSizeofSend = nSize+4;
+				char* pBuf = new char[nSizeofSend];
+				memset(pBuf, '\0', nSizeofSend);
+				int nLoc = 0;
+				memcpy(pBuf+nLoc, &cmd_HEADER, 1);
+				nLoc++;
+				memcpy(pBuf+nLoc, &cmd_NEW_GRADIENT_RESULT_RET, 1);
+				nLoc++;
+				vector<double>::iterator iter;
+				for (iter=vData.begin();iter!=vData.end();iter++)
+				{
+					int nData = int(100*(*iter));
+					memcpy(pBuf+nLoc, &nData, sizeof(nData));
+					nLoc+=4;
+				}
+				memcpy(pBuf+nLoc, &cmd_TAIL, 1);
+				sendto(m_SockSrv, pBuf, nSizeofSend, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+				delete[] pBuf;
+				pBuf = 0;
+				break;
+			}
+		case msg_GRADIENT_GetHistory:
+			{
+				int nSize = vData.size();
+				int nSizeofSend = nSize+4;
+				char* pBuf = new char[nSizeofSend];
+				memset(pBuf, '\0', nSizeofSend);
+				int nLoc = 0;
+				memcpy(pBuf+nLoc, &cmd_HEADER, 1);
+				nLoc++;
+				memcpy(pBuf+nLoc, &cmd_NEW_GRADIENT_RESULT_RET, 1);
+				nLoc++;
+				vector<double>::iterator iter;
+				for (iter=vData.begin();iter!=vData.end();iter++)
+				{
+					int nData = int(100*(*iter));
+					memcpy(pBuf+nLoc, &nData, sizeof(nData));
+					nLoc+=4;
+				}
+				memcpy(pBuf+nLoc, &cmd_TAIL, 1);
+				sendto(m_SockSrv, pBuf, nSizeofSend, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+				delete[] pBuf;
+				pBuf = 0;
+
+				break;
+			}
+		}
+
+	}
+
 
 	bool CCommunicator::SendDatatoUI(const UINT Cmd, const int nParam, const string strData2Send)
 	{
@@ -773,6 +899,22 @@ namespace COMMUNICATOR
 			break;
 		case cmd_QUIT:
 			this->cmdQuit();
+			break;
+		case cmd_NEW_GRADIENT_TEST:
+			this->cmdGradientTest(pData);
+			break;
+		case cmd_NEW_GRADIENT_INITIAL:
+			this->cmdGradientInitialize(pData);
+			break;
+		case cmd_NEW_GRADIENT_SAMPLING:
+			this->cmdGradientSampling(pData);
+			break;
+		case cmd_NEW_GRADIENT_RESULT:
+			this->cmdGradientGetCurrentResult(pData);
+			break;
+		case cmd_NEW_GRADIENT_HISTORY:
+			this->cmdGradientGetHistory(pData);
+			break;
 		default:
 			g_logger.TraceError("CCommunicator::ParseData:cmd false,cmd=%x",cb);
 			break;
@@ -1070,6 +1212,80 @@ namespace COMMUNICATOR
 	bool CCommunicator::cmdQuit()
 	{
 		PostThreadMessage(m_dwMainThreadId, msg_MAIN_QIUT, NULL, NULL );
+		return true;
+	}
+	bool CCommunicator::cmdGradientTest(const char* pData)
+	{
+		int nPathLen=0;
+		int nLoc = 2;
+		memcpy(&nPathLen,pData+nLoc,1);
+		//gradient file full path name.
+		char* pPath = new char[nPathLen+1];
+		memset(pPath,'\0',nPathLen+1);
+		++nLoc;
+		memcpy(pPath,pData+nLoc,nPathLen);
+
+		if ( !PostThreadMessage(m_dwMainThreadId, msg_GRADIENT_PATH,(WPARAM)pPath,NULL ) )
+		{
+			delete[] pPath;
+			pPath = NULL;
+			return false;
+		}
+		if(!(theApp->m_pDAQController->GetGradientBegin()))
+		{
+			return false;
+		}
+		return true;
+	}
+	bool CCommunicator::cmdGradientInitialize(const char* pData)
+	{
+		if ( !PostThreadMessage(m_dwMainThreadId, msg_GRADIENT_INITIALIZE, NULL, NULL ) )
+		{
+			g_logger.TraceError("CCommunicator::cmdGradientInitialize - failed");
+			return false;
+		}
+		
+		return true;
+	}
+	bool CCommunicator::cmdGradientSampling(const char* pData)
+	{
+		if ( !PostThreadMessage(m_dwMainThreadId, msg_GRADIENT_SMAPLING, NULL, NULL ) )
+		{
+			g_logger.TraceError("CCommunicator::cmdGradientSampling - failed");
+			return false;
+		}
+		return true;
+	}
+	bool CCommunicator::cmdGradientGetCurrentResult(const char* pData)
+	{
+		if ( !PostThreadMessage(m_dwMainThreadId, msg_GRADIENT_GetCurrentResult, NULL, NULL ) )
+		{
+			g_logger.TraceError("CCommunicator::cmdGradientGetCurrentResult - failed");
+			return false;
+		}
+		if (!(theApp->m_pDAQController->GetGradientEnd()))
+		{
+			return false;
+		}
+		return true;
+	}
+	bool CCommunicator::cmdGradientGetHistory(const char* pData)
+	{
+		int nPathLen=0;
+		int nLoc = 2;
+		memcpy(&nPathLen,pData+nLoc,1);
+		//gradient file full path name.
+		char* pPath = new char[nPathLen+1];
+		memset(pPath,'\0',nPathLen+1);
+		++nLoc;
+		memcpy(pPath,pData+nLoc,nPathLen);
+
+		if ( !PostThreadMessage(m_dwMainThreadId, msg_GRADIENT_GetHistory,(WPARAM)pPath,NULL ) )
+		{
+			delete[] pPath;
+			pPath = NULL;
+			return false;
+		}
 		return true;
 	}
 
