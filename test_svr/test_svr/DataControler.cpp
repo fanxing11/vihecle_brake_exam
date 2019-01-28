@@ -1188,6 +1188,7 @@ namespace DATACONTROLER
 		//dDist = m_dPedalDistance1 / (dDist*m_dPedalDistance2+m_dPedalDistance3);
 		// x=£¨V-V0£©*0.4
 		dDist = (dDist-m_dInitPedalDist)*m_dPedalDistance1;
+		g_logger.TraceInfo("CDataControler::TransformPedalDistance:init:%.2f,para:%.2f,dist:%.2f",m_dInitPedalDist,m_dPedalDistance1,dDist);
 
 		//if (nCount<0)
 		//{
@@ -1356,6 +1357,8 @@ namespace DATACONTROLER
 	void CDataControler::GetGradientFromFile(const string strPath)
 	{
 		ifstream f;
+		//string strPath1 = "d:\\20190127_214050.podu";
+		//f.open(strPath1);
 		f.open(strPath);
 		if (!f.is_open())
 		{

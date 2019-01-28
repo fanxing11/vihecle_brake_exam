@@ -163,6 +163,11 @@ namespace COMMUNICATOR
 				case NUM_FOUR:
 					Ret[2] = 0x04;
 					break;
+				case NUM_FIVE:
+					Ret[2] = 0x05;
+					break;
+				default:
+					g_logger.TraceError("CCommunicator::SendGradient2UI - msg_GRADIENT_INITIALIZE count error:%d",nCount);
 				}
 				sendto(m_SockSrv, Ret, 4, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
 
@@ -192,13 +197,16 @@ namespace COMMUNICATOR
 		case msg_GRADIENT_GetCurrentResult:
 			{
 				int nSize = vData.size();
-				int nSizeofSend = nSize+4;
+				int nSizeofSend = nSize*sizeof(int)+4;
 				char* pBuf = new char[nSizeofSend];
 				memset(pBuf, '\0', nSizeofSend);
 				int nLoc = 0;
 				memcpy(pBuf+nLoc, &cmd_HEADER, 1);
 				nLoc++;
 				memcpy(pBuf+nLoc, &cmd_NEW_GRADIENT_RESULT_RET, 1);
+				nLoc++;
+				char cCount = (char)nSize;
+				memcpy(pBuf+nLoc, &cCount, 1);
 				nLoc++;
 				vector<double>::iterator iter;
 				for (iter=vData.begin();iter!=vData.end();iter++)
@@ -210,19 +218,38 @@ namespace COMMUNICATOR
 				memcpy(pBuf+nLoc, &cmd_TAIL, 1);
 				sendto(m_SockSrv, pBuf, nSizeofSend, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
 				delete[] pBuf;
-				pBuf = 0;
+				pBuf = NULL;
 				break;
 			}
 		case msg_GRADIENT_GetHistory:
 			{
+				g_logger.TraceInfo("CCommunicator::SendGradient2UI - msg_GRADIENT_GetHistory begin");
 				int nSize = vData.size();
-				int nSizeofSend = nSize+4;
+
+				char Ret[4] = {cmd_HEADER,cmd_NEW_GRADIENT_HISTORY_RET,0x00,cmd_TAIL};
+				if (nSize == 0)
+				{
+					Ret[2] = 0x00;
+					sendto(m_SockSrv, Ret, 4, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+					break;
+				}
+				else
+				{
+					Ret[2] = 0x01;
+					sendto(m_SockSrv, Ret, 4, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+				}
+
+				int nSizeofSend = nSize*sizeof(int)+4;
+
 				char* pBuf = new char[nSizeofSend];
 				memset(pBuf, '\0', nSizeofSend);
 				int nLoc = 0;
 				memcpy(pBuf+nLoc, &cmd_HEADER, 1);
 				nLoc++;
-				memcpy(pBuf+nLoc, &cmd_NEW_GRADIENT_RESULT_RET, 1);
+				memcpy(pBuf+nLoc, &cmd_NEW_GRADIENT_HISTORY_DATA, 1);
+				nLoc++;
+				char cCount = (char)nSize;
+				memcpy(pBuf+nLoc, &cCount, 1);
 				nLoc++;
 				vector<double>::iterator iter;
 				for (iter=vData.begin();iter!=vData.end();iter++)
@@ -233,8 +260,10 @@ namespace COMMUNICATOR
 				}
 				memcpy(pBuf+nLoc, &cmd_TAIL, 1);
 				sendto(m_SockSrv, pBuf, nSizeofSend, 0, (SOCKADDR*)&m_addrClient,sizeof(SOCKADDR));
+				g_logger.TraceInfo("CCommunicator::SendGradient2UI - msg_GRADIENT_GetHistory success");
+
 				delete[] pBuf;
-				pBuf = 0;
+				pBuf = NULL;
 
 				break;
 			}
