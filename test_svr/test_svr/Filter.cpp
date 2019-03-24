@@ -231,7 +231,14 @@ void Filter::AddData3(double dAcc,double dVel,double dOriginFootBrakeForce)
 	m_vtData1.push_back(dVel);
 	m_nCount++;
 }
-//返回MFDD，最大速度（制动初速度），刹车距离;取行车制动力大于某个值的点作为开始制动点
+/*
+//返回MFDD，最大速度（制动初速度），刹车距离
+@deltat[in] 采样时间间隔
+@dOriginFootBrakeForce[in], 脚刹力计算阈值,from config file
+@dAcc[out] MFDD
+@dVel[out] 制动初速度
+@BrakeDist[out] 刹车距离,取行车制动力大于某个值的点作为开始制动点
+*/
 bool Filter::GetData3(const double deltat, const double dOriginFootBrakeForce, double &dAcc,double &dVel,double &BrakeDist)
 {
 	try
@@ -242,23 +249,26 @@ bool Filter::GetData3(const double deltat, const double dOriginFootBrakeForce, d
 		double dDist1= DOUBLE_ZERO;//非减速行程
 
 		double dSumAcc2 = DOUBLE_ZERO;//减速度之和
-		int nAmount = 0;
-		bool bStartBrake = false;
+		int nAmount = 0;//减速点数
+		bool bStartBrake = false;//flag for 是否已经开始刹车
 		for (int i= 0;i<m_vtData.size();i++)
 		{
-			dDist0 += m_vtData1[i]*deltat;
-			double dFootForce = m_vtData3[i].second;
+			dDist0 += m_vtData1[i]*deltat;//速度积分累加得到总距离
+			double dFootForce = m_vtData3[i].second;//当前点的脚刹力
 			if (!bStartBrake && dFootForce > dOriginFootBrakeForce)
 			{
 				bool bRealMax = true;
+				//如果此点之后300个点均满足条件,则认为是真实的刹车起始点
 				for (int ii=0;ii<300;ii++)
 				{
+					//确认当前点是否存在
 					if ((i+ii) > (m_vtData3.size()-1))
 					{
 						g_logger.TraceError("Filter::GetData3:i=%d,ii=%d,overflowed and can not find valid footbrake force.",i,ii);
 						return false;
 					}
 					double dFootForceii = m_vtData3[i+ii].second;
+					//检查当前点是否满足要求
 					if (dFootForceii <= dOriginFootBrakeForce)
 					{
 						bRealMax = false;
@@ -270,7 +280,7 @@ bool Filter::GetData3(const double deltat, const double dOriginFootBrakeForce, d
 					g_logger.TraceWarning("Filter::GetData3:i=%d;datasize=%d",i,m_vtData.size());
 				}
 			}
-			if (bStartBrake)
+			if (bStartBrake)//更新减速信息
 			{
 				dSumAcc2 += m_vtData[i];
 				nAmount ++;
