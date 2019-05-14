@@ -219,7 +219,9 @@ const string gc_strIsWireless("Wireless");
 //v1.9.6
 const string gc_strValidFootBrakeForce("ValidFootBrakeForce");
 const string gc_strANALYSIS("ANALYSIS");
-
+//v2.1.1 
+const string gc_strMaxFootForceCalcMethod("MaxFootForceCalcMethod");
+const string gc_strPedalDistanceFactor("PedalDistanceFactor");
 
 const string gc_strParaFootBrakeForce("FootBrakeForce_Wired");
 const string gc_strParaHandBrakeForce("HandBrakeForce_Wired");

@@ -509,12 +509,16 @@ namespace ANALYSISSPACE
 		DWORD nGroupNum = dwDataSize / (sizeof(double)) / (channelCount*sectionLengthW);//几组8通道double值，即几个8X1024个double
 		g_logger.TraceInfo("CAnalysis::HandleDataW - doubleNum=%d",nGroupNum);
 
+		UINT nMaxFootForceCalcMethod = theApp->m_pDataController->GetMaxFootForceCalcMethod();
+		if (nMaxFootForceCalcMethod!=0 || nMaxFootForceCalcMethod!=1)
+		{
+			g_logger.TraceFatal("nMaxFootForceCalcMethod error,nMaxFootForceCalcMethod=%d",nMaxFootForceCalcMethod);
+		}
+		double dPedalDistanceFactor = theApp->m_pDataController->GetPedalDistanceFactor();
 
 		double dCompoundA = DOUBLE_ZERO;
-
 		double dCurrentVel= DOUBLE_ZERO;
 		double dAddVel= DOUBLE_ZERO;
-
 		//double dCurrentDist= DOUBLE_ZERO;
 
 		m_stResult.MeanDragAccelaration = *(pData);
@@ -561,9 +565,13 @@ namespace ANALYSISSPACE
 				//stAnalysisInfo.PedalDistance = *(pData+nStepj+5*sectionLengthW+i);
 
 				filterFootBrakeForceSingle.AddData1(stAnalysisInfo.MaxFootBrakeForce);
-#ifdef _MY_VERSION_2_0_3_
-				filterFootBrakeForce.AddData1_1(stAnalysisInfo.MaxFootBrakeForce);
-#endif
+//#ifdef _MY_VERSION_2_0_3_
+//				filterFootBrakeForce.AddData1_1(stAnalysisInfo.MaxFootBrakeForce);
+//#endif
+				if (1 == nMaxFootForceCalcMethod)
+				{
+					filterFootBrakeForce.AddData1_1(stAnalysisInfo.MaxFootBrakeForce);
+				}
 
 				filter2AccVelocity.AddData3(dCompoundA,dCurrentVel,stAnalysisInfo.MaxFootBrakeForce);
 
@@ -601,9 +609,13 @@ namespace ANALYSISSPACE
 					filterFootBrakeForceSingle.ResetMid();
 					//filterFootBrakeForce.AddData1(stData.FootBrakeForce);
 					//g_logger.TraceWarning("CAnalysis::HandleDataW - this time max foot brake=%f",dtmpMax);
-#ifndef _MY_VERSION_2_0_3_
-					filterFootBrakeForce.AddData1(dtmpMax);
-#endif
+//#ifndef _MY_VERSION_2_0_3_
+//					filterFootBrakeForce.AddData1(dtmpMax);
+//#endif
+					if (0 == nMaxFootForceCalcMethod)
+					{
+						filterFootBrakeForce.AddData1(dtmpMax);
+					}
 					//g_logger.TraceInfo("CAnalysis::HandleDataW - COUNTBETWEENSEND-1");
 					//stData.PedalDistance = stAnalysisInfo.PedalDistance;
 					m_vAnalysisData.push_back(stData);
@@ -649,17 +661,29 @@ namespace ANALYSISSPACE
 
 		theApp->m_pDataController->TransformAcceleration(m_stResult.BrakeLength);
 		m_stResult.BrakeLength /= 100;//tmp1.9.2.1
+		m_stResult.BrakeLength *= dPedalDistanceFactor;
 
 		g_logger.TraceWarning("CAnalysis::HandleDataW -filter2AccVelocity.GetData2-m_stResult.InitBrakeVelocity=%.3f,m_stResult.MeanDragAccelaration=%.3f",
 			m_stResult.InitBrakeVelocity,m_stResult.MeanDragAccelaration);
 
-#ifdef _MY_VERSION_2_0_3_
-		m_stResult.MaxFootBrakeForce = filterFootBrakeForce.GetMaxValue_1();
-#else
-		m_stResult.MaxFootBrakeForce = filterFootBrakeForce.GetMaxValue();
-		double ddd = filterFootBrakeForce.GetMidValue();
-		g_logger.TraceWarning("CAnalysis::HandleDataW - MaxFootBrakeForce=%f,m_dInitFootBrakeForce=%f,mid=%f",m_stResult.MaxFootBrakeForce,m_dInitFootBrakeForce,ddd );
-#endif
+//#ifdef _MY_VERSION_2_0_3_
+//		m_stResult.MaxFootBrakeForce = filterFootBrakeForce.GetMaxValue_1();
+//#else
+//		m_stResult.MaxFootBrakeForce = filterFootBrakeForce.GetMaxValue();
+//		double ddd = filterFootBrakeForce.GetMidValue();
+//		g_logger.TraceWarning("CAnalysis::HandleDataW - MaxFootBrakeForce=%f,m_dInitFootBrakeForce=%f,mid=%f",m_stResult.MaxFootBrakeForce,m_dInitFootBrakeForce,ddd );
+//#endif
+
+		if (1==nMaxFootForceCalcMethod)
+		{
+			m_stResult.MaxFootBrakeForce = filterFootBrakeForce.GetMaxValue_1();
+		}
+		else if( 0==nMaxFootForceCalcMethod)
+		{
+			m_stResult.MaxFootBrakeForce = filterFootBrakeForce.GetMaxValue();
+			double ddd = filterFootBrakeForce.GetMidValue();
+			g_logger.TraceWarning("CAnalysis::HandleDataW - MaxFootBrakeForce=%f,m_dInitFootBrakeForce=%f,mid=%f",m_stResult.MaxFootBrakeForce,m_dInitFootBrakeForce,ddd );
+		}
 		filterFootBrakeForce.ResetMid();
 		m_stResult.MaxFootBrakeForce -= m_dInitFootBrakeForce;
 		theApp->m_pDataController->TransformFootBrakeForce(m_stResult.MaxFootBrakeForce);

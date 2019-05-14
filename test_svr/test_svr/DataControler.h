@@ -73,11 +73,16 @@ namespace DATACONTROLER
 		//double m_dPedalDistance4;
 		//double m_dPedalDistance5;
 		double m_dAccelaration1;
+		double m_dMaxFootForceCalcMethod;
+		double m_dPedalDistanceFactor;
 
 	public:
 		//wired / wireless
 		bool DAQIsWirelessType();
+		//called in analysis
 		double GetValidFootBrakeForce() const;
+		UINT GetMaxFootForceCalcMethod() const;
+		double GetPedalDistanceFactor() const;
 		//called in main
 		int GetCurrentProjectState()const;
 		bool GetProjectPath(string& strPath) const;

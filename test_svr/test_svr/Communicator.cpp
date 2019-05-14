@@ -815,10 +815,10 @@ namespace COMMUNICATOR
 
 		int nAddrBufLen=sizeof(SOCKADDR);
 
-		char pBuf[500]={0};//max byte no. 100
+		char pBuf[500]={0};//max byte no. 500
 		SOCKADDR_IN addrClient;
 
-		int nLenRev = recvfrom(m_SockSrv,pBuf,100,0,(SOCKADDR*)&addrClient,&nAddrBufLen);
+		int nLenRev = recvfrom(m_SockSrv,pBuf,500,0,(SOCKADDR*)&addrClient,&nAddrBufLen);
 		if (nLenRev == 0)
 		{
 			g_logger.TraceError("CCommunicator::ParseRevData - connection has teminated");

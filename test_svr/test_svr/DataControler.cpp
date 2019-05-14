@@ -64,6 +64,8 @@ namespace DATACONTROLER
 		,m_dGradient(0.0)
 		,m_nGradientSamplingCount(0)
 		,m_dRelativeGradient(0)
+		,m_dMaxFootForceCalcMethod(0.0)
+		,m_dPedalDistanceFactor(0.0)
 	{
 		g_logger.TraceInfo("CDataControler::CDataControler");
 		m_hEvtMoveDetectionInfo = CreateEvent(NULL,TRUE,FALSE,L"");
@@ -133,11 +135,28 @@ namespace DATACONTROLER
 		return dForce;
 	}
 
+	UINT CDataControler::GetMaxFootForceCalcMethod() const
+	{
+		UINT nMethod = (UINT)m_dMaxFootForceCalcMethod;
+		g_logger.TraceInfo("CDataControler::GetMaxFootForceCalcMethod- %d",nMethod );
+		return nMethod;
+	}
+
+	double CDataControler::GetPedalDistanceFactor() const
+	{
+		g_logger.TraceInfo("CDataControler::GetPedalDistanceFactor- %.3f",m_dPedalDistanceFactor);
+		return m_dPedalDistanceFactor;
+	}
+
 	bool CDataControler::ReadSensorConfigFromINI()
 	{
 		ReadOneParaFromConfigINI(gc_strDAQType,gc_strIsWireless,m_dIsWireless);
 		//v1.9.6
 		ReadOneParaFromConfigINI(gc_strANALYSIS,gc_strValidFootBrakeForce,m_dValidFootBrakeForce);
+		//v2.1.1
+		ReadOneParaFromConfigINI(gc_strANALYSIS,gc_strMaxFootForceCalcMethod,m_dMaxFootForceCalcMethod);
+		ReadOneParaFromConfigINI(gc_strANALYSIS,gc_strPedalDistanceFactor,m_dPedalDistanceFactor);
+		
 
 		if (DAQIsWirelessType())
 		{
