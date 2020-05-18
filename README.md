@@ -1,5 +1,6 @@
 # README.MD
-This is a server part about DAQ with technique listed:
+- the backend of vehicle brake examination.
+- in the aspect of technique, this is a server part about DAQ with technique listed:
 1. UDP socket: bind revfrom sendto..
 2. message: GetMessage _beginthreadex PostThreadMessage
 3. multi-thread: main;communicate;DAQ;analysis
